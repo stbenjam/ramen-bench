@@ -183,7 +183,7 @@ select:focus-visible {
 
 .utility-actions svg,
 .search-control svg,
-.copy-prompt svg {
+.prompt-action svg {
   width: 14px;
   height: 14px;
   flex: 0 0 14px;
@@ -1003,22 +1003,31 @@ select:focus-visible {
   white-space: pre-wrap;
 }
 
-.copy-prompt {
+.prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.prompt-action {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin: 12px 0 0 auto;
   padding: 8px 11px;
   color: var(--text-soft);
   background: var(--surface-soft);
   border: 1px solid var(--border);
   border-radius: 7px;
   cursor: pointer;
+  font: inherit;
   font-size: 10px;
   font-weight: 700;
+  text-decoration: none;
 }
 
-.copy-prompt:hover {
+.prompt-action:hover {
   color: var(--text);
   border-color: var(--border-strong);
 }
