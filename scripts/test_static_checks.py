@@ -34,7 +34,7 @@ class StaticCheckTests(unittest.TestCase):
         cases = {
             "wellFormed": run(raw=b"<html><body>ramen</body></html>"),
             "standalone": run(style="body{background:url(https://example.com/a.png)}"),
-            "codeDrawn": run(body='<img src="data:image/png;base64,AAAA">'),
+            "selfDrawn": run(body='<img src="data:image/png;base64,AAAA">'),
         }
         for name, result in cases.items():
             self.assertEqual(result["reward"], 0, name)

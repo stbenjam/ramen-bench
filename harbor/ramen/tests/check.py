@@ -176,7 +176,7 @@ def check(artifact: Path) -> dict:
     checks = {
         "wellFormed": structure_violations(source),
         "standalone": standalone_violations(source),
-        "codeDrawn": procedural_violations(source),
+        "selfDrawn": procedural_violations(source),
     }
     violations = [item for items in checks.values() for item in items]
     return {
