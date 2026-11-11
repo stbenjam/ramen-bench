@@ -1,5 +1,13 @@
 # Ramen Bench contributor instructions
 
+## Generate rollouts for a new model
+
+- Run the published `stbenjam/ramen-bench` dataset on Harbor Hub with `harbor run --launch -d stbenjam/ramen-bench`. Validate each launch with `--dry-run` first.
+- Launch one job per effort, setting the effort explicitly. Name every job `<model>-<effort>` with the run's slugs, for example `--job-name fable-5.2-xhigh`. Never leave the default timestamp name.
+- Grant only the credential the harness needs with `--stored-secret`. For Claude Code, grant `CLAUDE_CODE_OAUTH_TOKEN` alone; an injected `ANTHROPIC_API_KEY` takes precedence over it.
+- Pin the harness version with `--ak version=<version>` and keep it the same across a model's efforts.
+- Download finished jobs with `harbor hub job download <job-id> -o .harbor/jobs`, then import them as described below.
+
 ## Onboard benchmark runs from recorded sessions
 
 - Treat each model's `index.html` as an immutable benchmark artifact. Verify it against the harness's final recorded write; do not clean up, reformat, or otherwise edit the model output.
