@@ -4,7 +4,7 @@ Ramen Bench is a static creative-coding benchmark viewer. Every model receives t
 
 The viewer follows the Fedora Showdown format: browse entries in the sidebar, view one result at a time, or compare up to four in a grid.
 
-Ramen Bench also ships a Harbor task with a blind vision judge and an effort-connected Pareto viewer at `scores.html`. See [the Harbor workflow](harbor/README.md) to generate new bowls, rescore the existing artifacts, or regrade a recorded Harbor job.
+Ramen Bench also ships a Harbor task for generating new bowls. Its verifier runs static checks only: the page must be well-formed HTML, load no external resources, and draw its artwork with code rather than embedded raster images. Each bowl's result appears in the viewer as reward 1.0 or 0.0. See [the Harbor workflow](harbor/README.md).
 
 ## Run locally
 
@@ -63,7 +63,7 @@ the artifact and regenerated public JSON match an existing import. An exported
 
 The importers recover recorded transcripts, timing, and token usage from the corresponding local harness stores. Provider-recorded costs take precedence. When Codex records exact token categories, the scripts apply the pinned LiteLLM catalog directly. For terminal captures that contain only an exact total, the cost is marked estimated and uses the same-effort GPT 6 Astra run's recorded input, cache, and output proportions with that model's own pinned rates; existing recorded costs are never replaced.
 
-Every entry point finishes by running `scripts/censor_transcripts.py`. This shared pass redacts personal paths, usernames, email and LAN addresses, secret-like values, and signed asset URLs, and replaces encrypted strings and large embedded media/base64 payloads with factual host, encoding, and size markers. It leaves ordinary recorded messages, source code, and tool activity intact. Run `python3 scripts/censor_transcripts.py` by itself for a read-only audit, or add `--write` to normalize existing transcript JSON. Run `python3 scripts/validate_registry.py` to check the complete public registry, schemas, artifact paths, transcript provenance, and censoring state.
+Every entry point finishes by running `scripts/censor_transcripts.py`. This shared pass redacts personal paths, usernames, email and LAN addresses, secret-like values, and signed asset URLs, and replaces encrypted strings and large embedded media/base64 payloads with factual host, encoding, and size markers. It leaves ordinary recorded messages, source code, and tool activity intact. Run `python3 scripts/censor_transcripts.py` by itself for a read-only audit, or add `--write` to normalize existing transcript JSON. After adding or changing a bowl, run `python3 scripts/static_checks.py --write` to refresh `checks.json`. Run `python3 scripts/validate_registry.py` to check the complete public registry, schemas, artifact paths, transcript provenance, static check results, and censoring state.
 
 ## Shared ratings API
 

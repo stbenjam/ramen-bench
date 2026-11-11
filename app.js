@@ -102,12 +102,13 @@
       throw new Error("Unsupported registry format");
     }
 
+    const checks = await loadChecks();
     const results = await Promise.allSettled(registry.runs.map(async (path) => {
       const response = await fetch(path, { cache: "no-store" });
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       const run = await response.json();
       if (!isRun(run)) throw new Error(`${path}: invalid run manifest`);
-      return normalizeRun(run, response.url);
+      return { ...normalizeRun(run, response.url), check: checks[run.id] };
     }));
 
     const failures = results.filter((result) => result.status === "rejected");
@@ -119,6 +120,17 @@
     return results
       .filter((result) => result.status === "fulfilled")
       .map((result) => result.value);
+  }
+
+  async function loadChecks() {
+    try {
+      const response = await fetch("checks.json", { cache: "no-store" });
+      if (!response.ok) return {};
+      return (await response.json()).results || {};
+    } catch (error) {
+      console.warn("Static check results could not be loaded:", error);
+      return {};
+    }
   }
 
   function entryFromHash() {
@@ -638,6 +650,17 @@
     addStat(stats, formatCost(entry.run.usage?.cost), "Cost");
     addStat(stats, formatTokens(entry.run.usage?.tokens?.total), "Total tokens");
     addStat(stats, formatDuration(entry.run.timing?.wallDurationMs), "Wall time");
+    if (entry.check) {
+      const passed = entry.check.reward === 1;
+      addStat(
+        stats,
+        `Reward ${passed ? "1.0" : "0.0"}`,
+        passed
+          ? "Passes the static checks: well-formed, standalone, code-drawn HTML"
+          : `Fails the static checks: ${entry.check.violations.join("; ")}`,
+        passed ? "" : "stat-fail",
+      );
+    }
 
     const transcript = document.createElement("a");
     transcript.className = "transcript-button";
@@ -653,11 +676,12 @@
     return frame;
   }
 
-  function addStat(container, value, label) {
+  function addStat(container, value, label, className = "") {
     if (!value) return;
     const stat = document.createElement("span");
     stat.textContent = value;
     stat.title = label;
+    if (className) stat.className = className;
     container.append(stat);
   }
 

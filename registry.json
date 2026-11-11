@@ -2,6 +2,9 @@
   "$schema": "./schemas/registry.schema.json",
   "schemaVersion": 1,
   "runs": [
+    "anthropic/fable-5.2/high/run.json",
+    "anthropic/fable-5.2/medium/run.json",
+    "anthropic/fable-5.2/low/run.json",
     "anthropic/haiku-5.5/max/run.json",
     "anthropic/haiku-5.5/xhigh/run.json",
     "anthropic/haiku-5.5/high/run.json",
@@ -128,6 +131,7 @@
     "mistralai/mistral-large-4-0": "2026-10-06T15:56:15.512371Z",
     "anthropic/haiku-5.5": "2026-10-08T21:21:50.929650Z",
     "meta/muse-wonder-1.0": "2026-10-12T19:58:06.304563Z",
-    "google/gemini-4-argon": "2026-10-15T23:32:48.380332Z"
+    "google/gemini-4-argon": "2026-10-15T23:32:48.380332Z",
+    "anthropic/fable-5.2": "2026-11-11T00:55:46.154639Z"
   }
 }

@@ -5,7 +5,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from backfill_session_metadata import normalize_codex_events, verify_codex_result
@@ -14,7 +13,6 @@ from import_harbor_codex import (
     main_rollout,
     native_artifact,
     native_usage,
-    recovery_grade,
     register,
     trial_usage,
 )
@@ -232,27 +230,10 @@ class HarborCodexImportTests(unittest.TestCase):
                 }
             )
             write_source()
-            with patch("import_harbor_codex.recovery_grade"):
-                run, _, _ = build_recovered_trial(trial)
+            run, _, _ = build_recovered_trial(trial)
             self.assertEqual(run["timing"]["wallDurationMs"], 120000)
             self.assertTrue(run["usage"]["raw"]["harborTrialResultMissing"])
             self.assertFalse((trial / "result.json").exists())
-
-    def test_recovery_rejects_reward_that_differs_from_saved_grade(self):
-        with tempfile.TemporaryDirectory() as directory:
-            trial = Path(directory)
-            (trial / "verifier").mkdir()
-            (trial / "verifier/grade.json").write_text(
-                json.dumps({"reward": 0.8, "scores": {"standalone": 1}})
-            )
-            (trial / "verifier/reward.json").write_text(
-                json.dumps({"reward": 0.7, "standalone": 1})
-            )
-            with (
-                patch("ramen_harbor.validate_grade"),
-                self.assertRaisesRegex(ValueError, "disagrees"),
-            ):
-                recovery_grade(trial, trial / "artifact")
 
     def test_replays_absolute_heredoc_and_recorded_path_repair_exactly(self):
         commands = [
@@ -329,21 +310,9 @@ class HarborCodexImportTests(unittest.TestCase):
     def test_registration_orders_efforts_and_preserves_human_ratings(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "harbor").mkdir()
             (root / "registry.json").write_text(
                 json.dumps({"runs": ["openai/older/low/run.json"]})
             )
-            human = {
-                "weight": 0.8,
-                "ratings": [
-                    {
-                        "runId": "openai/new/low",
-                        "humanScore": 0.91,
-                        "note": "Recorded opinion",
-                    }
-                ],
-            }
-            (root / "harbor/human-scores.json").write_text(json.dumps(human))
             runs = [
                 {
                     "id": f"openai/new/{effort}",
@@ -364,12 +333,6 @@ class HarborCodexImportTests(unittest.TestCase):
                     "openai/new/low/run.json",
                     "openai/older/low/run.json",
                 ],
-            )
-            self.assertEqual(
-                json.loads((root / "harbor/human-scores.json").read_text())["ratings"][
-                    0
-                ],
-                human["ratings"][0],
             )
 
     def test_preserves_actual_task_and_excludes_injected_context(self):

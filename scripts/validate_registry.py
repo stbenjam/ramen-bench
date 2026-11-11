@@ -89,11 +89,10 @@ def main() -> int:
         ]
     ):
         raise ValueError("one or more public JSON files need censoring")
-    from ramen_harbor import audit, audit_display_config, registered_runs
+    from static_checks import main as audit_static_checks
 
-    runs = registered_runs()
-    audit(ROOT / "scores.json", runs)
-    audit_display_config(runs)
+    if audit_static_checks([]):
+        raise ValueError("checks.json does not match the registered bowls")
     print(f"Validated {run_count} registered runs and {event_count} public transcript events.")
     return 0
 

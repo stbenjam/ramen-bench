@@ -55,6 +55,7 @@ DISPLAY_NAMES = {
     "gpt-5.6-terra": "GPT 5.6 Terra",
     "gpt-5.6-luna": "GPT 5.6 Luna",
     "gpt-5.5": "GPT 5.5",
+    "fable-5.2": "Fable 5.2",
     "fable-5.1": "Fable 5.1",
     "opus-5.5": "Opus 5.5",
     "sonnet-5.5": "Sonnet 5.5",

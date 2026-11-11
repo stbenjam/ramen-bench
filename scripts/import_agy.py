@@ -15,8 +15,7 @@ from agy_list_prices import argon_list_cost
 from backfill_session_metadata import replay_codex_command, result_stats
 from censor_transcripts import censor_value
 from censor_transcripts import main as censor_transcripts
-from import_harbor_claude import select_grade
-from import_harbor_codex import native_artifact, publish_grades
+from import_harbor_codex import native_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "google"))
@@ -438,22 +437,13 @@ def register(runs: list[dict]):
         "google/gemini-4-argon", max(r["timing"]["completedAt"] for r in runs)
     )
     path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
-    path = ROOT / "harbor/human-scores.json"
-    human = json.loads(path.read_text())
-    ids = {r["runId"] for r in human["ratings"]}
-    human["ratings"].extend(
-        {"runId": r["id"], "humanScore": None} for r in runs if r["id"] not in ids
-    )
-    path.write_text(json.dumps(human, indent=2, ensure_ascii=False) + "\n")
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harbor-job", type=Path, required=True, action="append")
-    parser.add_argument("--grade-job", type=Path, action="append", default=[])
     parser.add_argument("--check-sources", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--publish-scores", action="store_true")
     args = parser.parse_args(argv)
     built = []
     for job in args.harbor_job:
@@ -461,15 +451,7 @@ def main(argv: list[str]) -> int:
             if not trial.is_dir() or not (trial / "result.json").exists():
                 continue
             run, transcript, artifact = build_trial(trial)
-            grade = select_grade(trial, args.grade_job)
-            if grade != trial:
-                if native_artifact(grade).read_bytes() != artifact.read_bytes():
-                    raise ValueError("Native regrade changed the original artifact")
-                run["usage"]["raw"]["harborGradeTrial"] = grade.name
-                run["notes"] += (
-                    " Scores come from a native Harbor regrade of the saved artifact; original generation timing, usage, and native completion status are retained."
-                )
-            if any(r[1]["id"] == run["id"] for r in built):
+            if any(r["id"] == run["id"] for r in built):
                 raise ValueError("Multiple generations for one effort")
             destination = ROOT / run["id"]
             if (destination / "index.html").exists() and (
@@ -493,16 +475,14 @@ def main(argv: list[str]) -> int:
                     (destination / name).write_text(
                         json.dumps(value, indent=2, ensure_ascii=False) + "\n"
                     )
-            built.append((grade, run, artifact))
+            built.append(run)
             print(
                 f"Verified {run['id']} against native Harbor agy and exact final writes"
             )
     if not built:
         raise ValueError("No completed native Harbor agy trials")
     if not args.check_sources and not args.dry_run:
-        register([r for _, r, _ in built])
-        if args.publish_scores:
-            publish_grades(built, ROOT)
+        register(built)
         if censor_transcripts(["--write", str(ROOT / "google")]):
             raise ValueError("Public agy censor failed")
     return 0

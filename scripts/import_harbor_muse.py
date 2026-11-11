@@ -19,8 +19,7 @@ from backfill_session_metadata import (
 )
 from censor_transcripts import censor_value
 from censor_transcripts import main as censor_transcripts
-from import_harbor_claude import select_grade
-from import_harbor_codex import native_artifact, publish_grades, read_json
+from import_harbor_codex import native_artifact, read_json
 from muse_list_prices import AS_OF as PRICE_DATE
 from muse_list_prices import SOURCE as PRICE_SOURCE
 from muse_list_prices import wonder_list_cost
@@ -473,24 +472,15 @@ def register(runs: list[dict]) -> None:
         f"meta/{MODEL}", max(r["timing"]["completedAt"] for r in runs)
     )
     path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
-    path = ROOT / "harbor/human-scores.json"
-    human = read_json(path)
-    ids = {r["runId"] for r in human["ratings"]}
-    for run in runs:
-        if run["id"] not in ids:
-            human["ratings"].append({"runId": run["id"], "humanScore": None})
-    path.write_text(json.dumps(human, indent=2, ensure_ascii=False) + "\n")
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harbor-job", type=Path, required=True)
-    parser.add_argument("--grade-job", type=Path, action="append", default=[])
     parser.add_argument("--effort", choices=EFFORTS, action="append")
     parser.add_argument("--muse-binary", default="muse")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--check-sources", action="store_true")
-    parser.add_argument("--publish-scores", action="store_true")
     args = parser.parse_args(argv)
     built = []
     for trial in sorted(args.harbor_job.iterdir()):
@@ -502,16 +492,8 @@ def main(argv: list[str]) -> int:
         if args.effort and effort not in args.effort:
             continue
         run, transcript, artifact = build_trial(trial, args.muse_binary)
-        if any(item[1]["id"] == run["id"] for item in built):
+        if any(item["id"] == run["id"] for item in built):
             raise ValueError("Multiple successful generations for one effort")
-        grade = select_grade(trial, args.grade_job)
-        if grade != trial:
-            if native_artifact(grade).read_bytes() != artifact.read_bytes():
-                raise ValueError("Native regrade changed the original artifact")
-            run["usage"]["raw"]["harborGradeTrial"] = grade.name
-            run["notes"] += (
-                " Scores come from a native Harbor regrade of the saved artifact; generation was not repeated."
-            )
         destination = ROOT / run["id"]
         if (destination / "index.html").exists() and (
             destination / "index.html"
@@ -529,16 +511,14 @@ def main(argv: list[str]) -> int:
                 (destination / "index.html").write_bytes(artifact.read_bytes())
             write_json(destination / "run.json", run, False)
             write_json(destination / "transcript.json", transcript, False)
-        built.append((grade, run, artifact))
+        built.append(run)
         print(
             f"Verified {run['id']} against native Muse session and exact final writes"
         )
     if not built:
         raise ValueError("No completed native Muse trials found")
     if not args.dry_run and not args.check_sources:
-        register([r for _, r, _ in built])
-        if args.publish_scores:
-            publish_grades(built, ROOT)
+        register(built)
         if censor_transcripts(["--write", str(ROOT / "meta")]):
             raise ValueError("Public Muse censor failed")
     return 0

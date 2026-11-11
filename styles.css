@@ -780,6 +780,10 @@ select:focus-visible {
   color: #59483b;
 }
 
+.run-stats .stat-fail {
+  color: #e99882;
+}
+
 .transcript-button {
   grid-area: transcript;
   height: 28px;

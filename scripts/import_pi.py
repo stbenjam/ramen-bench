@@ -24,7 +24,7 @@ from backfill_session_metadata import (
     write_json,
 )
 from censor_transcripts import main as censor_transcripts
-from import_harbor_codex import native_artifact, publish_grades, read_json
+from import_harbor_codex import native_artifact, read_json
 
 
 def normalize_session(rows: list[dict]) -> tuple[list[dict], int]:
@@ -509,20 +509,14 @@ def register_run(root: Path, run: dict) -> None:
         datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     )
     path.write_text(json.dumps(registry, indent=2) + "\n")
-    path = root / "harbor/human-scores.json"
-    panel = read_json(path)
-    if not any(row["runId"] == run["id"] for row in panel["ratings"]):
-        panel["ratings"].append({"runId": run["id"], "humanScore": None})
-    path.write_text(json.dumps(panel, indent=2, ensure_ascii=False) + "\n")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harbor-job", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--publish-scores", action="store_true")
     parser.add_argument("--refresh-provider-costs", action="store_true")
-    parser.add_argument("--env-file", type=Path, default=ROOT / ".harbor/judge.env")
+    parser.add_argument("--env-file", type=Path, default=ROOT / ".harbor/openrouter.env")
     args = parser.parse_args()
     trials = [path.parent for path in args.harbor_job.glob("*/result.json")]
     if args.refresh_provider_costs:
@@ -531,7 +525,7 @@ def main() -> int:
     built = [build_trial(trial) for trial in trials]
     if len(built) != 1:
         raise ValueError("Expected one completed Pi generation")
-    for trial, (run, transcript, artifact) in zip(trials, built, strict=True):
+    for run, transcript, artifact in built:
         destination = ROOT / run["id"]
         target = destination / "index.html"
         if target.exists() and target.read_bytes() != artifact.read_bytes():
@@ -545,8 +539,6 @@ def main() -> int:
         if not args.dry_run:
             register_run(ROOT, run)
             censor_transcripts(["--write", str(destination)])
-            if args.publish_scores:
-                publish_grades([(trial, run, artifact)], ROOT)
         print(f"Verified {run['id']} against its recorded Pi session")
     return censor_transcripts([str(ROOT / "mistralai")]) if not args.dry_run else 0
 

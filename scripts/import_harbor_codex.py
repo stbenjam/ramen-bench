@@ -1,4 +1,4 @@
-"""Import genuine Codex generations and rewards from completed native Harbor trials."""
+"""Import genuine Codex generations from completed native Harbor trials."""
 
 from __future__ import annotations
 
@@ -20,7 +20,6 @@ from backfill_session_metadata import (
     verify_codex_result,
     write_json,
 )
-from censor_transcripts import censor_value
 
 
 def read_json(path: Path) -> dict:
@@ -327,20 +326,6 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
     return run, transcript, artifact
 
 
-def recovery_grade(trial: Path, artifact: Path) -> dict:
-    """Require a fully recorded native reward before recovering an unfinalized trial."""
-    import ramen_harbor as workflow
-
-    grade = read_json(trial / "verifier/grade.json")
-    workflow.validate_grade(grade, artifact)
-    if read_json(trial / "verifier/reward.json") != {
-        "reward": grade["reward"],
-        **grade["scores"],
-    }:
-        raise ValueError("Saved native verifier reward disagrees with its grade")
-    return grade
-
-
 def build_recovered_trial(trial: Path) -> tuple[dict, dict, Path]:
     """Recover recorded generation evidence without synthesizing a TrialResult."""
     if (trial / "result.json").exists():
@@ -399,7 +384,6 @@ def build_recovered_trial(trial: Path) -> tuple[dict, dict, Path]:
     artifact = native_artifact(trial)
     run_id = f"openai/{model}/{effort}"
     verification = verify_codex_result(rows, run_id, artifact)
-    recovery_grade(trial, artifact)
     events, omitted = normalize_codex_events(rows, preserve_task=True)
     usage = trial_usage(trial, None, trajectory, rows)
     lock = read_json(trial / "lock.json")
@@ -425,7 +409,7 @@ def build_recovered_trial(trial: Path) -> tuple[dict, dict, Path]:
             "wallDurationMs": round((finished - started).total_seconds() * 1000),
         },
         usage,
-        "Recovered from the completed Codex session, Harbor ATIF trajectory, collected artifact, and saved native verifier grade/reward. Harbor did not finalize result.json. Generation timing uses the recorded Codex session bounds; cost and tokens use Harbor's saved trajectory. No trial result or AgentContext was reconstructed.",
+        "Recovered from the completed Codex session, Harbor ATIF trajectory, and collected artifact. Harbor did not finalize result.json. Generation timing uses the recorded Codex session bounds; cost and tokens use Harbor's saved trajectory. No trial result or AgentContext was reconstructed.",
         "Harbor native ATIF final_metrics.total_cost_usd"
         + (
             " (Harbor LiteLLM estimate)"
@@ -467,69 +451,6 @@ def register(root: Path, runs: list[dict]) -> None:
             model, datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         )
     registry_path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
-    human_path = root / "harbor/human-scores.json"
-    human = read_json(human_path)
-    ids = {rating["runId"] for rating in human["ratings"]}
-    for run in runs:
-        if run["id"] not in ids:
-            human["ratings"].append({"runId": run["id"], "humanScore": None})
-    human_path.write_text(json.dumps(human, indent=2, ensure_ascii=False) + "\n")
-
-
-def publish_grades(trials: list[tuple[Path, dict, Path]], root: Path) -> None:
-    # Import lazily: generation-only source checks don't need browser dependencies.
-    import ramen_harbor as workflow
-
-    path = root / "scores.json"
-    workflow.audit(path, workflow.registered_runs(root))
-    current = read_json(path)
-    additions = []
-    for trial, run, artifact in trials:
-        grade = read_json(trial / "verifier/grade.json")
-        workflow.validate_grade(grade, artifact)
-        if (trial / "result.json").is_file():
-            native = (
-                read_json(trial / "result.json")
-                .get("verifier_result", {})
-                .get("rewards")
-            )
-        elif run["usage"]["raw"].get("harborTrialResultMissing"):
-            recovery_grade(trial, artifact)
-            native = read_json(trial / "verifier/reward.json")
-        else:
-            raise ValueError("Missing native Harbor trial result")
-        if native != {"reward": grade["reward"], **grade["scores"]}:
-            raise ValueError("Native Harbor rewards disagree with the verified grade")
-        if any(
-            grade[key] != current["evaluation"][key]
-            for key in ("rubricVersion", "verifierSha256", "judge")
-        ):
-            raise ValueError("Cannot mix different verifiers or judge configurations")
-        row = {
-            key: grade[key]
-            for key in ("artifactSha256", "gradedAt", "scores", "reward")
-        }
-        row.update(
-            runId=run["id"],
-            rewardStdDev=grade.get("rewardStdDev"),
-            judgeResults=grade.get("judgeResults", []),
-            standaloneViolations=grade.get("standaloneViolations", []),
-            complianceViolations=grade.get("complianceViolations", []),
-            diagnostics=grade.get("diagnostics", {}),
-            performance=grade.get("rendering", {}).get("measurements", {}),
-        )
-        additions.append(censor_value(row))
-    existing = {row["runId"]: row for row in current["results"]}
-    for row in additions:
-        if row["runId"] in existing and existing[row["runId"]] != row:
-            raise ValueError("Refusing to overwrite a different published judgment")
-        existing[row["runId"]] = row
-    current["results"] = list(existing.values())
-    workflow.write_json(path, current)
-    workflow.audit(path, workflow.registered_runs(root))
-    print(
-        f"Published {len(additions)} native grades; {len(existing)} total bowls scored"
-    )
 
 
 def build_registered_trial(run_id: str) -> tuple[dict, dict, Path]:
@@ -558,11 +479,10 @@ def main(argv: list[str]) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harbor-job", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--publish-scores", action="store_true")
     parser.add_argument(
         "--recover-completed",
         action="store_true",
-        help="recover a completed generation with a saved native grade/reward but no final trial result",
+        help="recover a completed generation whose trial result Harbor did not finalize",
     )
     args = parser.parse_args(argv)
     built = []
@@ -570,9 +490,7 @@ def main(argv: list[str]) -> None:
         if not trial.is_dir():
             continue
         finalized = (trial / "result.json").is_file()
-        if not finalized and (
-            not args.recover_completed or not (trial / "verifier/grade.json").is_file()
-        ):
+        if not finalized and not args.recover_completed:
             continue
         if finalized and read_json(trial / "result.json").get("exception_info"):
             print(f"Skipping unsuccessful trial: {trial.name}")
@@ -603,5 +521,3 @@ def main(argv: list[str]) -> None:
         raise ValueError("No successful, completed Harbor Codex trials found")
     if not args.dry_run:
         register(ROOT, [run for _, run, _ in built])
-        if args.publish_scores:
-            publish_grades(built, ROOT)

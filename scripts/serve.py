@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve the public benchmark without exposing local dot-directories or judge credentials."""
+"""Serve the public benchmark without exposing local dot-directories or credentials."""
 
 import argparse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer

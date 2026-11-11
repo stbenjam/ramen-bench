@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from import_harbor_claude import ROOT, build_trial, native_usage, select_grade
+from import_harbor_claude import ROOT, build_trial, native_usage
 
 
 class HarborClaudeTests(unittest.TestCase):
@@ -139,6 +139,33 @@ class HarborClaudeTests(unittest.TestCase):
                 (ROOT / "harbor/ramen/instruction.md").read_text().strip(),
             )
 
+    def test_maps_each_supported_model_to_its_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            trial = Path(directory)
+            self.fixture(trial)
+            for path in trial.rglob("*"):
+                if path.is_file() and path.suffix in (".json", ".jsonl", ".txt"):
+                    path.write_text(
+                        path.read_text().replace("claude-haiku-5-5", "claude-fable-5-2")
+                    )
+            run, _, _ = build_trial(trial)
+            self.assertEqual(run["id"], "anthropic/fable-5.2/max")
+            self.assertEqual(run["model"]["providerModelId"], "claude-fable-5-2")
+
+    def test_cli_diagnostic_lines_are_retained_outside_the_event_stream(self):
+        with tempfile.TemporaryDirectory() as directory:
+            trial = Path(directory)
+            self.fixture(trial)
+            path = trial / "agent/claude-code.txt"
+            first, *rest = path.read_text().splitlines()
+            line = '[claude-code:unrecognized_model] {"model":"claude-haiku-5-5"}'
+            path.write_text("\n".join([first, line, *rest]) + "\n")
+            run, _, _ = build_trial(trial)
+            self.assertEqual(run["usage"]["raw"]["claudeCodeDiagnostics"], [line])
+            path.write_text("\n".join([first, "not json", *rest]) + "\n")
+            with self.assertRaises(ValueError):
+                build_trial(trial)
+
     def test_rejects_changed_artifact_even_with_equivalent_line_endings(self):
         with tempfile.TemporaryDirectory() as directory:
             trial = Path(directory)
@@ -147,6 +174,30 @@ class HarborClaudeTests(unittest.TestCase):
             path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
             with self.assertRaisesRegex(ValueError, "final recorded write"):
                 build_trial(trial)
+
+    def test_shell_edited_artifact_falls_back_to_harbor_collection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            trial = Path(directory)
+            rows, _, _ = self.fixture(trial)
+            rows[1]["message"]["content"].append(
+                {
+                    "type": "tool_use",
+                    "id": "fixture-sed",
+                    "name": "Bash",
+                    "input": {"command": "sed -i 's/ramen/bowl/' /app/index.html"},
+                }
+            )
+            path = trial / "agent/sessions/projects/-app/fixture-session.jsonl"
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+            path = trial / "artifacts/app/index.html"
+            path.write_bytes(path.read_bytes().replace(b"ramen", b"bowl"))
+            run, _, _ = build_trial(trial)
+            self.assertTrue(
+                run["usage"]["raw"]["artifactVerification"].startswith(
+                    "Harbor artifact collection"
+                )
+            )
+            self.assertIn("Harbor's collected /app/index.html", run["notes"])
 
     def test_rejects_failed_completion(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -168,6 +219,9 @@ class HarborClaudeTests(unittest.TestCase):
             )
             completion["hasUnknownModelCost"] = True
             self.assertIsNone(native_usage(rows, result, completion)["cost"])
+            completion["hasUnknownModelCost"] = False
+            completion["modelUsage"]["claude-haiku-5-5"]["costBasis"] = "unknown"
+            self.assertIsNone(native_usage(rows, result, completion)["cost"])
             result["agent_result"]["n_input_tokens"] += 1
             with self.assertRaisesRegex(ValueError, "usage disagrees"):
                 native_usage(rows, result, completion)
@@ -186,28 +240,6 @@ class HarborClaudeTests(unittest.TestCase):
             (trial / "result.json").write_text(json.dumps(result))
             with self.assertRaisesRegex(ValueError, "unsuccessful"):
                 build_trial(trial)
-
-    def test_regrade_must_match_original_trial_identity(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            trial = root / "original"
-            self.fixture(trial)
-            regrade = root / "regrades" / "retry"
-            regrade.mkdir(parents=True)
-            (regrade / "result.json").write_text(json.dumps({"exception_info": None}))
-            config = {
-                "source_trial": {
-                    "action": "regrade",
-                    "type": "local",
-                    "path": str(trial),
-                    "trial_id": "other-trial",
-                }
-            }
-            (regrade / "config.json").write_text(json.dumps(config))
-            self.assertEqual(select_grade(trial, [regrade.parent]), trial)
-            config["source_trial"]["trial_id"] = "fixture-trial"
-            (regrade / "config.json").write_text(json.dumps(config))
-            self.assertEqual(select_grade(trial, [regrade.parent]), regrade)
 
 
 if __name__ == "__main__":
