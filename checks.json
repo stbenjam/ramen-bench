@@ -2,6 +2,20 @@
   "schemaVersion": 1,
   "checker": "harbor/ramen/tests/check.py",
   "results": {
+    "anthropic/fable-5.2/max": {
+      "reward": 1,
+      "wellFormed": 1,
+      "standalone": 1,
+      "selfDrawn": 1,
+      "violations": []
+    },
+    "anthropic/fable-5.2/xhigh": {
+      "reward": 1,
+      "wellFormed": 1,
+      "standalone": 1,
+      "selfDrawn": 1,
+      "violations": []
+    },
     "anthropic/fable-5.2/high": {
       "reward": 1,
       "wellFormed": 1,

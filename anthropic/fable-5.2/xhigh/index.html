@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060403">
+<meta name="color-scheme" content="dark">
+<title>Vegan ramen</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #060403;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #scene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: 0;
+  }
+</style>
+</head>
+<body>
+<canvas id="scene" role="img" aria-label="A steaming bowl of vegan ramen glowing in warm, low light"></canvas>
+<script>
+(() => {
+'use strict';
+
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d', { alpha: false });
+if (!ctx) return;
+
+/* ------------------------------------------------------------------ *
+ *  maths
+ * ------------------------------------------------------------------ */
+const PI = Math.PI, TAU = PI * 2;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+function rng(seed) {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rnd = rng(8675309);
+
+// classic 3-D gradient noise
+const perm = new Uint8Array(512);
+{
+  const r = rng(7), p = Array.from({ length: 256 }, (_, i) => i);
+  for (let i = 255; i > 0; i--) { const j = (r() * (i + 1)) | 0; const s = p[i]; p[i] = p[j]; p[j] = s; }
+  for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+}
+const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+function grad(h, x, y, z) {
+  h &= 15;
+  const u = h < 8 ? x : y, v = h < 4 ? y : (h === 12 || h === 14) ? x : z;
+  return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+}
+function noise(x, y, z) {
+  const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z);
+  x -= X; y -= Y; z -= Z;
+  const xi = X & 255, yi = Y & 255, zi = Z & 255;
+  const u = fade(x), v = fade(y), w = fade(z);
+  const A = perm[xi] + yi, AA = perm[A] + zi, AB = perm[A + 1] + zi;
+  const B = perm[xi + 1] + yi, BA = perm[B] + zi, BB = perm[B + 1] + zi;
+  return lerp(
+    lerp(lerp(grad(perm[AA], x, y, z), grad(perm[BA], x - 1, y, z), u),
+         lerp(grad(perm[AB], x, y - 1, z), grad(perm[BB], x - 1, y - 1, z), u), v),
+    lerp(lerp(grad(perm[AA + 1], x, y, z - 1), grad(perm[BA + 1], x - 1, y, z - 1), u),
+         lerp(grad(perm[AB + 1], x, y - 1, z - 1), grad(perm[BB + 1], x - 1, y - 1, z - 1), u), v), w);
+}
+
+/* ------------------------------------------------------------------ *
+ *  scene geometry  (unit space: bowl rim radius = 1, origin = rim centre)
+ * ------------------------------------------------------------------ */
+const K = 0.56;            // foreshortening of horizontal circles (camera ~34° above)
+const KZ = 0.83;           // screen rise per unit of height
+const HB = 0.70;           // depth of the bowl
+const RB = 0.43;           // radius where the belly meets the foot
+const SURF = -0.13;        // broth level, relative to the rim
+const BR = 0.90;           // broth radius
+const BY = -SURF * KZ;     // broth centre on screen
+const RIN = 0.945;         // inner rim radius
+const MOUND = [0.03, 0.04];
+const FOOT = 0.135;         // height of the foot ring, on screen
+
+const P = (x, y, z) => [x, y * K - z * KZ];
+const bowlR = t => RB + (1 - RB) * Math.pow(Math.max(0, 1 - t * t), 0.625);
+const moundZ = (x, y) => {
+  const d = Math.hypot(x - MOUND[0], y - MOUND[1]) / 0.46;
+  return SURF + 0.085 * Math.pow(Math.max(0, 1 - d * d), 1.5);
+};
+
+// lower silhouette of the bowl: envelope of every horizontal cross-section
+const OUTLINE = (() => {
+  const prof = [];
+  for (let i = 0; i <= 160; i++) { const t = i / 160; prof.push([HB * t * KZ, bowlR(t)]); }
+  const pts = [], N = 96;
+  for (let i = 0; i <= N; i++) {
+    const x = -Math.cos(PI * i / N), ax = Math.abs(x);
+    let m = 0;
+    for (let j = 0; j < prof.length; j++) {
+      const r = prof[j][1];
+      if (r > ax) { const v = prof[j][0] + K * Math.sqrt(r * r - x * x); if (v > m) m = v; }
+    }
+    pts.push([x, m]);
+  }
+  return pts;
+})();
+
+function bodyPath(g) {
+  g.beginPath();
+  g.moveTo(OUTLINE[0][0], OUTLINE[0][1]);
+  for (let i = 1; i < OUTLINE.length; i++) g.lineTo(OUTLINE[i][0], OUTLINE[i][1]);
+  g.ellipse(0, 0, 1, K, 0, 0, PI, false);
+  g.closePath();
+}
+
+/* ------------------------------------------------------------------ *
+ *  canvas helpers
+ * ------------------------------------------------------------------ */
+let W = 1, H = 1, DPR = 1, S = 1, CX = 0, CY = 0, PX = 1;   // PX: device px per scene unit
+let OX = 0, OY = 0;                                        // bowl origin, in whole device px
+let L = null;                                              // cached layers
+let grainPattern = null;
+let quality = 0;                                           // 0 = full; steps down on slow devices
+
+function mk(w, h) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.ceil(w));
+  c.height = Math.max(1, Math.ceil(h));
+  return c;
+}
+// a cached layer in scene units, aligned to the device-pixel grid so it blits 1:1
+function unitLayer(x0, y0, x1, y1, draw) {
+  const px = Math.floor(x0 * PX), py = Math.floor(y0 * PX);
+  const c = mk(Math.ceil(x1 * PX) - px, Math.ceil(y1 * PX) - py), g = c.getContext('2d');
+  const layer = { c, px, py };
+  g.setTransform(PX, 0, 0, PX, -px, -py);
+  g.lineCap = g.lineJoin = 'round';
+  draw(g, layer);
+  return layer;
+}
+const unitSpace = () => ctx.setTransform(PX, 0, 0, PX, OX, OY);
+const put = layer => { ctx.setTransform(1, 0, 0, 1, OX, OY); ctx.drawImage(layer.c, layer.px, layer.py); unitSpace(); };
+
+// fill a path as a soft, blurred shape (only its cast "shadow" lands on the canvas)
+function blurred(g, blur, color, build) {
+  const m = g.getTransform(), sc = Math.hypot(m.a, m.b), off = g.canvas.width + 600;
+  g.save();
+  g.shadowColor = color;
+  g.shadowBlur = blur * sc;
+  g.shadowOffsetX = off;
+  g.shadowOffsetY = 0;
+  g.fillStyle = '#000';
+  g.translate(-off / sc, 0);
+  build();
+  g.fill();
+  g.restore();
+}
+// put a local XY frame onto a horizontal plane of the scene
+function plane(g, x, y, z, rot) {
+  const c = Math.cos(rot), s = Math.sin(rot);
+  g.transform(c, s * K, -s, c * K, x, y * K - z * KZ);
+}
+const mixRGB = (a, b, t) => `rgb(${Math.round(lerp(a[0], b[0], t))},${Math.round(lerp(a[1], b[1], t))},${Math.round(lerp(a[2], b[2], t))})`;
+
+/* ------------------------------------------------------------------ *
+ *  sprites
+ * ------------------------------------------------------------------ */
+const SPR = {};
+function softDot(r, g2, b, n) {
+  n = n || 96;
+  const c = mk(n, n), g = c.getContext('2d');
+  const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  const e = Math.exp(-4);
+  for (let i = 0; i <= 14; i++) {
+    const u = i / 14, a = (Math.exp(-u * u * 4) - e) / (1 - e);
+    gr.addColorStop(u, `rgba(${r},${g2},${b},${a.toFixed(4)})`);
+  }
+  g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  return c;
+}
+function radialSprite(stops, n) {
+  n = n || 128;
+  const c = mk(n, n), g = c.getContext('2d'), gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  for (let i = 0; i < stops.length; i += 2) gr.addColorStop(stops[i], stops[i + 1]);
+  g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  return c;
+}
+function shrink(src, n) {
+  const c = mk(n, n), g = c.getContext('2d');
+  g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, n, n);
+  return c;
+}
+function oilDrop(kind) {
+  const n = 96, h = n / 2, c = mk(n, n), g = c.getContext('2d');
+  const col = kind === 0
+    ? ['rgba(255,150,54,0.40)', 'rgba(228,74,20,0.60)', 'rgba(150,30,8,0.68)']
+    : ['rgba(255,232,140,0.26)', 'rgba(246,186,74,0.40)', 'rgba(170,96,22,0.52)'];
+  const gr = g.createRadialGradient(h - 6, h - 8, 2, h, h, h - 3);
+  gr.addColorStop(0, col[0]); gr.addColorStop(0.62, col[1]); gr.addColorStop(0.93, col[2]); gr.addColorStop(1, 'rgba(110,20,4,0)');
+  g.fillStyle = gr; g.beginPath(); g.arc(h, h, h - 2, 0, TAU); g.fill();
+  g.lineCap = 'round';
+  g.strokeStyle = 'rgba(255,234,190,0.8)'; g.lineWidth = 3;
+  g.beginPath(); g.arc(h, h, h - 8, PI * 1.02, PI * 1.55); g.stroke();
+  g.strokeStyle = kind === 0 ? 'rgba(255,176,76,0.55)' : 'rgba(255,238,170,0.5)'; g.lineWidth = 5;
+  g.beginPath(); g.arc(h, h, h - 13, PI * 0.08, PI * 0.5); g.stroke();
+  g.fillStyle = 'rgba(255,252,240,0.9)';
+  g.beginPath(); g.ellipse(h - 14, h - 16, 7, 4, -0.6, 0, TAU); g.fill();
+  return c;
+}
+const BOKEH_COLORS = [[255, 170, 72], [255, 122, 50], [232, 72, 40], [255, 214, 160], [72, 170, 176]];
+function bokehDisc(col) {
+  const n = 128, h = n / 2, c = mk(n, n), g = c.getContext('2d');
+  const k = `${col[0]},${col[1]},${col[2]}`;
+  const gr = g.createRadialGradient(h, h, 0, h, h, h);
+  gr.addColorStop(0, `rgba(${k},0.50)`); gr.addColorStop(0.70, `rgba(${k},0.56)`);
+  gr.addColorStop(0.86, `rgba(${k},0.82)`); gr.addColorStop(0.93, `rgba(${k},0.5)`); gr.addColorStop(1, `rgba(${k},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, n, n);
+  return c;
+}
+function grainTile() {
+  const n = 192, c = mk(n, n), g = c.getContext('2d'), im = g.createImageData(n, n), r = rng(5);
+  for (let i = 0; i < n * n; i++) {
+    const v = r() < 0.5 ? 0 : 255;
+    im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v;
+    im.data[i * 4 + 3] = r() * 11;
+  }
+  g.putImageData(im, 0, 0);
+  return c;
+}
+function buildSprites() {
+  SPR.warm = softDot(255, 208, 152);
+  SPR.warmS = softDot(255, 208, 152, 24);
+  SPR.cream = softDot(255, 228, 176, 48);
+  SPR.dark = softDot(110, 50, 14, 48);
+  SPR.steam = softDot(255, 247, 238, 64);
+  SPR.oil = [0, 1].map(k => { const big = oilDrop(k); return [big, shrink(big, 40), shrink(big, 18)]; });
+  SPR.bokeh = BOKEH_COLORS.map(bokehDisc);
+  SPR.grain = grainTile();
+  SPR.pool = radialSprite([0, 'rgba(255,140,58,0.13)', 0.5, 'rgba(230,104,40,0.045)', 1, 'rgba(200,80,30,0)']);
+  SPR.shade = radialSprite([0, 'rgba(0,0,0,0.78)', 0.45, 'rgba(0,0,0,0.5)', 1, 'rgba(0,0,0,0)']);
+  SPR.contact = radialSprite([0, 'rgba(0,0,0,0.96)', 0.62, 'rgba(0,0,0,0.75)', 1, 'rgba(0,0,0,0)']);
+  SPR.glow = radialSprite([0, 'rgba(196,128,70,0.34)', 0.45, 'rgba(190,116,62,0.14)', 1, 'rgba(180,104,56,0)']);
+  SPR.sheen = radialSprite([0, 'rgba(255,200,150,0.12)', 1, 'rgba(255,200,150,0)'], 64);
+  SPR.streak = radialSprite([0, 'rgba(255,226,192,0.4)', 0.45, 'rgba(255,214,170,0.1)', 1, 'rgba(255,214,170,0)'], 64);
+}
+
+/* ------------------------------------------------------------------ *
+ *  static layer: the room
+ * ------------------------------------------------------------------ */
+const tableEdge = () => CY - 0.17 * S;
+
+// lens falloff toward the corners: baked into the room, applied analytically to anything drawn live
+const VIG = [0, 0, 0.55, 0.36, 1, 0.86];
+const vigR0 = () => S * 0.9, vigR1 = () => Math.max(Math.hypot(W, H) * 0.62, S * 1.6);
+function vigAt(x, y) {
+  const u = clamp((Math.hypot(x - CX, y - (CY + 0.1 * S)) - vigR0()) / (vigR1() - vigR0()), 0, 1);
+  return 1 - (u < 0.55 ? u / 0.55 * 0.36 : 0.36 + (u - 0.55) / 0.45 * 0.5);
+}
+function paintVignette(g, x0, y0, w, h) {
+  const gr = g.createRadialGradient(CX, CY + 0.1 * S, vigR0(), CX, CY + 0.1 * S, vigR1());
+  for (let i = 0; i < VIG.length; i += 2) gr.addColorStop(VIG[i], `rgba(0,0,0,${VIG[i + 1]})`);
+  g.fillStyle = gr; g.fillRect(x0, y0, w, h);
+}
+
+function buildBackdrop() {
+  const M = Math.ceil(S * 0.14) + 8;
+  const c = mk((W + 2 * M) * DPR, (H + 2 * M) * DPR), g = c.getContext('2d');
+  g.setTransform(DPR, 0, 0, DPR, M * DPR, M * DPR);
+  const x0 = -M, y0 = -M, w = W + 2 * M, h = H + 2 * M;
+  let gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, '#040303'); gr.addColorStop(0.5, '#0b0706'); gr.addColorStop(1, '#060403');
+  g.fillStyle = gr; g.fillRect(x0, y0, w, h);
+
+  // ember-coloured haze hanging behind the bowl
+  const hy = CY - 0.55 * S;
+  gr = g.createRadialGradient(CX, hy, 0, CX, hy, 3.4 * S);
+  gr.addColorStop(0, 'rgba(176,84,34,0.36)'); gr.addColorStop(0.3, 'rgba(122,50,22,0.2)');
+  gr.addColorStop(0.65, 'rgba(60,22,12,0.08)'); gr.addColorStop(1, 'rgba(30,10,6,0)');
+  g.fillStyle = gr; g.fillRect(x0, y0, w, h);
+
+  // a cool counter-glow far to the right, for depth
+  gr = g.createRadialGradient(CX + 2.7 * S, CY - 1.1 * S, 0, CX + 2.7 * S, CY - 1.1 * S, 2.4 * S);
+  gr.addColorStop(0, 'rgba(40,86,98,0.17)'); gr.addColorStop(1, 'rgba(10,30,40,0)');
+  g.fillStyle = gr; g.fillRect(x0, y0, w, h);
+
+  // the lamp's shaft of light falling onto the bowl
+  blurred(g, 0.26 * S, 'rgba(255,168,88,0.085)', () => {
+    g.beginPath();
+    g.moveTo(CX - 0.22 * S, y0); g.lineTo(CX + 0.22 * S, y0);
+    g.lineTo(CX + 1.2 * S, CY + 0.2 * S); g.lineTo(CX - 1.2 * S, CY + 0.2 * S);
+    g.closePath();
+  });
+  paintVignette(g, x0, y0, w, h);
+  return { c, M: Math.round(M * DPR) };
+}
+
+// the table: everything from its far edge down, with the chopsticks laid on it
+function buildTable() {
+  const yE = tableEdge(), top = Math.max(0, Math.floor((yE - 2) * DPR));
+  const c = mk(canvas.width, Math.max(1, canvas.height - top)), g = c.getContext('2d');
+  g.setTransform(DPR, 0, 0, DPR, 0, -top);
+  const r = rng(77);
+  const x0 = 0, w = W, bottom = H, hh = Math.max(1, bottom - yE);
+
+  let gr = g.createLinearGradient(0, yE, 0, yE + Math.max(hh, 1.6 * S));
+  gr.addColorStop(0, '#26160c'); gr.addColorStop(0.2, '#1b1009'); gr.addColorStop(0.6, '#110a06'); gr.addColorStop(1, '#080504');
+  g.fillStyle = gr; g.fillRect(x0, yE, w, hh);
+
+  // wood grain, finer toward the far edge
+  g.lineCap = 'round';
+  const count = Math.round(clamp(w * hh / (S * S) * 60, 240, 900));
+  for (let i = 0; i < count; i++) {
+    const d = Math.pow(r(), 1.5), y = yE + d * hh, pers = 0.35 + d * 1.3;
+    const len = (0.3 + r() * 1.7) * S * pers, x = x0 + r() * w - len * 0.5;
+    g.strokeStyle = r() < 0.55 ? `rgba(176,106,58,${(0.02 + r() * 0.05).toFixed(3)})` : `rgba(0,0,0,${(0.08 + r() * 0.16).toFixed(3)})`;
+    g.lineWidth = (0.003 + r() * 0.006) * S * pers;
+    g.beginPath(); g.moveTo(x, y);
+    g.quadraticCurveTo(x + len * 0.5, y + (r() - 0.5) * 0.022 * S * pers, x + len, y + (r() - 0.5) * 0.006 * S);
+    g.stroke();
+  }
+  // plank seams
+  for (let i = 0; i < 9; i++) {
+    const y = yE + 0.105 * S * Math.pow(1.62, i);
+    if (y > bottom) break;
+    const t = 0.004 * S * (1 + i * 0.5);
+    g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(x0, y, w, t);
+    g.fillStyle = 'rgba(200,126,70,0.05)'; g.fillRect(x0, y + t, w, t * 0.8);
+  }
+  // lacquer sheen: the lamp pooling on the wood
+  g.save(); g.translate(CX, CY + 0.72 * S); g.scale(2.5 * S, 0.9 * S);
+  gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(255,150,70,0.20)'); gr.addColorStop(0.5, 'rgba(230,110,50,0.08)'); gr.addColorStop(1, 'rgba(200,90,40,0)');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
+  // the room's lights, smeared in the lacquer
+  g.globalCompositeOperation = 'lighter';
+  for (const b of bokeh) {
+    if (b.up > 1.1) continue;
+    const x = b.fx * W, rr = b.r * S, my = yE + 0.05 * S + b.up * S * 0.5;
+    g.globalAlpha = clamp(b.a * 0.24 * (1 - b.up / 1.1), 0, 1);
+    g.drawImage(SPR.warm, x - rr * 1.3, my - rr * 2.6, rr * 2.6, rr * 5.2);
+  }
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+
+  // chopsticks
+  g.save(); g.setTransform(PX, 0, 0, PX, OX, OY - top); g.lineCap = g.lineJoin = 'round';
+  drawChopsticks(g); g.restore();
+
+  // the far edge is out of focus: melt it into the room
+  g.globalCompositeOperation = 'destination-out';
+  gr = g.createLinearGradient(0, yE, 0, yE + 0.07 * S);
+  gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(x0, yE - 3, w, 0.07 * S + 3);
+  g.globalCompositeOperation = 'source-over';
+  // a breath of light catching that edge
+  g.save(); g.translate(CX, yE + 0.05 * S); g.scale(3.2 * S, 0.035 * S);
+  gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(255,170,96,0.16)'); gr.addColorStop(1, 'rgba(255,150,80,0)');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
+
+  g.globalCompositeOperation = 'source-atop';
+  paintVignette(g, 0, yE - 3, W, hh + 3);
+  g.globalCompositeOperation = 'source-over';
+  return { c, top };
+}
+
+/* ------------------------------------------------------------------ *
+ *  static layer: bowl + broth
+ * ------------------------------------------------------------------ */
+function makeStrands(r, n, cx0, cy0, rMin, rMax, jitter) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const ccx = cx0 + (r() - 0.5) * jitter, ccy = cy0 + (r() - 0.5) * jitter;
+    const rad = lerp(rMin, rMax, r());
+    const a0 = r() * TAU, span = lerp(2.6, 5.6, r());
+    const ecc = lerp(0.78, 1.12, r()), rot = r() * TAU, cr = Math.cos(rot), sr = Math.sin(rot);
+    const wobA = 0.009 + r() * 0.007, wobF = 58 + r() * 30, drift = (r() - 0.5) * 0.16;
+    const len = rad * span, steps = Math.max(14, Math.ceil(len / 0.008)), pts = [];
+    for (let k = 0; k <= steps; k++) {
+      const u = k / steps, a = a0 + span * u;
+      const rr = rad * (1 + drift * u) + wobA * Math.sin(u * len * wobF + i);
+      const lx = Math.cos(a) * rr, ly = Math.sin(a) * rr * ecc;
+      pts.push([ccx + lx * cr - ly * sr, ccy + lx * sr + ly * cr]);
+    }
+    out.push({ pts, rad, tone: r() });
+  }
+  out.sort((a, b) => b.rad - a.rad);
+  return out;
+}
+
+function drawBowl(g) {
+  const r = rng(11);
+  let gr;
+
+  // foot ring (mostly tucked under the belly)
+  const fy0 = HB * KZ, fy1 = fy0 + FOOT, fr = 0.39;
+  g.beginPath(); g.moveTo(-fr, fy0); g.lineTo(-fr, fy1);
+  g.ellipse(0, fy1, fr, fr * K, 0, PI, 0, true); g.lineTo(fr, fy0); g.closePath();
+  gr = g.createLinearGradient(-fr, 0, fr, 0);
+  gr.addColorStop(0, '#050303'); gr.addColorStop(0.3, '#3a2417'); gr.addColorStop(0.5, '#2a190f'); gr.addColorStop(1, '#040202');
+  g.fillStyle = gr; g.fill();
+  gr = g.createLinearGradient(0, fy1 + fr * K - 0.09, 0, fy1 + fr * K);
+  gr.addColorStop(0, 'rgba(0,0,0,0.75)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.1)'); gr.addColorStop(1, 'rgba(255,150,70,0.12)');
+  g.fillStyle = gr; g.fill();
+
+  // ---- body: matte charcoal stoneware
+  g.save(); bodyPath(g); g.clip();
+  gr = g.createLinearGradient(-1, 0, 1, 0);
+  gr.addColorStop(0, '#030304'); gr.addColorStop(0.08, '#0b0b10'); gr.addColorStop(0.3, '#1d1d27');
+  gr.addColorStop(0.44, '#21212c'); gr.addColorStop(0.66, '#121218'); gr.addColorStop(0.9, '#07070a'); gr.addColorStop(1, '#020203');
+  g.fillStyle = gr; g.fillRect(-1.1, -0.1, 2.2, 1.2);
+  gr = g.createLinearGradient(0, 0.28, 0, 0.92);                     // underside rolls into shadow
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.74)');
+  g.fillStyle = gr; g.fillRect(-1.1, 0, 2.2, 1.1);
+  g.save(); g.translate(0, 0.99); g.scale(1, 0.4);                   // warm bounce off the table
+  gr = g.createRadialGradient(0, 0, 0, 0, 0, 0.82);
+  gr.addColorStop(0, 'rgba(255,128,48,0.34)'); gr.addColorStop(1, 'rgba(255,128,48,0)');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
+  gr = g.createLinearGradient(-1, 0, -0.7, 0);                        // warm edge light
+  gr.addColorStop(0, 'rgba(255,160,90,0.26)'); gr.addColorStop(1, 'rgba(255,160,90,0)');
+  g.fillStyle = gr; g.fillRect(-1.1, 0, 0.5, 1);
+  gr = g.createLinearGradient(0.66, 0, 1, 0);                         // cool edge light
+  gr.addColorStop(0, 'rgba(80,150,172,0)'); gr.addColorStop(0.9, 'rgba(80,150,172,0.26)'); gr.addColorStop(1, 'rgba(80,150,172,0.1)');
+  g.fillStyle = gr; g.fillRect(0.6, 0, 0.5, 1);
+
+  // speckle in the clay
+  for (let i = 0; i < 620; i++) {
+    const x = (r() * 2 - 1), y = r() * 0.92, rr = 0.0012 + r() * r() * 0.004;
+    g.fillStyle = r() < 0.6 ? `rgba(255,236,214,${(0.03 + r() * 0.09).toFixed(3)})` : `rgba(0,0,0,${(0.15 + r() * 0.25).toFixed(3)})`;
+    g.beginPath(); g.arc(x, y, rr, 0, TAU); g.fill();
+  }
+
+  // rust-brown glaze breaking over the rim and running down in slow drips
+  const drips = [];
+  for (let i = 0; i < 9; i++) drips.push([0.14 + (i + 0.15 + r() * 0.7) / 9 * (PI - 0.28), 0.03 + r() * r() * 0.13, 0.03 + r() * 0.03]);
+  const depthAt = th => {
+    let d = 0.078 + 0.026 * noise(th * 2.2, 4.1, 0.5);
+    for (let i = 0; i < drips.length; i++) { const q = Math.abs((th - drips[i][0]) / drips[i][2]); d += drips[i][1] * Math.exp(-q * q * q); }
+    return d;
+  };
+  const edge = [];
+  for (let i = 0; i <= 150; i++) {
+    const th = PI * i / 150, d = depthAt(th), rr = bowlR(d / HB);
+    edge.push([Math.cos(th) * rr, K * Math.sin(th) * rr + d * KZ]);
+  }
+  g.beginPath(); g.moveTo(1, 0);
+  for (let i = 0; i < edge.length; i++) g.lineTo(edge[i][0], edge[i][1]);
+  g.lineTo(-1, 0); g.ellipse(0, 0, 1, K, 0, PI, 0, true); g.closePath();
+  gr = g.createLinearGradient(-1, 0, 1, 0);
+  gr.addColorStop(0, '#150a05'); gr.addColorStop(0.2, '#6c3b1c'); gr.addColorStop(0.38, '#96592b');
+  gr.addColorStop(0.55, '#7c4823'); gr.addColorStop(0.8, '#3c200f'); gr.addColorStop(1, '#0c0603');
+  g.fillStyle = gr; g.fill();
+  g.strokeStyle = 'rgba(0,0,0,0.42)'; g.lineWidth = 0.012;
+  g.beginPath(); for (let i = 0; i < edge.length; i++) i ? g.lineTo(edge[i][0], edge[i][1] + 0.004) : g.moveTo(edge[i][0], edge[i][1] + 0.004); g.stroke();
+  g.strokeStyle = 'rgba(255,196,130,0.16)'; g.lineWidth = 0.004;
+  g.beginPath(); for (let i = 0; i < edge.length; i++) i ? g.lineTo(edge[i][0], edge[i][1] - 0.006) : g.moveTo(edge[i][0], edge[i][1] - 0.006); g.stroke();
+  g.strokeStyle = 'rgba(255,214,160,0.20)'; g.lineWidth = 0.008;
+  g.beginPath(); g.ellipse(0, 0.016, 0.995, K * 0.995, 0, 0.12 * PI, 0.88 * PI); g.stroke();
+  g.restore();
+
+  // ---- lip
+  g.beginPath(); g.ellipse(0, 0, 1, K, 0, 0, TAU);
+  gr = g.createLinearGradient(-1, 0, 1, 0);
+  gr.addColorStop(0, '#0b0605'); gr.addColorStop(0.25, '#51321e'); gr.addColorStop(0.4, '#70482b');
+  gr.addColorStop(0.62, '#3c2516'); gr.addColorStop(1, '#090504');
+  g.fillStyle = gr; g.fill();
+
+  // ---- interior wall
+  g.save(); g.beginPath(); g.ellipse(0, 0, RIN, RIN * K, 0, 0, TAU); g.clip();
+  gr = g.createLinearGradient(0, -RIN * K, 0, 0.05);
+  gr.addColorStop(0, '#22170f'); gr.addColorStop(1, '#0b0706');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2);
+  for (let i = 0; i < 160; i++) {
+    g.fillStyle = `rgba(255,220,180,${(0.03 + r() * 0.06).toFixed(3)})`;
+    g.beginPath(); g.arc(r() * 2 - 1, -r() * 0.56, 0.0015 + r() * 0.003, 0, TAU); g.fill();
+  }
+  // the broth throws its glow up the wall
+  [[0.30, 0.07], [0.18, 0.10], [0.09, 0.14], [0.04, 0.16]].forEach(([wd, a]) => {
+    g.strokeStyle = `rgba(255,150,60,${a})`; g.lineWidth = wd;
+    g.beginPath(); g.ellipse(0, BY, BR, BR * K, 0, 0, TAU); g.stroke();
+  });
+
+  // ---- broth
+  g.beginPath(); g.ellipse(0, BY, BR, BR * K, 0, 0, TAU); g.clip();
+  g.save(); g.translate(0, BY); g.scale(1, K);
+  gr = g.createRadialGradient(-0.1, -0.2, 0.05, 0, 0, BR);
+  gr.addColorStop(0, '#f8c869'); gr.addColorStop(0.4, '#e9a348'); gr.addColorStop(0.75, '#cb7528');
+  gr.addColorStop(0.93, '#984a18'); gr.addColorStop(1, '#642c0c');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2);
+  g.restore();
+  // noodles lying under the surface
+  const deep = makeStrands(r, 12, 0, 0.05, 0.3, 0.74, 0.2);
+  g.strokeStyle = 'rgba(246,216,142,0.9)'; g.lineWidth = 0.024;
+  for (const s of deep) {
+    g.beginPath();
+    for (let i = 0; i < s.pts.length; i++) { const p = P(s.pts[i][0], s.pts[i][1], SURF); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }
+    g.stroke();
+  }
+  g.save(); g.translate(0, BY); g.scale(1, K);                        // ...veiled by broth
+  gr = g.createRadialGradient(-0.08, -0.15, 0.05, 0, 0, BR);
+  gr.addColorStop(0, 'rgba(240,172,76,0.5)'); gr.addColorStop(0.55, 'rgba(222,138,54,0.62)'); gr.addColorStop(1, 'rgba(150,70,22,0.9)');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
+  // the lip shades the near edge of the surface
+  [[0.22, 0.10], [0.13, 0.14], [0.06, 0.2]].forEach(([wd, a]) => {
+    g.strokeStyle = `rgba(58,22,4,${a})`; g.lineWidth = wd;
+    g.beginPath(); g.ellipse(0, 0, RIN, RIN * K, 0, 0.04 * PI, 0.96 * PI); g.stroke();
+  });
+  // meniscus against the far wall
+  g.strokeStyle = 'rgba(70,26,6,0.35)'; g.lineWidth = 0.03;
+  g.beginPath(); g.ellipse(0, BY, BR, BR * K, 0, PI * 1.05, PI * 1.95); g.stroke();
+  g.strokeStyle = 'rgba(255,226,166,0.42)'; g.lineWidth = 0.006;
+  g.beginPath(); g.ellipse(0, BY, BR - 0.006, (BR - 0.006) * K, 0, PI * 1.08, PI * 1.92); g.stroke();
+  g.restore();
+
+  // lip detail
+  g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = 0.007;
+  g.beginPath(); g.ellipse(0, 0, RIN, RIN * K, 0, 0, TAU); g.stroke();
+  g.strokeStyle = 'rgba(224,160,104,0.22)'; g.lineWidth = 0.010;
+  g.beginPath(); g.ellipse(0, 0, 0.974, 0.974 * K, 0, 0, TAU); g.stroke();
+  g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 0.005;
+  g.beginPath(); g.ellipse(0, 0, 1, K, 0, 0, TAU); g.stroke();
+}
+
+/* ------------------------------------------------------------------ *
+ *  static layer: noodles + toppings
+ * ------------------------------------------------------------------ */
+function noodle(g, pts, tone) {
+  const trace = (ox, oy) => {
+    g.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const x = pts[i][0], y = pts[i][1], p = P(x, y, moundZ(x, y));
+      i ? g.lineTo(p[0] + ox, p[1] + oy) : g.moveTo(p[0] + ox, p[1] + oy);
+    }
+  };
+  g.strokeStyle = 'rgba(112,60,14,0.9)'; g.lineWidth = 0.035; trace(0.001, 0.005); g.stroke();
+  g.strokeStyle = mixRGB([232, 188, 104], [246, 214, 138], tone); g.lineWidth = 0.026; trace(0, 0); g.stroke();
+  g.strokeStyle = 'rgba(255,242,196,0.8)'; g.lineWidth = 0.009; trace(-0.003, -0.0055); g.stroke();
+}
+
+function drawNoodles(g, r) {
+  const strands = makeStrands(r, 30, MOUND[0], MOUND[1], 0.09, 0.36, 0.14);
+  // a combed fold laid across the top of the nest
+  const ang = -0.42, bc = Math.cos(ang), bs = Math.sin(ang);
+  for (let j = 0; j < 8; j++) {
+    const off = (j - 3.5) * 0.031, ph = r() * TAU, pts = [];
+    for (let k = 0; k <= 110; k++) {
+      const u = k / 110, lx = lerp(-0.47, 0.47, u);
+      const ly = off * (1 - 0.2 * u) + 0.075 * Math.sin(u * 3.7 + 0.3) + 0.007 * Math.sin(u * 34 + ph);
+      pts.push([MOUND[0] + lx * bc - ly * bs, MOUND[1] + 0.03 + lx * bs + ly * bc]);
+    }
+    strands.push({ pts, tone: r() });
+  }
+  for (const s of strands) noodle(g, s.pts, s.tone);
+}
+
+function noriSheet(g, r, ax, ay, bx, by, h, lean) {
+  const mx = (ax + bx) / 2, my = (ay + by) / 2, ml = Math.hypot(mx, my), ox = mx / ml * lean, oy = my / ml * lean;
+  const zb = SURF - 0.03, zt = SURF + h;
+  const p0 = P(ax, ay, zb), p1 = P(bx, by, zb), p2 = P(bx + ox, by + oy, zt), p3 = P(ax + ox, ay + oy, zt);
+  const path = () => {
+    g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]);
+    g.quadraticCurveTo(lerp(p1[0], p2[0], 0.5) + 0.014, lerp(p1[1], p2[1], 0.5), p2[0], p2[1]);
+    g.quadraticCurveTo(lerp(p2[0], p3[0], 0.5), lerp(p2[1], p3[1], 0.5) - 0.012, p3[0], p3[1]);
+    g.quadraticCurveTo(lerp(p3[0], p0[0], 0.5) - 0.012, lerp(p3[1], p0[1], 0.5), p0[0], p0[1]);
+    g.closePath();
+  };
+  g.save(); path(); g.clip();
+  let gr = g.createLinearGradient(p0[0], p0[1], p3[0], p3[1]);
+  gr.addColorStop(0, '#050a07'); gr.addColorStop(0.5, '#101d14'); gr.addColorStop(1, '#09120c');
+  g.fillStyle = gr; g.fillRect(-2, -2, 4, 4);
+  const xs = [p0[0], p1[0], p2[0], p3[0]], ys = [p0[1], p1[1], p2[1], p3[1]];
+  const bx0 = Math.min(...xs), bx1 = Math.max(...xs), by0 = Math.min(...ys), by1 = Math.max(...ys);
+  for (let i = 0; i < 900; i++) {                                    // pressed-seaweed mottle
+    const x = lerp(bx0, bx1, r()), y = lerp(by0, by1, r());
+    g.fillStyle = r() < 0.55 ? `rgba(70,120,84,${(0.05 + r() * 0.12).toFixed(3)})` : `rgba(0,0,0,${(0.2 + r() * 0.3).toFixed(3)})`;
+    g.beginPath(); g.ellipse(x, y, 0.002 + r() * 0.006, 0.0015 + r() * 0.004, r() * PI, 0, TAU); g.fill();
+  }
+  for (let i = 0; i < 260; i++) {                                    // stray fibres
+    const x = lerp(bx0, bx1, r()), y = lerp(by0, by1, r()), a = r() * PI, len = 0.006 + r() * 0.018;
+    g.strokeStyle = `rgba(110,160,116,${(0.05 + r() * 0.12).toFixed(3)})`; g.lineWidth = 0.0015 + r() * 0.002;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+  }
+  gr = g.createLinearGradient(p3[0], p3[1], p1[0], p1[1]);            // waxy sheen
+  gr.addColorStop(0.2, 'rgba(150,200,160,0)'); gr.addColorStop(0.4, 'rgba(160,210,170,0.15)'); gr.addColorStop(0.56, 'rgba(150,200,160,0)');
+  g.fillStyle = gr; g.fillRect(-2, -2, 4, 4);
+  const bm = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2], tm = [(p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2];
+  gr = g.createLinearGradient(bm[0], bm[1], lerp(bm[0], tm[0], 0.4), lerp(bm[1], tm[1], 0.4));
+  gr.addColorStop(0, 'rgba(150,80,28,0.62)'); gr.addColorStop(0.12, 'rgba(30,20,8,0.6)'); gr.addColorStop(1, 'rgba(0,4,2,0)');
+  g.fillStyle = gr; g.fillRect(-2, -2, 4, 4);                         // soaked where it meets the broth
+  g.restore();
+  g.strokeStyle = 'rgba(150,200,160,0.3)'; g.lineWidth = 0.0035;
+  g.beginPath(); g.moveTo(p0[0], p0[1]);
+  g.quadraticCurveTo(lerp(p3[0], p0[0], 0.5) - 0.012, lerp(p3[1], p0[1], 0.5), p3[0], p3[1]);
+  g.quadraticCurveTo(lerp(p2[0], p3[0], 0.5), lerp(p2[1], p3[1], 0.5) - 0.012, p2[0], p2[1]);
+  g.stroke();
+}
+
+function tofu(g, r, x, y, w, d, h, rot) {
+  const c = Math.cos(rot), s = Math.sin(rot);
+  const pts = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([lx, ly]) => [x + lx * c - ly * s, y + lx * s + ly * c]);
+  const zt = SURF + h, zb = SURF - 0.004;
+  for (let i = 0; i < 4; i++) {                                       // the faces turned toward us
+    const j = (i + 1) % 4;
+    const nx = (pts[i][0] + pts[j][0]) / 2 - x, ny = (pts[i][1] + pts[j][1]) / 2 - y;
+    if (ny <= 0) continue;
+    const a = P(pts[i][0], pts[i][1], zt), b = P(pts[j][0], pts[j][1], zt), c2 = P(pts[j][0], pts[j][1], zb), d2 = P(pts[i][0], pts[i][1], zb);
+    const lit = clamp(0.58 - nx / Math.hypot(nx, ny) * 0.3, 0, 1);
+    g.save();
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(c2[0], c2[1]); g.lineTo(d2[0], d2[1]); g.closePath(); g.clip();
+    const top = Math.min(a[1], b[1]), bot = Math.max(c2[1], d2[1]);
+    let gr = g.createLinearGradient(0, top, 0, bot);
+    gr.addColorStop(0, mixRGB([150, 96, 40], [226, 176, 104], lit));
+    gr.addColorStop(0.16, mixRGB([170, 130, 78], [248, 232, 196], lit));
+    gr.addColorStop(0.62, mixRGB([150, 108, 60], [236, 212, 164], lit));
+    gr.addColorStop(1, mixRGB([150, 84, 30], [214, 146, 66], lit));
+    g.fillStyle = gr; g.fillRect(-2, -2, 4, 4);
+    for (let k = 0; k < 26; k++) {                                    // curd pores
+      g.fillStyle = `rgba(120,80,36,${(0.08 + r() * 0.14).toFixed(3)})`;
+      g.beginPath(); g.ellipse(lerp(Math.min(a[0], b[0]), Math.max(a[0], b[0]), r()), lerp(top, bot, r()), 0.002 + r() * 0.004, 0.0015 + r() * 0.002, 0, 0, TAU); g.fill();
+    }
+    g.restore();
+  }
+  // seared top
+  g.save(); plane(g, x, y, zt, rot);
+  g.beginPath(); g.rect(-w / 2, -d / 2, w, d); g.clip();
+  let gr = g.createRadialGradient(-w * 0.1, -d * 0.1, 0, 0, 0, Math.max(w, d) * 0.72);
+  gr.addColorStop(0, '#f9ecc9'); gr.addColorStop(0.5, '#f0d596'); gr.addColorStop(0.85, '#d49a48'); gr.addColorStop(1, '#a8672a');
+  g.fillStyle = gr; g.fillRect(-w, -d, 2 * w, 2 * d);
+  g.strokeStyle = 'rgba(126,64,18,0.62)'; g.lineWidth = 0.02; g.lineCap = 'butt';
+  for (let k = -2; k <= 2; k++) {                                     // grill marks
+    const o = k * w * 0.3 + (r() - 0.5) * 0.01;
+    g.beginPath(); g.moveTo(o - w * 0.5, -d * 0.62); g.lineTo(o + w * 0.5, d * 0.62); g.stroke();
+  }
+  g.strokeStyle = 'rgba(150,84,26,0.5)'; g.lineWidth = 0.03; g.strokeRect(-w / 2, -d / 2, w, d);
+  gr = g.createLinearGradient(-w / 2, -d / 2, w / 2, d / 2);          // glaze catching light
+  gr.addColorStop(0.1, 'rgba(255,250,230,0.34)'); gr.addColorStop(0.45, 'rgba(255,250,230,0)');
+  g.fillStyle = gr; g.fillRect(-w, -d, 2 * w, 2 * d);
+  g.restore();
+  // crisp upper edges
+  g.strokeStyle = 'rgba(255,244,214,0.55)'; g.lineWidth = 0.004;
+  g.beginPath();
+  for (let i = 0; i < 4; i++) { const p = P(pts[i][0], pts[i][1], zt); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }
+  g.closePath(); g.stroke();
+}
+
+function shiitake(g, x, y, rad, rot) {
+  const p = P(x, y, SURF), sx = p[0], sy = p[1];
+  const h = rad * 0.62, ryTop = Math.hypot(rad * K, h * KZ), ax = sx, ay = sy - h * KZ;
+  g.save();
+  g.beginPath(); g.ellipse(sx, sy, rad, ryTop, 0, PI, TAU); g.ellipse(sx, sy, rad, rad * K, 0, 0, PI); g.closePath();
+  g.clip();
+  let gr = g.createRadialGradient(ax - rad * 0.28, ay - rad * 0.12, rad * 0.04, sx, sy - h * 0.2, rad * 1.18);
+  gr.addColorStop(0, '#9a6a3e'); gr.addColorStop(0.3, '#6a4020'); gr.addColorStop(0.7, '#3b1f0d'); gr.addColorStop(1, '#1d0e05');
+  g.fillStyle = gr; g.fillRect(sx - rad - 0.05, sy - ryTop - 0.05, 2 * rad + 0.1, ryTop + rad * K + 0.1);
+  // rolled, paler margin
+  g.strokeStyle = 'rgba(206,160,104,0.42)'; g.lineWidth = rad * 0.11;
+  g.beginPath(); g.ellipse(sx, sy, rad * 0.97, rad * K * 0.95, 0, 0.1 * PI, 0.9 * PI); g.stroke();
+  g.strokeStyle = 'rgba(20,8,2,0.45)'; g.lineWidth = rad * 0.07;
+  g.beginPath(); g.ellipse(sx, sy, rad, rad * K, 0, 0.05 * PI, 0.95 * PI); g.stroke();
+  // star-cut: three grooves across the crown showing pale flesh
+  const dome = (dx, dy) => { const q = Math.min(1, (dx * dx + dy * dy) / (rad * rad)); return [sx + dx, sy + dy * K - h * Math.sqrt(1 - q) * KZ]; };
+  for (let i = 0; i < 3; i++) {
+    const a = rot + i * PI / 3, ca = Math.cos(a), sa = Math.sin(a), len = rad * 0.6, wd = rad * 0.085, up = [], dn = [], mid = [];
+    for (let k = 0; k <= 16; k++) {
+      const u = k / 16 * 2 - 1, wv = wd * (1 - u * u), cxp = ca * u * len, cyp = sa * u * len;
+      up.push(dome(cxp - sa * wv, cyp + ca * wv)); dn.push(dome(cxp + sa * wv, cyp - ca * wv)); mid.push(dome(cxp, cyp));
+    }
+    g.beginPath(); up.forEach((q, k) => (k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])));
+    for (let k = dn.length - 1; k >= 0; k--) g.lineTo(dn[k][0], dn[k][1]);
+    g.closePath(); g.fillStyle = '#f1e2bd'; g.fill();
+    g.beginPath(); mid.forEach((q, k) => (k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])));
+    for (let k = dn.length - 1; k >= 0; k--) g.lineTo(dn[k][0], dn[k][1]);
+    g.closePath(); g.fillStyle = 'rgba(176,128,70,0.6)'; g.fill();
+    g.strokeStyle = 'rgba(40,18,6,0.5)'; g.lineWidth = 0.003;
+    g.beginPath(); up.forEach((q, k) => (k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.stroke();
+  }
+  // braising gloss
+  g.save(); g.translate(ax - rad * 0.36, ay - rad * 0.02); g.rotate(-0.5); g.scale(rad * 0.4, rad * 0.14);
+  gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(255,238,210,0.5)'); gr.addColorStop(1, 'rgba(255,238,210,0)');
+  g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
+  g.restore();
+}
+
+function bokChoy(g, r, x, y, rot) {
+  const leaves = [[-0.40, 0.50, 0.090], [0.37, 0.48, 0.085], [-0.02, 0.57, 0.098]];
+  const pass = (z, flat) => {
+    for (const [fan, Ln, wide] of leaves) {
+      g.save(); plane(g, x, y, z, rot); g.rotate(fan);
+      // blade
+      g.beginPath(); g.moveTo(0.34 * Ln, 0);
+      g.bezierCurveTo(0.40 * Ln, -wide * 0.95, 0.70 * Ln, -wide * 1.3, 0.90 * Ln, -wide * 0.64);
+      g.bezierCurveTo(1.03 * Ln, -wide * 0.22, 1.03 * Ln, wide * 0.22, 0.90 * Ln, wide * 0.64);
+      g.bezierCurveTo(0.70 * Ln, wide * 1.3, 0.40 * Ln, wide * 0.95, 0.34 * Ln, 0);
+      if (flat) { g.fillStyle = '#0c2a10'; g.fill(); }
+      else {
+        let gr = g.createLinearGradient(0.34 * Ln, -wide, Ln, wide);
+        gr.addColorStop(0, '#4c9f41'); gr.addColorStop(0.5, '#2f7a31'); gr.addColorStop(1, '#1b4f21');
+        g.fillStyle = gr; g.fill();
+        g.strokeStyle = 'rgba(8,40,14,0.55)'; g.lineWidth = 0.006; g.stroke();
+        g.save(); g.clip();
+        g.strokeStyle = 'rgba(198,232,160,0.34)'; g.lineWidth = 0.0045;
+        for (let k = 0; k < 6; k++) {                                 // veins
+          const vx = (0.42 + k * 0.085) * Ln;
+          for (const sgn of [-1, 1]) {
+            g.beginPath(); g.moveTo(vx, 0);
+            g.quadraticCurveTo(vx + 0.05 * Ln, sgn * wide * 0.5, vx + 0.14 * Ln, sgn * wide * 1.2); g.stroke();
+          }
+        }
+        gr = g.createLinearGradient(0.4 * Ln, -wide, 0.8 * Ln, 0);     // wet shine
+        gr.addColorStop(0, 'rgba(230,255,210,0.26)'); gr.addColorStop(1, 'rgba(230,255,210,0)');
+        g.fillStyle = gr; g.fillRect(0, -wide * 1.4, Ln * 1.1, wide * 1.4);
+        g.restore();
+      }
+      // stalk running out into the midrib
+      g.beginPath(); g.moveTo(0, -0.07 * Ln);
+      g.bezierCurveTo(0.14 * Ln, -0.17 * Ln, 0.38 * Ln, -0.10 * Ln, 0.57 * Ln, -0.028 * Ln);
+      g.lineTo(0.93 * Ln, 0); g.lineTo(0.57 * Ln, 0.028 * Ln);
+      g.bezierCurveTo(0.38 * Ln, 0.10 * Ln, 0.14 * Ln, 0.17 * Ln, 0, 0.07 * Ln);
+      g.quadraticCurveTo(-0.06 * Ln, 0, 0, -0.07 * Ln);
+      if (flat) { g.fillStyle = '#39461f'; g.fill(); }
+      else {
+        const gr = g.createLinearGradient(0, 0, 0.93 * Ln, 0);
+        gr.addColorStop(0, '#f7f8e2'); gr.addColorStop(0.42, '#e2ecc0'); gr.addColorStop(0.75, '#bcd892'); gr.addColorStop(1, '#8fbf6a');
+        g.fillStyle = gr; g.fill();
+        g.strokeStyle = 'rgba(110,150,70,0.45)'; g.lineWidth = 0.004; g.stroke();
+        g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 0.005;
+        g.beginPath(); g.moveTo(0.02 * Ln, -0.035 * Ln); g.quadraticCurveTo(0.2 * Ln, -0.095 * Ln, 0.52 * Ln, -0.012 * Ln); g.stroke();
+        g.strokeStyle = 'rgba(140,176,100,0.4)'; g.lineWidth = 0.004;
+        g.beginPath(); g.moveTo(0.03 * Ln, 0.04 * Ln); g.quadraticCurveTo(0.2 * Ln, 0.09 * Ln, 0.52 * Ln, 0.012 * Ln); g.stroke();
+        g.beginPath(); g.moveTo(0.02 * Ln, 0.004 * Ln); g.lineTo(0.6 * Ln, 0.002 * Ln); g.stroke();
+      }
+      g.restore();
+    }
+  };
+  pass(SURF + 0.002, true);
+  pass(SURF + 0.038, false);
+}
+
+function kernel(g, x, y, z, s, rot) {
+  const p = P(x, y, z);
+  g.save(); g.translate(p[0], p[1]); g.rotate(rot); g.scale(1, 0.8);
+  g.beginPath(); g.moveTo(-s * 0.75, s * 0.55);
+  g.bezierCurveTo(-s * 1.05, -s * 0.2, -s * 0.6, -s * 0.95, 0, -s * 0.95);
+  g.bezierCurveTo(s * 0.6, -s * 0.95, s * 1.05, -s * 0.2, s * 0.75, s * 0.55);
+  g.quadraticCurveTo(0, s * 0.98, -s * 0.75, s * 0.55);
+  const gr = g.createRadialGradient(-s * 0.25, -s * 0.35, s * 0.05, 0, 0, s * 1.1);
+  gr.addColorStop(0, '#fff3a8'); gr.addColorStop(0.35, '#fcd450'); gr.addColorStop(0.8, '#eaa722'); gr.addColorStop(1, '#b06f10');
+  g.fillStyle = gr; g.fill();
+  g.strokeStyle = 'rgba(120,62,6,0.6)'; g.lineWidth = s * 0.12; g.stroke();
+  g.fillStyle = 'rgba(255,255,236,0.8)';
+  g.beginPath(); g.ellipse(-s * 0.28, -s * 0.42, s * 0.24, s * 0.13, -0.5, 0, TAU); g.fill();
+  g.restore();
+}
+
+const SCALLION = [['#eef4cf', '#a9c784', '#fbffe6'], ['#a4d86c', '#4b8a2e', '#dcf7aa'], ['#5fb142', '#1f5f1c', '#b2e480']];
+function scallion(g, x, y, rad, squash, rot, tone, wall) {
+  const pal = SCALLION[tone < 0.3 ? 0 : tone < 0.68 ? 1 : 2];
+  g.lineWidth = rad * 0.42;
+  g.save(); g.translate(x, y + wall); g.rotate(rot); g.scale(1, squash);
+  g.strokeStyle = pal[1]; g.beginPath(); g.arc(0, 0, rad, 0, TAU); g.stroke(); g.restore();
+  g.save(); g.translate(x, y); g.rotate(rot); g.scale(1, squash);
+  g.strokeStyle = pal[0]; g.beginPath(); g.arc(0, 0, rad, 0, TAU); g.stroke();
+  g.fillStyle = 'rgba(226,244,184,0.2)'; g.beginPath(); g.arc(0, 0, rad * 0.8, 0, TAU); g.fill();
+  g.strokeStyle = pal[2]; g.lineWidth = rad * 0.13;
+  g.beginPath(); g.arc(0, 0, rad * 1.06, PI * 1.05, PI * 1.6); g.stroke();
+  g.restore();
+}
+function sesame(g, x, y, s, squash, rot, dark) {
+  g.save(); g.translate(x, y); g.scale(1, squash); g.rotate(rot);
+  g.fillStyle = dark ? '#16100b' : '#f3e2b2';
+  g.beginPath(); g.moveTo(-s, 0); g.bezierCurveTo(-s * 0.6, -s * 0.62, s * 0.5, -s * 0.5, s, 0);
+  g.bezierCurveTo(s * 0.5, s * 0.5, -s * 0.6, s * 0.62, -s, 0); g.fill();
+  g.fillStyle = dark ? 'rgba(255,240,220,0.35)' : 'rgba(255,255,255,0.7)';
+  g.beginPath(); g.ellipse(-s * 0.15, -s * 0.16, s * 0.4, s * 0.13, 0, 0, TAU); g.fill();
+  g.restore();
+}
+
+const TOFU = [[0.15, -0.57, 0.25, 0.20, 0.125, 0.22], [0.44, -0.44, 0.23, 0.21, 0.135, -0.38], [0.66, -0.20, 0.22, 0.2, 0.12, 0.62]];
+const SHROOM = [[0.60, 0.16, 0.152, 0.35], [0.33, 0.40, 0.136, 1.1]];
+const CORN = [-0.37, 0.41];
+const BOK = [-0.23, 0.10, PI + 0.38];
+
+function drawToppings(g, layer) {
+  const r = rng(4242);
+  g.save();
+  g.beginPath(); g.rect(-2, -2, 4, 2); g.ellipse(0, 0, RIN, RIN * K, 0, 0, TAU); g.clip();
+
+  // soft contact shadows on the broth
+  const sh = (x, y, rx, ry, a, blur) => blurred(g, blur, `rgba(48,18,4,${a})`, () => {
+    const p = P(x, y, SURF); g.beginPath(); g.ellipse(p[0], p[1], rx, ry * K, 0, 0, TAU);
+  });
+  sh(MOUND[0] + 0.02, MOUND[1] + 0.05, 0.44, 0.43, 0.55, 0.06);
+  for (const t of TOFU) sh(t[0] + 0.03, t[1] + 0.06, t[2] * 0.72, t[3] * 0.8, 0.6, 0.03);
+  for (const m of SHROOM) sh(m[0] + 0.02, m[1] + 0.03, m[2] * 1.12, m[2] * 1.15, 0.6, 0.03);
+  sh(CORN[0], CORN[1] + 0.02, 0.24, 0.19, 0.5, 0.035);
+  sh(-0.5, 0.0, 0.34, 0.22, 0.45, 0.04);
+  sh(-0.46, -0.5, 0.3, 0.1, 0.5, 0.03);
+
+  // nori leaning against the far wall
+  noriSheet(g, r, -0.52, -0.56, -0.05, -0.79, 0.56, 0.17);
+  noriSheet(g, r, -0.72, -0.33, -0.30, -0.70, 0.51, 0.14);
+
+  // seared tofu
+  TOFU.slice().sort((a, b) => a[1] - b[1]).forEach(t => tofu(g, r, t[0], t[1], t[2], t[3], t[4], t[5]));
+
+  // noodles, drawn apart so their outskirts can sink into the broth
+  const nc = mk(layer.c.width, layer.c.height), ng = nc.getContext('2d');
+  ng.setTransform(PX, 0, 0, PX, -layer.px, -layer.py);
+  ng.lineCap = ng.lineJoin = 'round';
+  drawNoodles(ng, r);
+  ng.globalCompositeOperation = 'destination-out';
+  ng.save(); ng.translate(MOUND[0], MOUND[1] * K + BY); ng.scale(1, K);
+  let gr = ng.createRadialGradient(0, 0, 0.25, 0, 0, 0.52);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(0,0,0,0.3)'); gr.addColorStop(0.8, 'rgba(0,0,0,0.86)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+  ng.fillStyle = gr; ng.fillRect(-3, -3, 6, 6); ng.restore();
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(nc, 0, 0); g.restore();
+
+  // baby bok choy
+  bokChoy(g, r, BOK[0], BOK[1], BOK[2]);
+
+  // scallions heaped on the nest
+  const pile = [0.06, -0.03];
+  for (let i = 0; i < 24; i++) {
+    const a = r() * TAU, d = Math.sqrt(r()) * 0.17, x = pile[0] + Math.cos(a) * d, y = pile[1] + Math.sin(a) * d * 0.9;
+    const p = P(x, y, moundZ(x, y) + 0.012 + r() * 0.03 * (1 - d / 0.17));
+    scallion(g, p[0], p[1], 0.021 + r() * 0.014, K * (0.75 + r() * 0.5), (r() - 0.5) * 0.7, r(), 0.007);
+  }
+  // chili threads
+  const threads = [];
+  for (let i = 0; i < 15; i++) {
+    const a = r() * TAU, d = r() * 0.1, x = pile[0] + Math.cos(a) * d, y = pile[1] + Math.sin(a) * d;
+    const p = P(x, y, moundZ(x, y) + 0.05), q = [];
+    for (let k = 0; k < 4; k++) q.push([p[0] + (r() - 0.5) * 0.3, p[1] + (r() - 0.5) * 0.17 - 0.012]);
+    threads.push({ q, w: 0.0045 + r() * 0.004, col: ['#b8200f', '#dc3d1c', '#8f1408', '#e2562a'][(r() * 4) | 0] });
+  }
+  const thread = (t, ox, oy) => { g.beginPath(); g.moveTo(t.q[0][0] + ox, t.q[0][1] + oy); g.bezierCurveTo(t.q[1][0] + ox, t.q[1][1] + oy, t.q[2][0] + ox, t.q[2][1] + oy, t.q[3][0] + ox, t.q[3][1] + oy); g.stroke(); };
+  for (const t of threads) { g.strokeStyle = 'rgba(40,12,2,0.4)'; g.lineWidth = t.w * 1.4; thread(t, 0.004, 0.011); }
+  for (const t of threads) {
+    g.strokeStyle = t.col; g.lineWidth = t.w; thread(t, 0, 0);
+    g.strokeStyle = 'rgba(255,170,120,0.5)'; g.lineWidth = t.w * 0.3; thread(t, -0.001, -0.002);
+  }
+
+  // shiitake
+  SHROOM.slice().sort((a, b) => a[1] - b[1]).forEach(m => shiitake(g, m[0], m[1], m[2], m[3]));
+
+  // sweet corn
+  const ks = [];
+  for (let i = 0; i < 30; i++) {
+    const a = r() * TAU, d = Math.sqrt(r()), x = CORN[0] + Math.cos(a) * d * 0.19, y = CORN[1] + Math.sin(a) * d * 0.145;
+    ks.push([x, y, SURF + 0.012 + (1 - d * d) * (0.02 + r() * 0.07), 0.031 + r() * 0.009, (r() - 0.5) * 2.4]);
+  }
+  ks.sort((a, b) => (a[1] * K - a[2] * KZ + a[2] * 2) - (b[1] * K - b[2] * KZ + b[2] * 2));
+  for (const k of ks) kernel(g, k[0], k[1], k[2], k[3], k[4]);
+
+  // garnish scattered last
+  for (let i = 0; i < 44; i++) {
+    const a = r() * TAU, d = Math.sqrt(r()) * 0.36, x = MOUND[0] + Math.cos(a) * d, y = MOUND[1] + Math.sin(a) * d;
+    const p = P(x, y, moundZ(x, y) + 0.008);
+    sesame(g, p[0], p[1], 0.0105 + r() * 0.004, 0.72, r() * PI, r() < 0.3);
+  }
+  for (const t of TOFU) {
+    for (let i = 0; i < 5; i++) {
+      const p = P(t[0] + (r() - 0.5) * t[2] * 0.7, t[1] + (r() - 0.5) * t[3] * 0.7, SURF + t[4] + 0.004);
+      sesame(g, p[0], p[1], 0.0105 + r() * 0.003, 0.72, r() * PI, r() < 0.5);
+    }
+    const p = P(t[0] + (r() - 0.5) * t[2] * 0.4, t[1] + (r() - 0.5) * t[3] * 0.4, SURF + t[4] + 0.008);
+    scallion(g, p[0], p[1], 0.022, K, r() - 0.5, 0.5 + r() * 0.5, 0.006);
+  }
+  g.restore();
+}
+
+/* ------------------------------------------------------------------ *
+ *  static layer: chopsticks resting in front of the bowl
+ * ------------------------------------------------------------------ */
+function drawChopsticks(g) {
+  const sticks = [{ a: [-0.80, 1.112], b: [0.84, 1.180] }, { a: [-0.78, 1.166], b: [0.87, 1.256] }];
+  const rx = -0.50, ry = 1.172;
+  for (const s of sticks) blurred(g, 0.02, 'rgba(0,0,0,0.75)', () => {
+    g.beginPath(); g.moveTo(s.a[0], s.a[1] + 0.05); g.lineTo(s.b[0], s.b[1] + 0.016);
+    g.lineTo(s.b[0], s.b[1] + 0.04); g.lineTo(s.a[0], s.a[1] + 0.064); g.closePath();
+  });
+  // a small stoneware rest: a glazed bar with a dip worn into its top
+  blurred(g, 0.03, 'rgba(0,0,0,0.85)', () => { g.beginPath(); g.ellipse(rx + 0.012, ry + 0.07, 0.14, 0.034, 0, 0, TAU); });
+  const hw = 0.105;
+  g.beginPath();                                                      // front face
+  g.moveTo(rx - hw, ry + 0.004); g.lineTo(rx + hw, ry + 0.004);
+  g.quadraticCurveTo(rx + hw + 0.004, ry + 0.066, rx + hw - 0.02, ry + 0.07); g.lineTo(rx - hw + 0.02, ry + 0.07);
+  g.quadraticCurveTo(rx - hw - 0.004, ry + 0.066, rx - hw, ry + 0.004); g.closePath();
+  let gr = g.createLinearGradient(0, ry, 0, ry + 0.07);
+  gr.addColorStop(0, '#2a1b13'); gr.addColorStop(0.5, '#150d09'); gr.addColorStop(1, '#070403');
+  g.fillStyle = gr; g.fill();
+  g.beginPath();                                                      // top face
+  g.moveTo(rx - hw, ry + 0.004);
+  g.bezierCurveTo(rx - hw - 0.006, ry - 0.03, rx - hw + 0.012, ry - 0.05, rx - hw + 0.03, ry - 0.05);
+  g.quadraticCurveTo(rx, ry - 0.036, rx + hw - 0.03, ry - 0.05);
+  g.bezierCurveTo(rx + hw - 0.012, ry - 0.05, rx + hw + 0.006, ry - 0.03, rx + hw, ry + 0.004);
+  g.quadraticCurveTo(rx, ry + 0.02, rx - hw, ry + 0.004); g.closePath();
+  gr = g.createLinearGradient(rx - hw, ry - 0.05, rx + hw, ry + 0.01);
+  gr.addColorStop(0, '#9a6238'); gr.addColorStop(0.4, '#6f4024'); gr.addColorStop(1, '#3a2012');
+  g.fillStyle = gr; g.fill();
+  g.strokeStyle = 'rgba(255,214,170,0.4)'; g.lineWidth = 0.004;
+  g.beginPath(); g.moveTo(rx - hw + 0.004, ry - 0.012); g.bezierCurveTo(rx - hw, ry - 0.036, rx - hw + 0.014, ry - 0.047, rx - hw + 0.034, ry - 0.047); g.stroke();
+  g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 0.004;
+  g.beginPath(); g.moveTo(rx - hw, ry + 0.005); g.quadraticCurveTo(rx, ry + 0.021, rx + hw, ry + 0.005); g.stroke();
+
+  for (const s of sticks) {
+    const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len, nx = -uy, ny = ux;
+    const wa = 0.0105, wb = 0.02, mx = (s.a[0] + s.b[0]) / 2, my = (s.a[1] + s.b[1]) / 2;
+    blurred(g, 0.012, 'rgba(0,0,0,0.6)', () => {                      // shadow thrown across the rest
+      g.beginPath(); g.rect(rx - 0.07, lerp(s.a[1], s.b[1], (rx - s.a[0]) / dx) + 0.004, 0.14, 0.018);
+    });
+    g.beginPath();
+    g.moveTo(s.a[0] - nx * wa, s.a[1] - ny * wa); g.lineTo(s.b[0] - nx * wb, s.b[1] - ny * wb);
+    g.lineTo(s.b[0] + nx * wb, s.b[1] + ny * wb); g.lineTo(s.a[0] + nx * wa, s.a[1] + ny * wa);
+    g.quadraticCurveTo(s.a[0] - ux * 0.008, s.a[1] - uy * 0.008, s.a[0] - nx * wa, s.a[1] - ny * wa);
+    gr = g.createLinearGradient(mx - nx * wb, my - ny * wb, mx + nx * wb, my + ny * wb);
+    gr.addColorStop(0, '#8a5230'); gr.addColorStop(0.28, '#472313'); gr.addColorStop(0.7, '#1a0b06'); gr.addColorStop(1, '#070302');
+    g.fillStyle = gr; g.fill();
+    gr = g.createLinearGradient(s.a[0], s.a[1], s.b[0], s.b[1]);
+    gr.addColorStop(0, 'rgba(255,200,146,0.05)'); gr.addColorStop(0.42, 'rgba(255,204,150,0.6)'); gr.addColorStop(1, 'rgba(255,200,146,0.08)');
+    g.strokeStyle = gr; g.lineWidth = 0.0045;
+    g.beginPath(); g.moveTo(s.a[0] - nx * wa * 0.45, s.a[1] - ny * wa * 0.45); g.lineTo(s.b[0] - nx * wb * 0.45, s.b[1] - ny * wb * 0.45); g.stroke();
+    g.strokeStyle = 'rgba(212,156,88,0.8)'; g.lineWidth = 0.006; g.lineCap = 'butt';
+    for (const u of [0.86, 0.885]) {
+      const px = lerp(s.a[0], s.b[0], u), py = lerp(s.a[1], s.b[1], u), wv = lerp(wa, wb, u);
+      g.beginPath(); g.moveTo(px - nx * wv, py - ny * wv); g.lineTo(px + nx * wv, py + ny * wv); g.stroke();
+    }
+    g.lineCap = 'round';
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  living things: steam, broth surface, motes, bokeh
+ * ------------------------------------------------------------------ */
+const steam = { parts: [], emit: [], c: null, g: null, px: 1, x0: -2.0, y0: -2.9, x1: 2.0, y1: 0.75 };
+const MAX_STEAM = 1300;
+let steamRate = 1;
+{
+  const r = rng(99);
+  for (let i = 0; i < 11; i++) steam.emit.push({ seed: 10 + r() * 90, acc: r(), rate: 14, z: i * 0.43, rise: 0.23 + r() * 0.09, life: 5.6 + r() * 2.6, kind: 0, floor: i < 3 ? 0.55 : 0 });
+  steam.emit.push({ seed: 3.3, acc: 0, rate: 6, z: 5.1, rise: 0.24, life: 7, kind: 1, floor: 1 });   // a broad, faint breath behind the wisps
+}
+function emitterPos(e, t) {
+  const a = e.seed * 2.4 + noise(e.seed, t * 0.06, 0) * 5;
+  const rr = clamp(0.08 + Math.abs(noise(e.seed + 31.7, t * 0.05, 1.3)) * 1.25, 0, 0.74);
+  return [Math.cos(a) * rr, Math.sin(a) * rr * K + BY];
+}
+function spawnSteam(x, y, vx, vy, e, strength) {
+  if (steam.parts.length >= MAX_STEAM) return;
+  const haze = e.kind === 1;
+  steam.parts.push({
+    x, y, vx, vy, z: e.z, c: 0.08 + 0.5 * rnd(), age: 0, life: e.life * (0.95 + 0.1 * rnd()), rise: e.rise,
+    size: (haze ? 0.2 + rnd() * 0.1 : 0.044 + rnd() * 0.014) * (1.35 - 0.35 * steamRate),
+    grow: haze ? 1.8 : 3.3, a: strength * (haze ? 0.02 : 0.062) / steamRate,   // fewer puffs → each carries more
+  });
+}
+
+const ptr = { x: 0, y: 0, sx: 0, sy: 0, vx: 0, vy: 0, on: false, k: 0, ux: 0, uy: 0, over: false, lrx: 9, lry: 9 };
+const light = { x: 0, y: 0 };
+const par = { x: 0, y: 0 };
+let time = 0, flick = 1, reduced = false;
+
+function stepSteam(dt, t) {
+  const parts = steam.parts;
+  for (const e of steam.emit) {
+    // each wisp breathes in and out; its strength rides along its length
+    const strength = Math.max(e.floor, smooth(-0.26, 0.34, noise(e.seed * 3.1, t * 0.12, 5.5)));
+    if (strength < 0.02) { e.acc = 0; continue; }
+    e.acc += dt * e.rate * steamRate;
+    if (e.acc >= 1) {
+      const p = emitterPos(e, t), j = e.kind === 1 ? 0.3 : 0.016;
+      while (e.acc >= 1) { e.acc -= 1; spawnSteam(p[0] + (rnd() - 0.5) * j, p[1] + (rnd() - 0.5) * j * 0.5, 0, 0, e, strength); }
+    }
+  }
+  const f = 1.15, e = 0.03, scroll = t * 0.22, push = ptr.k > 0.02;
+  const relax = Math.min(1, dt * 9), damp = Math.exp(-dt * 1.3);
+  const stir = Math.min(2.5, Math.hypot(ptr.vx, ptr.vy)) * 2.6 * dt;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.age += dt;
+    if (p.age >= p.life || p.y < steam.y0 - 0.2) { parts[i] = parts[parts.length - 1]; parts.pop(); continue; }
+    const hgt = BY - p.y, nz = t * 0.09 + p.z;
+    const nx0 = p.x * f, ny0 = p.y * f + scroll;
+    const mx0 = nx0 * 2.3 + 11, my0 = ny0 * 2.3, mz = nz * 1.6 + 3;
+    const n0 = noise(nx0, ny0, nz) + 0.4 * noise(mx0, my0, mz);
+    const n1 = noise(nx0 + e, ny0, nz) + 0.4 * noise(mx0 + e * 2.3, my0, mz);
+    const n2 = noise(nx0, ny0 + e, nz) + 0.4 * noise(mx0, my0 + e * 2.3, mz);
+    const turb = 0.028 + 0.085 * smooth(0, 1.5, hgt);
+    const rise = -p.rise * (1 - 0.35 * smooth(0.8, 2.6, hgt));
+    const pull = -p.x * 0.05 * (1 - smooth(0.15, 1.0, hgt));
+    if (push) {
+      const dx = p.x - ptr.ux, dy = p.y - ptr.uy, d2 = dx * dx + dy * dy;
+      if (d2 < 0.45) {
+        const w = Math.exp(-d2 / 0.06) * ptr.k, d = Math.sqrt(d2) + 1e-4;
+        // each puff is dragged a different amount, so a pass smears the steam into a wake instead of bunching it
+        const mix = Math.min(0.5, w * stir);
+        p.vx += (ptr.vx * p.c - p.vx) * w * relax + dx / d * w * 0.55 * dt;
+        p.vy += (ptr.vy * p.c - p.vy) * w * relax + dy / d * w * 0.55 * dt;
+        p.size *= 1 + mix * 0.8; p.a *= 1 - mix * 0.85;
+      }
+    }
+    p.x += ((n2 - n0) / e * turb + pull + p.vx) * dt;
+    p.y += (-(n1 - n0) / e * turb + rise + p.vy) * dt;
+    p.vx *= damp; p.vy *= damp;
+  }
+}
+
+function drawSteam() {
+  const b = steam.g, sc = steam.px, parts = steam.parts;
+  b.setTransform(1, 0, 0, 1, 0, 0);
+  b.globalCompositeOperation = 'source-over'; b.globalAlpha = 1;
+  b.clearRect(0, 0, steam.c.width, steam.c.height);
+  if (!parts.length) return;
+  b.setTransform(sc, 0, 0, sc, -steam.x0 * sc, -steam.y0 * sc);
+  b.globalCompositeOperation = 'lighter';
+  let x0 = 9, y0 = 9, x1 = -9, y1 = -9;
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i], u = p.age / p.life;
+    const fo = 1 - smooth(0.28, 1, u), size = p.size * (1 + u * p.grow), hw = size * 0.9, hh = size * 1.25;
+    b.globalAlpha = p.a * smooth(0, 0.3, u) * fo * Math.sqrt(fo);
+    b.drawImage(SPR.steam, p.x - hw, p.y - hh, hw * 2, hh * 2);
+    if (p.x - hw < x0) x0 = p.x - hw; if (p.x + hw > x1) x1 = p.x + hw;
+    if (p.y - hh < y0) y0 = p.y - hh; if (p.y + hh > y1) y1 = p.y + hh;
+  }
+  // warm where the broth and lamp light it, cooler as it climbs
+  x0 = Math.max(x0, steam.x0); y0 = Math.max(y0, steam.y0); x1 = Math.min(x1, steam.x1); y1 = Math.min(y1, steam.y1);
+  if (x1 <= x0 || y1 <= y0) return;
+  b.globalAlpha = 1; b.globalCompositeOperation = 'source-atop';
+  const gr = b.createLinearGradient(0, BY + 0.3, 0, -2.6);
+  gr.addColorStop(0, 'rgba(255,170,96,0.75)'); gr.addColorStop(0.2, 'rgba(255,206,160,0.45)');
+  gr.addColorStop(0.55, 'rgba(244,226,210,0.25)'); gr.addColorStop(1, 'rgba(200,214,230,0.35)');
+  b.fillStyle = gr; b.fillRect(x0, y0, x1 - x0, y1 - y0);
+
+  // only the part of the buffer that holds steam is composited
+  const sx = Math.floor((x0 - steam.x0) * sc), sy = Math.floor((y0 - steam.y0) * sc);
+  const sw = Math.min(steam.c.width - sx, Math.ceil((x1 - x0) * sc) + 1), sh = Math.min(steam.c.height - sy, Math.ceil((y1 - y0) * sc) + 1);
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = clamp(0.94 * flick, 0, 1);
+  ctx.drawImage(steam.c, sx, sy, sw, sh, steam.x0 + sx / sc, steam.y0 + sy / sc, sw / sc, sh / sc);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+// --- broth surface
+const drops = [], floaters = [], ripples = [], glints = [], swirls = [];
+{
+  const r = rng(909);
+  for (let i = 0; i < 130; i++) {
+    const a = r() * TAU, rr = Math.sqrt(r()) * 0.86, big = i < 22;
+    drops.push({ x: Math.cos(a) * rr, y: Math.sin(a) * rr, vx: 0, vy: 0, r: big ? 0.036 + r() * 0.044 : 0.008 + r() * r() * 0.024, kind: r() < 0.7 ? 0 : 1, ph: r() * 100, a: 0.8 + r() * 0.2 });
+  }
+  drops.sort((a, b) => b.r - a.r);
+  for (let i = 0; i < 38; i++) {
+    const a = r() * TAU, rr = 0.3 + Math.sqrt(r()) * 0.55;
+    floaters.push({ type: i < 9 ? 1 : 0, x: Math.cos(a) * rr, y: Math.sin(a) * rr, vx: 0, vy: 0, rot: r() * PI, spin: (r() - 0.5) * 0.12, tone: r(), size: r(), dark: r() < 0.3, ph: r() * 100 });
+  }
+  for (let i = 0; i < 26; i++) {
+    const a = r() * TAU, rr = 0.2 + Math.sqrt(r()) * 0.66;
+    glints.push({ x: Math.cos(a) * rr, y: Math.sin(a) * rr, ph: r() * TAU, sp: 0.5 + r() * 1.5, len: 0.03 + r() * 0.06 });
+  }
+  for (let i = 0; i < 8; i++) swirls.push({ a: r() * TAU, rr: 0.25 + r() * 0.55, w: 0.018 + r() * 0.03, len: 0.24 + r() * 0.3, wid: 0.05 + r() * 0.07, light: i % 3 !== 0, ph: r() * 10 });
+}
+function addRipple(x, y, amp) {
+  if (ripples.length > 14) ripples.shift();
+  ripples.push({ x, y, age: 0, life: 2.3 + amp * 0.6, amp });
+}
+function rippleShift(x, y, out) {
+  let ox = 0, oy = 0;
+  for (let i = 0; i < ripples.length; i++) {
+    const rp = ripples[i], dx = x - rp.x, dy = y - rp.y, d = Math.sqrt(dx * dx + dy * dy) + 1e-5;
+    const q = (d - (0.02 + rp.age * 0.34)) / 0.06;
+    if (q > -3.2 && q < 1.4) {
+      const k = 1 - rp.age / rp.life, w = Math.sin(q * 2.4) * Math.exp(-q * q * 0.45) * rp.amp * k * k * 0.03;
+      ox += dx / d * w; oy += dy / d * w;
+    }
+  }
+  out[0] = x + ox; out[1] = y + oy;
+}
+function advect(o, dt, t, px, py, mob) {
+  const rr = Math.sqrt(o.x * o.x + o.y * o.y) + 1e-6;
+  const w = 0.05 * (1 - rr / 1.1);
+  let fx = -o.y * w + 0.014 * noise(o.x * 2.1 + o.ph, o.y * 2.1, t * 0.08);
+  let fy = o.x * w + 0.014 * noise(o.x * 2.1, o.y * 2.1 + o.ph, t * 0.08 + 9);
+  if (rr > 0.8) { const k = (rr - 0.8) * 0.7; fx -= o.x / rr * k; fy -= o.y / rr * k; }
+  if (ptr.over) {
+    const dx = o.x - px, dy = o.y - py, d2 = dx * dx + dy * dy;
+    if (d2 < 0.1) {
+      const f = Math.exp(-d2 / 0.014) * ptr.k * mob * Math.min(1, dt * 7);
+      o.vx += (ptr.vx * 0.3 - o.vx) * f; o.vy += (ptr.vy / K * 0.3 - o.vy) * f;
+    }
+  }
+  o.x += (fx + o.vx) * dt; o.y += (fy + o.vy) * dt;
+  const dm = Math.exp(-dt * 1.7); o.vx *= dm; o.vy *= dm;
+}
+let nextDrip = 2.5;
+function stepSurface(dt, t) {
+  const px = ptr.ux, py = (ptr.uy - BY) / K;
+  for (let i = 0; i < drops.length; i++) advect(drops[i], dt, t, px, py, 1);
+  for (let i = 0; i < floaters.length; i++) { const f = floaters[i]; advect(f, dt, t, px, py, 0.7); f.rot += f.spin * dt; }
+  for (let i = ripples.length - 1; i >= 0; i--) { ripples[i].age += dt; if (ripples[i].age > ripples[i].life) ripples.splice(i, 1); }
+  // the surface is never quite still: a bead of condensation, a bubble letting go
+  nextDrip -= dt;
+  if (nextDrip <= 0) {
+    nextDrip = 2.2 + rnd() * 3.5;
+    const a = rnd() * TAU, rr = 0.45 + rnd() * 0.38;
+    addRipple(Math.cos(a) * rr, Math.sin(a) * rr, 0.3 + rnd() * 0.25);
+  }
+}
+
+const tmp = [0, 0];
+function drawBrothLife(t, Lx) {
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0, 0, RIN, RIN * K, 0, 0, TAU); ctx.clip();
+  ctx.beginPath(); ctx.ellipse(0, BY, BR, BR * K, 0, 0, TAU); ctx.clip();
+  ctx.translate(0, BY); ctx.scale(1, K);                             // → surface coordinates
+
+  // slow convection: paler and deeper streaks turning in the broth
+  for (let i = 0; i < swirls.length; i++) {
+    const s = swirls[i], a = s.a + t * s.w, rr = s.rr + 0.05 * Math.sin(t * 0.13 + s.ph);
+    ctx.save(); ctx.translate(Math.cos(a) * rr, Math.sin(a) * rr); ctx.rotate(a + PI / 2);
+    ctx.globalAlpha = (s.light ? 0.2 : 0.16) * (0.75 + 0.25 * Math.sin(t * 0.2 + s.ph));
+    ctx.drawImage(s.light ? SPR.cream : SPR.dark, -s.len, -s.wid, s.len * 2, s.wid * 2);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // chili + sesame oil, beading and drifting
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i]; rippleShift(d.x, d.y, tmp);
+    ctx.globalAlpha = d.a;
+    const dpx = d.r * 2 * PX;
+    ctx.drawImage(SPR.oil[d.kind][dpx > 44 ? 0 : dpx > 20 ? 1 : 2], tmp[0] - d.r, tmp[1] - d.r, d.r * 2, d.r * 2);
+  }
+  ctx.globalAlpha = 1;
+
+  // ripples: each crest catches the lamp on one flank and throws a shadow on the other
+  for (let i = 0; i < ripples.length; i++) {
+    const rp = ripples[i], k = 1 - rp.age / rp.life, base = 0.02 + rp.age * 0.34;
+    const lw = 0.011 + Math.min(0.012, rp.age * 0.012);
+    for (let j = 0; j < 3; j++) {
+      const rr = base - j * 0.07; if (rr <= 0.005) continue;
+      const a = Math.min(1, rp.amp * k * k * (1 - j * 0.28));
+      ctx.lineWidth = lw * 1.5;
+      ctx.strokeStyle = `rgba(84,34,6,${(a * 0.62).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(rp.x, rp.y + lw * 1.25, rr, 0, TAU); ctx.stroke();
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = `rgba(255,236,196,${(a * 0.72).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(rp.x, rp.y, rr, 0, TAU); ctx.stroke();
+    }
+    if (rp.amp > 0.7 && rp.age < 0.5) {                                // the splash itself
+      const q = 1 - rp.age / 0.5;
+      ctx.globalAlpha = q * q * 0.8;
+      ctx.drawImage(SPR.cream, rp.x - 0.09, rp.y - 0.09, 0.18, 0.18);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // loose garnish afloat
+  for (let i = 0; i < floaters.length; i++) {
+    const f = floaters[i]; rippleShift(f.x, f.y, tmp);
+    if (f.type === 1) scallion(ctx, tmp[0], tmp[1], 0.02 + f.size * 0.012, 1, f.rot, f.tone, 0.011);
+    else sesame(ctx, tmp[0], tmp[1], 0.0105 + f.size * 0.004, 1.25, f.rot, f.dark);
+  }
+
+  // light on liquid
+  ctx.globalCompositeOperation = 'lighter';
+  const lx = Lx * 0.7, ly = -0.42;
+  ctx.globalAlpha = 0.30 * flick;
+  ctx.drawImage(SPR.warm, lx - 0.62, ly - 0.36, 1.24, 0.72);
+  const gx = ptr.ux, gy = (ptr.uy - BY) / K;
+  for (let i = 0; i < glints.length; i++) {
+    const gl = glints[i]; rippleShift(gl.x, gl.y, tmp);
+    const tw = Math.pow(0.5 + 0.5 * Math.sin(t * gl.sp + gl.ph), 6);
+    const dl = Math.exp(-((tmp[0] - lx) * (tmp[0] - lx) + (tmp[1] - ly) * (tmp[1] - ly)) / 0.5);
+    const dp = ptr.k * Math.exp(-((tmp[0] - gx) * (tmp[0] - gx) + (tmp[1] - gy) * (tmp[1] - gy)) / 0.08);
+    const a = tw * (0.22 + 0.6 * dl + 0.9 * dp) + dp * 0.25;
+    if (a < 0.02) continue;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.drawImage(SPR.warmS, tmp[0] - gl.len, tmp[1] - 0.018, gl.len * 2, 0.036);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+// --- motes of dust in the lamplight
+const motes = [];
+{
+  const r = rng(404);
+  for (let i = 0; i < 54; i++) motes.push({ x: (r() * 2 - 1) * 2.6, y: -2.8 + r() * 3.4, vx: 0, vy: 0, r: 0.004 + r() * r() * 0.012, a: 0.12 + r() * 0.4, ph: r() * 100, sp: 0.3 + r() * 1.2 });
+}
+function stepMotes(dt, t) {
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i];
+    const fx = 0.035 * noise(m.x * 0.8, m.y * 0.8, t * 0.07 + m.ph), fy = -0.012 + 0.03 * noise(m.x * 0.8 + 7, m.y * 0.8, t * 0.07 + m.ph);
+    if (ptr.k > 0.02) {
+      const dx = m.x - ptr.ux, dy = m.y - ptr.uy, d2 = dx * dx + dy * dy;
+      if (d2 < 0.5) { const w = Math.exp(-d2 / 0.08) * ptr.k * Math.min(1, dt * 6); m.vx += (ptr.vx * 0.35 - m.vx) * w; m.vy += (ptr.vy * 0.35 - m.vy) * w; }
+    }
+    m.x += (fx + m.vx) * dt; m.y += (fy + m.vy) * dt;
+    const dm = Math.exp(-dt); m.vx *= dm; m.vy *= dm;
+    if (m.y < -2.9) m.y = 0.6; if (m.y > 0.65) m.y = -2.85;
+    if (m.x < -2.7) m.x = 2.7; if (m.x > 2.7) m.x = -2.7;
+  }
+}
+function drawMotes(t) {
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i];
+    const a = m.a * (0.45 + 0.55 * Math.sin(t * m.sp + m.ph)) * Math.exp(-m.x * m.x / 3.2) * flick;
+    if (a < 0.02) continue;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.drawImage(SPR.warmS, m.x - m.r, m.y - m.r, m.r * 2, m.r * 2);
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+// --- lights of the room, far out of focus
+let bokeh = [];
+function buildBokeh() {
+  const r = rng(2024), n = Math.round(clamp(W / S * 5.5, 14, 46));
+  bokeh = [];
+  for (let i = 0; i < n; i++) {
+    const pick = r(), c = pick < 0.4 ? 0 : pick < 0.64 ? 1 : pick < 0.76 ? 2 : pick < 0.89 ? 3 : 4;
+    const size = 0.05 + r() * r() * 0.22;
+    bokeh.push({ fx: r(), up: size + 0.05 + Math.pow(r(), 1.5) * 1.9, r: size, c, a: (0.1 + r() * 0.22) * (0.07 / (size + 0.04) + 0.45), ph: r() * 100, sp: 0.2 + r() * 0.9, depth: 0.5 + r() });
+  }
+}
+function drawBokeh(t, ox, oy) {
+  const yE = tableEdge();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < bokeh.length; i++) {
+    const b = bokeh[i];
+    const x = b.fx * W + ox * b.depth + Math.sin(t * 0.045 + b.ph) * 0.02 * S;
+    const y = yE - b.up * S + oy * b.depth * 0.5 + Math.cos(t * 0.037 + b.ph) * 0.012 * S;
+    const centre = 1 - 0.55 * Math.exp(-Math.pow((x - CX) / (0.9 * S), 2));
+    const a = b.a * (0.72 + 0.28 * Math.sin(t * b.sp + b.ph)) * centre * flick * vigAt(x, y);
+    const rr = b.r * S;
+    ctx.globalAlpha = clamp(a, 0, 1);
+    ctx.drawImage(SPR.bokeh[b.c], x - rr, y - rr, rr * 2, rr * 2);
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ------------------------------------------------------------------ *
+ *  per-frame lighting helpers (unit space)
+ * ------------------------------------------------------------------ */
+function tableLight(Lx) {
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = clamp(flick, 0, 1);
+  ctx.drawImage(SPR.pool, Lx * 0.35 - 2.3, 0.92 - 0.72, 4.6, 1.44);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.drawImage(SPR.shade, -Lx * 0.32 - 1.3, 0.9 - 0.36, 2.6, 0.72);
+  ctx.drawImage(SPR.contact, -Lx * 0.05 - 0.5, 0.925 - 0.1, 1.0, 0.2);
+}
+function bodyHighlight(Lx) {
+  ctx.save(); bodyPath(ctx); ctx.clip();
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = clamp(flick, 0, 1);
+  const hx = clamp(Lx * 0.95 - 0.04, -0.86, 0.86);
+  ctx.drawImage(SPR.sheen, hx - 0.5, 0.34 - 0.52, 1.0, 1.04);
+  ctx.translate(hx, 0.38); ctx.rotate(-hx * 0.6);
+  ctx.drawImage(SPR.streak, -0.085, -0.33, 0.17, 0.66);
+  ctx.restore();
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+function rimSpecular(Lx, far) {
+  ctx.globalCompositeOperation = 'lighter';
+  const arcs = (th, gain, spread) => {
+    [[0.62, 0.05, 0.022], [0.38, 0.09, 0.017], [0.2, 0.16, 0.012], [0.08, 0.42, 0.008]].forEach(([sp, a, wd]) => {
+      ctx.strokeStyle = `rgba(255,226,184,${(a * gain * flick).toFixed(3)})`; ctx.lineWidth = wd;
+      ctx.beginPath(); ctx.ellipse(0, 0, 0.974, 0.974 * K, 0, th - sp * spread, th + sp * spread); ctx.stroke();
+    });
+  };
+  if (far) arcs(-PI / 2 + Lx * 1.05, 1, 1);
+  else arcs(PI / 2 - Lx * 1.05, 0.55, 1.5);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/* ------------------------------------------------------------------ *
+ *  frame
+ * ------------------------------------------------------------------ */
+function update(dt) {
+  const t = time;
+  flick = 1 + 0.045 * noise(t * 1.6, 3.3, 0.2) + 0.025 * noise(t * 5.3, 8.1, 0.7);
+
+  const k = 1 - Math.exp(-dt * 9), psx = ptr.sx, psy = ptr.sy;
+  ptr.sx += (ptr.x - ptr.sx) * k; ptr.sy += (ptr.y - ptr.sy) * k;
+  const ivx = clamp((ptr.sx - psx) / dt / S, -5, 5), ivy = clamp((ptr.sy - psy) / dt / S, -5, 5);
+  const vk = Math.min(1, dt * 14);
+  ptr.vx += (ivx - ptr.vx) * vk; ptr.vy += (ivy - ptr.vy) * vk;
+  ptr.k += ((ptr.on ? 1 : 0) - ptr.k) * (1 - Math.exp(-dt * (ptr.on ? 6 : 1.4)));
+
+  // the lamp sways on its own until a hand takes over
+  const idleX = 0.42 * Math.sin(t * 0.21) + 0.2 * Math.sin(t * 0.13 + 2), idleY = 0.3 * Math.sin(t * 0.17 + 1.3);
+  const nx = clamp((ptr.sx - W / 2) / (W / 2), -1, 1), ny = clamp((ptr.sy - H / 2) / (H / 2), -1, 1);
+  const lk = 1 - Math.exp(-dt * 3.2);
+  light.x += (lerp(idleX, nx, ptr.k) - light.x) * lk;
+  light.y += (lerp(idleY, ny, ptr.k) - light.y) * lk;
+  par.x = light.x; par.y = light.y;
+
+  ptr.ux = (ptr.sx * DPR - OX) / PX;
+  ptr.uy = (ptr.sy * DPR - OY) / PX;
+  ptr.over = ptr.k > 0.3 && overBroth(ptr.ux, ptr.uy);
+  if (ptr.over) {
+    const sx = ptr.ux, sy = (ptr.uy - BY) / K, d = Math.hypot(sx - ptr.lrx, sy - ptr.lry);
+    if (d > 0.11) { addRipple(sx, sy, clamp(0.3 + Math.hypot(ptr.vx, ptr.vy) * 0.25, 0.3, 0.85)); ptr.lrx = sx; ptr.lry = sy; }
+  } else { ptr.lrx = 9; ptr.lry = 9; }
+
+  stepSteam(dt, t);
+  stepSurface(dt, t);
+  stepMotes(dt, t);
+}
+
+function overBroth(ux, uy) {
+  const a = ux / RIN, b = uy / (RIN * K);
+  if (a * a + b * b > 1) return false;
+  const c = ux / BR, d = (uy - BY) / (BR * K);
+  return c * c + d * d < 1;
+}
+
+function render() {
+  const t = time, pxs = S / 300;
+  const Lx = -0.3 + light.x * 0.55;
+
+  // ---- the room: far wall and its lights drift against the table (depth), table and bowl hold still
+  const bgx = Math.round(-par.x * 14 * pxs * DPR), bgy = Math.round(-par.y * 7 * pxs * DPR);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(L.bg.c, bgx - L.bg.M, bgy - L.bg.M);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawBokeh(t, -par.x * 24 * pxs, -par.y * 12 * pxs);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(L.table.c, 0, L.table.top);
+
+  // ---- the bowl, in scene units
+  unitSpace();
+  tableLight(Lx);
+  put(L.bowl);
+  bodyHighlight(Lx);
+  drawBrothLife(t, Lx);
+  rimSpecular(Lx, true);
+  put(L.top);
+  rimSpecular(Lx, false);
+
+  // ---- the hand's own warmth: it lifts whatever is already lit
+  if (ptr.k > 0.01) {
+    const rr = 1.0;
+    ctx.globalAlpha = clamp(ptr.k * flick, 0, 1);
+    ctx.globalCompositeOperation = 'color-dodge';
+    ctx.drawImage(SPR.glow, ptr.ux - rr, ptr.uy - rr, rr * 2, rr * 2);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = clamp(0.06 * ptr.k, 0, 1);
+    ctx.drawImage(SPR.warm, ptr.ux - rr * 0.6, ptr.uy - rr * 0.6, rr * 1.2, rr * 1.2);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+
+  drawSteam();
+  drawMotes(t);
+
+
+  // ---- film grain
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (grainPattern) {
+    const gx = reduced ? 0 : (Math.random() * 192) | 0, gy = reduced ? 0 : (Math.random() * 192) | 0;
+    ctx.translate(-gx, -gy);
+    ctx.fillStyle = grainPattern;
+    ctx.fillRect(gx, gy, canvas.width, canvas.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  sizing
+ * ------------------------------------------------------------------ */
+const QUALITY = [[2, 1, 1], [1.5, 0.86, 0.85], [1, 0.74, 0.7]];   // [max pixel ratio, steam density, steam buffer scale]
+function resize() {
+  const w = Math.max(1, window.innerWidth), h = Math.max(1, window.innerHeight);
+  let dpr = Math.min(window.devicePixelRatio || 1, QUALITY[quality][0]);
+  const budget = 4.4e6 / (1 + quality);
+  if (w * h * dpr * dpr > budget) dpr = Math.max(0.5, Math.sqrt(budget / (w * h)));
+  W = w; H = h; DPR = dpr;
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  S = Math.max(24, Math.min(w * 0.42, h * 0.325));
+  CX = w / 2; CY = h * (w < h ? 0.545 : 0.56);
+  PX = S * DPR;
+  OX = Math.round(CX * DPR); OY = Math.round(CY * DPR);
+  steamRate = QUALITY[quality][1];
+
+  buildBokeh();
+  L = {
+    bg: buildBackdrop(),
+    table: buildTable(),
+    bowl: unitLayer(-1.08, -0.62, 1.08, 1.0, drawBowl),
+    top: unitLayer(-1.08, -1.0, 1.08, 0.62, drawToppings),
+  };
+
+  steam.px = Math.max(40, S * 0.44 * QUALITY[quality][2]);
+  steam.c = mk((steam.x1 - steam.x0) * steam.px, (steam.y1 - steam.y0) * steam.px);
+  steam.g = steam.c.getContext('2d');
+
+  grainPattern = ctx.createPattern(SPR.grain, 'repeat');
+}
+
+/* ------------------------------------------------------------------ *
+ *  loop, input, motion preferences
+ * ------------------------------------------------------------------ */
+let raf = 0, last = 0, resizeQueued = false;
+
+let slow = 0, settle = 0;
+function frame(now) {
+  raf = 0;
+  const raw = (now - last) / 1000, dt = clamp(raw, 0.001, 0.05);
+  last = now;
+  time += dt;
+  update(dt);
+  render();
+  // if the device can't keep up, trade resolution and steam density for smoothness
+  if (++settle > 45 && raw < 0.25 && quality < QUALITY.length - 1) {
+    slow = raw > 0.03 ? slow + 1 : Math.max(0, slow - 2);
+    if (slow > 70) { quality++; slow = 0; settle = 0; resize(); }
+  }
+  raf = requestAnimationFrame(frame);
+}
+// still image for people who ask for less motion: only the light answers the pointer
+function renderStill() {
+  flick = 1; par.x = par.y = 0;
+  ptr.sx = ptr.x; ptr.sy = ptr.y; ptr.vx = ptr.vy = 0;
+  ptr.k = ptr.on ? 1 : 0;
+  light.x = ptr.on ? clamp((ptr.x - W / 2) / (W / 2), -1, 1) : 0;
+  light.y = ptr.on ? clamp((ptr.y - H / 2) / (H / 2), -1, 1) : 0;
+  ptr.ux = (ptr.x * DPR - OX) / PX; ptr.uy = (ptr.y * DPR - OY) / PX; ptr.over = false;
+  render();
+}
+let stillQueued = false;
+function requestStill() {
+  if (stillQueued) return;
+  stillQueued = true;
+  requestAnimationFrame(() => { stillQueued = false; if (reduced) renderStill(); });
+}
+function start() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = 0;
+  if (reduced) { ripples.length = 0; requestStill(); }
+  else { last = performance.now(); raf = requestAnimationFrame(frame); }
+}
+
+function plop(cx, cy) {
+  if (reduced) return;
+  const ux = (cx * DPR - OX) / PX, uy = (cy * DPR - OY) / PX;
+  if (overBroth(ux, uy)) {
+    addRipple(ux, (uy - BY) / K, 1);
+    const puff = { z: 7 + rnd(), rise: 0.26, life: 3.6, kind: 0 };
+    for (let i = 0; i < 70; i++) spawnSteam(ux + (rnd() - 0.5) * 0.12, uy + (rnd() - 0.5) * 0.05, (rnd() - 0.5) * 0.45, -rnd() * 0.4, puff, 0.8);
+  }
+  for (const p of steam.parts) {                                      // a gust that parts the steam
+    const dx = p.x - ux, dy = p.y - uy, d2 = dx * dx + dy * dy, w = Math.exp(-d2 / 0.12), d = Math.sqrt(d2) + 1e-4;
+    p.vx += dx / d * w * 0.9; p.vy += dy / d * w * 0.9;
+  }
+}
+
+const mql = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+reduced = !!(mql && mql.matches);
+if (mql) {
+  const onChange = e => { reduced = e.matches; start(); };
+  if (mql.addEventListener) mql.addEventListener('change', onChange); else if (mql.addListener) mql.addListener(onChange);
+}
+
+window.addEventListener('pointermove', e => {
+  if (!ptr.on) { ptr.sx = e.clientX; ptr.sy = e.clientY; }
+  ptr.x = e.clientX; ptr.y = e.clientY; ptr.on = true;
+  if (reduced) requestStill();
+}, { passive: true });
+window.addEventListener('pointerdown', e => {
+  if (!ptr.on) { ptr.sx = e.clientX; ptr.sy = e.clientY; }
+  ptr.x = e.clientX; ptr.y = e.clientY; ptr.on = true;
+  plop(e.clientX, e.clientY);
+  if (reduced) requestStill();
+}, { passive: true });
+const release = e => { if (!e || e.pointerType !== 'mouse') { ptr.on = false; if (reduced) requestStill(); } };
+window.addEventListener('pointerup', release, { passive: true });
+window.addEventListener('pointercancel', release, { passive: true });
+document.documentElement.addEventListener('pointerleave', () => { ptr.on = false; if (reduced) requestStill(); }, { passive: true });
+window.addEventListener('blur', () => { ptr.on = false; if (reduced) requestStill(); });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+window.addEventListener('resize', () => {
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(() => { resizeQueued = false; resize(); if (reduced) renderStill(); });
+});
+
+/* ------------------------------------------------------------------ *
+ *  go
+ * ------------------------------------------------------------------ */
+buildSprites();
+resize();
+ptr.x = ptr.sx = W / 2; ptr.y = ptr.sy = H * 0.4;
+// let the steam find its shape before the first frame is shown
+time = -7;
+for (let i = 0; i < 210; i++) { time += 1 / 30; stepSteam(1 / 30, time); }
+time = 0;
+if (reduced) renderStill();
+start();
+})();
+</script>
+</body>
+</html>
