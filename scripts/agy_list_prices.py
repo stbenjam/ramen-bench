@@ -1,19 +1,16 @@
-"""Pinned Google Standard API-equivalent rates for recorded Argon usage."""
+"""Pinned published list rates for recorded agy usage."""
 
 from datetime import date
 from decimal import Decimal
 
 SOURCE = "https://ai.google.dev/gemini-api/docs/pricing#gemini-4-argon"
 AS_OF = "2026-10-15"
+CARBON_SOURCE = "https://openrouter.ai/google/gemini-4-carbon"
+CARBON_AS_OF = "2026-11-11"
 
 
-def argon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
-    """Price recorded categories once; callers retain unknown failed-request usage."""
-    day = date.fromisoformat(completed_at[:10])
-    if day < date(2026, 10, 15):
-        raise ValueError("Argon run predates this pinned rate snapshot")
-    introductory = day <= date(2026, 11, 30)
-    rates = ("2", "0.10", "10") if introductory else ("4", "0.20", "20")
+def list_cost(usage: dict, rates: tuple[str, str, str]) -> dict:
+    """Price each recorded category once; thinking is already inside output."""
     amounts = {}
     for field, category, rate in zip(
         ("input", "cachedInput", "output"),
@@ -23,9 +20,9 @@ def argon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
     ):
         count = usage[category]
         if isinstance(count, bool) or not isinstance(count, int) or count < 0:
-            raise ValueError("Invalid recorded Argon token count")
+            raise ValueError("Invalid recorded agy token count")
         amounts[field] = Decimal(count) * Decimal(rate) / 1_000_000
-    cost = {
+    return {
         "currency": "USD",
         **{key: float(value) for key, value in amounts.items()},
         "cacheCreationInput": 0,
@@ -33,6 +30,25 @@ def argon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
         "total": float(sum(amounts.values())),
         "estimated": True,
     }
+
+
+def rate_fields(rates: tuple[str, str, str]) -> dict:
+    return {
+        "inputUsdPerMillion": float(rates[0]),
+        "cachedInputUsdPerMillion": float(rates[1]),
+        "outputUsdPerMillion": float(rates[2]),
+        "outputIncludesThinking": True,
+        "cacheType": "implicit",
+    }
+
+
+def argon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
+    """Price recorded categories once; callers retain unknown failed-request usage."""
+    day = date.fromisoformat(completed_at[:10])
+    if day < date(2026, 10, 15):
+        raise ValueError("Argon run predates this pinned rate snapshot")
+    introductory = day <= date(2026, 11, 30)
+    rates = ("2", "0.10", "10") if introductory else ("4", "0.20", "20")
     provenance = {
         "source": SOURCE,
         "pinnedAt": AS_OF,
@@ -41,10 +57,25 @@ def argon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
         "basis": "API-equivalent published list prices; not a subscription charge",
         "introductory": introductory,
         "effectiveThrough": "2026-11-30" if introductory else None,
-        "inputUsdPerMillion": float(rates[0]),
-        "cachedInputUsdPerMillion": float(rates[1]),
-        "outputUsdPerMillion": float(rates[2]),
-        "outputIncludesThinking": True,
-        "cacheType": "implicit",
+        **rate_fields(rates),
     }
-    return cost, provenance
+    return list_cost(usage, rates), provenance
+
+
+def carbon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
+    """Price at OpenRouter's launch rates, which have no published end date."""
+    day = date.fromisoformat(completed_at[:10])
+    if not date(2026, 11, 10) <= day <= date.fromisoformat(CARBON_AS_OF):
+        raise ValueError("Carbon run falls outside this pinned rate snapshot")
+    rates = ("2", "0.10", "10")
+    provenance = {
+        "source": CARBON_SOURCE,
+        "pinnedAt": CARBON_AS_OF,
+        "model": "google/gemini-4-carbon",
+        "tier": "OpenRouter",
+        "basis": "Published OpenRouter list prices with the 50% launch discount; not a recorded charge",
+        "introductory": True,
+        "effectiveThrough": None,
+        **rate_fields(rates),
+    }
+    return list_cost(usage, rates), provenance

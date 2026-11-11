@@ -6,12 +6,19 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from agy_list_prices import AS_OF as PRICE_DATE
+from agy_list_prices import (
+    CARBON_AS_OF,
+    CARBON_SOURCE,
+    argon_list_cost,
+    carbon_list_cost,
+)
 from agy_list_prices import SOURCE as PRICE_SOURCE
-from agy_list_prices import argon_list_cost
 from backfill_session_metadata import replay_codex_command, result_stats
 from censor_transcripts import censor_value
 from censor_transcripts import main as censor_transcripts
@@ -23,6 +30,58 @@ sys.path.insert(0, str(RUNS / "google"))
 from import_antigravity_runs import extract_user_request
 
 EFFORTS = ("low", "medium", "high")
+
+
+@dataclass(frozen=True)
+class Route:
+    """How Harbor reached one model, and where its run's cost comes from."""
+
+    slug: str
+    display: str
+    agent: str
+    harbor_model: str
+    native_model: str
+    provider: str
+    invocation: str
+    price: Callable[[dict, str], tuple[dict, dict]]
+    pricing_source: str
+    pricing_note: str
+    env: tuple[tuple[str, str], ...] = ()
+
+    def model(self, effort: str) -> str:
+        return self.native_model.format(effort=effort)
+
+
+ROUTES = (
+    Route(
+        "gemini-4-argon",
+        "Gemini 4 Argon",
+        "scripts.harbor_agy:SubscriptionAgy",
+        "google/gemini-4-argon-{effort}",
+        "gemini-4-argon-{effort}",
+        "google",
+        "Native Harbor agy with pinned executable and subscription login",
+        argon_list_cost,
+        f"Google Standard published list prices, pinned {PRICE_DATE}; {PRICE_SOURCE}",
+        "Pricing uses pinned Google Standard API-equivalent list prices, with cache hits discounted and thinking included once; it is not a recorded subscription charge.",
+    ),
+    Route(
+        "gemini-4-carbon",
+        "Gemini 4 Carbon",
+        "antigravity-cli",
+        "openrouter/google/gemini-4-carbon",
+        "google/gemini-4-carbon",
+        "openrouter",
+        "Native Harbor agy with pinned executable through the OpenRouter gateway",
+        carbon_list_cost,
+        f"OpenRouter published list prices with the 50% launch discount, pinned {CARBON_AS_OF}; {CARBON_SOURCE}",
+        "Pricing uses OpenRouter's pinned published list prices, including the 50% launch discount, with cache hits discounted and thinking included once; it is not a recorded provider charge.",
+        (
+            ("AGY_LLM_GATEWAY_URL", "https://openrouter.ai/api/v1"),
+            ("AGY_LLM_GATEWAY_WIRE_PROTOCOL", "openai"),
+        ),
+    ),
+)
 VERIFIER_FAILURES = {"RewardFileNotFoundError", "VerifierTimeoutError"}
 PRIVATE_TOOLS = re.compile(
     r"inbox|agent.mail|send_message|schedule|manage_subagents|invoke_subagent|define_subagent",
@@ -132,12 +191,32 @@ def successful_calls(rows: list[dict]):
         raise ValueError("Missing native agy tool result")
 
 
-def replay_artifact(rows: list[dict], artifact: Path, workspace: str) -> str:
+def replay_artifact(
+    rows: list[dict], artifact: Path, workspace: str, run_id: str
+) -> str:
     """Interpret recorded file operations without executing model-written code."""
     content, operations = None, 0
     targets = {"index.html", str(Path(workspace) / "index.html")}
     for call in successful_calls(rows):
         name, args = call["name"], call.get("args") or {}
+        # agy 1.5 renamed its file tools and their arguments.
+        if name == "write_file":
+            name, args = (
+                "write_to_file",
+                {
+                    "TargetFile": args.get("Path"),
+                    "CodeContent": args.get("Content"),
+                },
+            )
+        elif name == "edit_file":
+            name, args = (
+                "replace_file_content",
+                {
+                    "TargetFile": args.get("Path"),
+                    "TargetContent": args.get("Target"),
+                    "ReplacementContent": args.get("Replacement"),
+                },
+            )
         if args.get("TargetFile") in targets:
             if name == "write_to_file":
                 content = args["CodeContent"]
@@ -155,9 +234,7 @@ def replay_artifact(rows: list[dict], artifact: Path, workspace: str) -> str:
             elif name in ("sed_file", "notebook_edit"):
                 raise ValueError("Extend agy replay for this recorded mutation")
         elif name == "run_command":
-            content, count = replay_codex_command(
-                content, args["CommandLine"], "gemini-4-argon"
-            )
+            content, count = replay_codex_command(content, args["CommandLine"], run_id)
             operations += count
     if content is None or content.encode() != artifact.read_bytes():
         raise ValueError("Artifact differs from recorded agy file operations")
@@ -251,21 +328,36 @@ def stream_usage(
     return totals, len(steps), final
 
 
-def build_trial(trial: Path) -> tuple[dict, dict, Path]:
-    result = json.loads((trial / "result.json").read_text())
+def trial_route(trial: Path) -> tuple[Route | None, str | None]:
     config = json.loads((trial / "config.json").read_text())["agent"]
     effort = config.get("kwargs", {}).get("reasoning_effort")
-    model = f"gemini-4-argon-{effort}"
+    route = next(
+        (
+            r
+            for r in ROUTES
+            if r.agent == config["name"]
+            and config["model_name"] == r.harbor_model.format(effort=effort)
+            and all(config.get("env", {}).get(k) == v for k, v in r.env)
+        ),
+        None,
+    )
+    return route, effort
+
+
+def build_trial(trial: Path) -> tuple[dict, dict, Path]:
+    result = json.loads((trial / "result.json").read_text())
+    route, effort = trial_route(trial)
     failure = result.get("exception_info")
     if (
-        (failure and failure.get("exception_type") not in VERIFIER_FAILURES)
+        route is None
+        or (failure and failure.get("exception_type") not in VERIFIER_FAILURES)
         or effort not in EFFORTS
-        or config["name"] != "scripts.harbor_agy:SubscriptionAgy"
-        or config["model_name"] != f"google/{model}"
         or result["agent_info"]["name"] != "antigravity-cli"
-        or result["agent_info"]["model_info"] != {"name": model, "provider": "google"}
+        or result["agent_info"]["model_info"]
+        != {"name": route.model(effort), "provider": route.provider}
     ):
-        raise ValueError("Require a successful native Harbor Argon trial")
+        raise ValueError("Require a successful native Harbor agy trial")
+    model = route.model(effort)
     stream = read_rows(trial / "agent/antigravity-stream.jsonl")
     starts = [r for r in stream if r.get("event") == "init"]
     if (
@@ -291,7 +383,8 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
     if users != [(ROOT / "harbor/ramen/instruction.md").read_text().strip()]:
         raise ValueError("Native agy did not receive the exact benchmark instruction")
     artifact = native_artifact(trial)
-    replay = replay_artifact(rows, artifact, "/app")
+    run_id = f"google/{route.slug}/{effort}"
+    replay = replay_artifact(rows, artifact, "/app", run_id)
     final_records = [r["result"] for r in stream if r.get("event") == "result"]
     recovered = len(final_records) == 1 and recovered_completion(rows, final_records[0])
     usage, requests, _final = stream_usage(stream, allow_recovered_error=recovered)
@@ -308,33 +401,32 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
     )
     if start.tzinfo is None or end.tzinfo is None or end < start:
         raise ValueError("Invalid native Harbor generation timestamps")
-    priced, pricing = argon_list_cost(usage, execution["finished_at"])
+    priced, pricing = route.price(usage, execution["finished_at"])
     if api_errors:
         pricing["recordedUsageSubtotalUsd"] = priced["total"]
         pricing["fullRunCostUnknown"] = True
         pricing["reason"] = "Failed generation-stream requests have no recorded usage"
-    run_id = f"google/gemini-4-argon/{effort}"
     run = {
         "$schema": "../../../schemas/run.schema.json",
         "schemaVersion": 1,
         "id": run_id,
         "vendor": {"slug": "google", "displayName": "Google"},
         "model": {
-            "slug": "gemini-4-argon",
-            "displayName": "Gemini 4 Argon",
+            "slug": route.slug,
+            "displayName": route.display,
             "providerModelId": model,
         },
         "variation": {
             "slug": effort,
             "displayName": effort.title(),
             "reasoningEffort": effort,
-            "parameters": {"modelSelection": f"Gemini 4 Argon ({effort.title()})"},
+            "parameters": {"modelSelection": f"{route.display} ({effort.title()})"},
         },
         "harness": {
             "name": "Antigravity CLI",
             "version": result["agent_info"]["version"],
             "runtime": "Harbor",
-            "invocation": f"Native Harbor agy with pinned executable and subscription login; {model} --effort {effort}",
+            "invocation": f"{route.invocation}; {model} --effort {effort}",
         },
         "artifacts": {"result": "index.html", "transcript": "transcript.json"},
         "timing": {
@@ -386,10 +478,10 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
             },
         },
         "resultStats": result_stats(run_id, artifact),
-        "provenance": {
-            "pricingSource": f"Google Standard published list prices, pinned {PRICE_DATE}; {PRICE_SOURCE}"
-        },
-        "notes": "Generated entirely by native agy inside Harbor. HTML is unchanged and matches recorded successful file operations. Generation time comes from Harbor and excludes setup and verification. Token counters come from the native completion aggregate, checked against individual steps; input and cache reads are disjoint, and thinking is included once in output then split into reasoning. Native total_tokens excludes cache reads; the public total includes them once. Pricing uses pinned Google Standard API-equivalent list prices, with cache hits discounted and thinking included once; it is not a recorded subscription charge. Hidden reasoning, system/developer prompts, credentials, private agent activity, opaque payloads and personal paths are excluded from the public transcript."
+        "provenance": {"pricingSource": route.pricing_source},
+        "notes": "Generated entirely by native agy inside Harbor. HTML is unchanged and matches recorded successful file operations. Generation time comes from Harbor and excludes setup and verification. Token counters come from the native completion aggregate, checked against individual steps; input and cache reads are disjoint, and thinking is included once in output then split into reasoning. Native total_tokens excludes cache reads; the public total includes them once. "
+        + route.pricing_note
+        + " Hidden reasoning, system/developer prompts, credentials, private agent activity, opaque payloads and personal paths are excluded from the public transcript."
         + (
             " Native API errors occurred before recovery; recorded usage covers completed requests and is a lower bound. Usage for failed requests and a full request count remain unknown."
             if api_errors
@@ -425,18 +517,26 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
 def register(runs: list[dict]):
     path = RUNS / "registry.json"
     registry = json.loads(path.read_text())
-    prefix = "google/gemini-4-argon/"
-    fresh = {f"{r['id']}/run.json" for r in runs}
-    fresh |= {p for p in registry["runs"] if p.startswith(prefix)}
-    ordered = sorted(fresh, key=lambda p: -EFFORTS.index(p.split("/")[2]))
-    others = [p for p in registry["runs"] if not p.startswith(prefix)]
-    index = next(
-        (i for i, p in enumerate(others) if p.startswith("google/")), len(others)
-    )
-    registry["runs"] = others[:index] + ordered + others[index:]
-    registry.setdefault("modelAddedAt", {}).setdefault(
-        "google/gemini-4-argon", max(r["timing"]["completedAt"] for r in runs)
-    )
+    for model in sorted({r["id"].rsplit("/", 1)[0] for r in runs}):
+        imported = [r for r in runs if r["id"].startswith(f"{model}/")]
+        prefix = f"{model}/"
+        fresh = {f"{r['id']}/run.json" for r in imported}
+        fresh |= {p for p in registry["runs"] if p.startswith(prefix)}
+        ordered = sorted(fresh, key=lambda p: -EFFORTS.index(p.split("/")[2]))
+        known = any(p.startswith(prefix) for p in registry["runs"])
+        others = [p for p in registry["runs"] if not p.startswith(prefix)]
+        index = next(
+            (
+                i
+                for i, p in enumerate(registry["runs"])
+                if p.startswith(prefix if known else "google/")
+            ),
+            len(others),
+        )
+        registry["runs"] = others[:index] + ordered + others[index:]
+        registry.setdefault("modelAddedAt", {}).setdefault(
+            model, max(r["timing"]["completedAt"] for r in imported)
+        )
     path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
 
 

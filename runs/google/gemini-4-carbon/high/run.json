@@ -1,0 +1,100 @@
+{
+  "$schema": "../../../schemas/run.schema.json",
+  "schemaVersion": 1,
+  "id": "google/gemini-4-carbon/high",
+  "vendor": {
+    "slug": "google",
+    "displayName": "Google"
+  },
+  "model": {
+    "slug": "gemini-4-carbon",
+    "displayName": "Gemini 4 Carbon",
+    "providerModelId": "google/gemini-4-carbon"
+  },
+  "variation": {
+    "slug": "high",
+    "displayName": "High",
+    "reasoningEffort": "high",
+    "parameters": {
+      "modelSelection": "Gemini 4 Carbon (High)"
+    }
+  },
+  "harness": {
+    "name": "Antigravity CLI",
+    "version": "1.5.5",
+    "runtime": "Harbor",
+    "invocation": "Native Harbor agy with pinned executable through the OpenRouter gateway; google/gemini-4-carbon --effort high"
+  },
+  "artifacts": {
+    "result": "index.html",
+    "transcript": "transcript.json"
+  },
+  "timing": {
+    "startedAt": "2026-11-11T15:01:50.081669Z",
+    "completedAt": "2026-11-11T16:36:29.535631Z",
+    "wallDurationMs": 5679454
+  },
+  "usage": {
+    "tokens": {
+      "input": 305339,
+      "cachedInput": 995589,
+      "output": 37565,
+      "reasoning": 19209,
+      "total": 1357702
+    },
+    "cost": {
+      "currency": "USD",
+      "input": 0.610678,
+      "cachedInput": 0.0995589,
+      "output": 0.56774,
+      "cacheCreationInput": 0,
+      "other": 0,
+      "total": 1.2779769,
+      "estimated": true
+    },
+    "requests": 44,
+    "turns": 1,
+    "toolCalls": 36,
+    "providerReported": true,
+    "raw": {
+      "nativeStreamUsage": {
+        "input_tokens": 305339,
+        "output_tokens": 56774,
+        "thinking_tokens": 19209,
+        "cache_read_tokens": 995589,
+        "total_tokens": 362113
+      },
+      "nativeCompletionStatus": "SUCCESS",
+      "pricing": {
+        "source": "https://openrouter.ai/google/gemini-4-carbon",
+        "pinnedAt": "2026-11-11",
+        "model": "google/gemini-4-carbon",
+        "tier": "OpenRouter",
+        "basis": "Published OpenRouter list prices with the 50% launch discount; not a recorded charge",
+        "introductory": true,
+        "effectiveThrough": null,
+        "inputUsdPerMillion": 2.0,
+        "cachedInputUsdPerMillion": 0.1,
+        "outputUsdPerMillion": 10.0,
+        "outputIncludesThinking": true,
+        "cacheType": "implicit"
+      },
+      "harborAgentTokens": {
+        "n_input_tokens": 1300928,
+        "n_cache_tokens": 995589,
+        "n_output_tokens": 56774
+      },
+      "harborTrial": "ramen__e28747c1",
+      "harborTaskChecksum": "424e1633496aff89f452f99488b8abeb042bdcbc0dee31f03a63ca10fe7cb584",
+      "artifactVerification": "Recorded agy file-operation replay (9 operations)"
+    }
+  },
+  "resultStats": {
+    "bytes": 60110,
+    "lines": 1613
+  },
+  "provenance": {
+    "pricingSource": "OpenRouter published list prices with the 50% launch discount, pinned 2026-11-11; https://openrouter.ai/google/gemini-4-carbon"
+  },
+  "notes": "Generated entirely by native agy inside Harbor. HTML is unchanged and matches recorded successful file operations. Generation time comes from Harbor and excludes setup and verification. Token counters come from the native completion aggregate, checked against individual steps; input and cache reads are disjoint, and thinking is included once in output then split into reasoning. Native total_tokens excludes cache reads; the public total includes them once. Pricing uses OpenRouter's pinned published list prices, including the 50% launch discount, with cache hits discounted and thinking included once; it is not a recorded provider charge. Hidden reasoning, system/developer prompts, credentials, private agent activity, opaque payloads and personal paths are excluded from the public transcript."
+}

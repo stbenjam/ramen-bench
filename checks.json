@@ -300,6 +300,18 @@
       "reward": 1,
       "violations": []
     },
+    "google/gemini-4-carbon/high": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-carbon/medium": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-carbon/low": {
+      "reward": 1,
+      "violations": []
+    },
     "google/gemini-4-argon/high": {
       "reward": 1,
       "violations": []

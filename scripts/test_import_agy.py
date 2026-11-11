@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from agy_list_prices import argon_list_cost
+from agy_list_prices import argon_list_cost, carbon_list_cost
 from import_agy import (
     build_trial,
     normalize,
@@ -15,7 +15,10 @@ from import_agy import (
     replay_artifact,
     stream_usage,
     transcript_rows,
+    trial_route,
 )
+
+RUN = "google/gemini-4-argon/low"
 
 
 def row(index, kind, *, source="MODEL", status="DONE", **fields):
@@ -45,6 +48,40 @@ class AgyImportTests(unittest.TestCase):
         self.assertEqual(later["total"], 24.2)
         with self.assertRaisesRegex(ValueError, "predates"):
             argon_list_cost(usage, "2026-10-01T00:00:00Z")
+
+    def test_carbon_uses_pinned_openrouter_launch_rates_only_while_current(self):
+        usage = {
+            "input_tokens": 1_000_000,
+            "cache_read_tokens": 1_000_000,
+            "output_tokens": 1_000_000,
+            "thinking_tokens": 500_000,
+        }
+        cost, source = carbon_list_cost(usage, "2026-11-11T18:00:00Z")
+        self.assertEqual(cost["total"], 12.1)
+        self.assertTrue(cost["estimated"])
+        self.assertTrue(source["introductory"])
+        for day in ("2026-11-09T23:00:00Z", "2026-11-12T00:00:00Z"):
+            with self.assertRaisesRegex(ValueError, "outside"):
+                carbon_list_cost(usage, day)
+
+    def test_carbon_route_requires_the_openrouter_gateway(self):
+        agent = {
+            "name": "antigravity-cli",
+            "model_name": "openrouter/google/gemini-4-carbon",
+            "kwargs": {"reasoning_effort": "high"},
+            "env": {
+                "AGY_LLM_GATEWAY_URL": "https://openrouter.ai/api/v1",
+                "AGY_LLM_GATEWAY_WIRE_PROTOCOL": "openai",
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.json"
+            config.write_text(json.dumps({"agent": agent}))
+            route, effort = trial_route(Path(directory))
+            self.assertEqual((route.slug, effort), ("gemini-4-carbon", "high"))
+            agent["env"]["AGY_LLM_GATEWAY_URL"] = "https://example.invalid/v1"
+            config.write_text(json.dumps({"agent": agent}))
+            self.assertIsNone(trial_route(Path(directory))[0])
 
     def test_error_status_requires_completed_post_timeout_write_and_final_response(
         self,
@@ -209,10 +246,48 @@ class AgyImportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory) / "index.html"
             artifact.write_text("<svg>ramen</svg>\n")
-            self.assertIn("1 operations", replay_artifact(rows, artifact, "/app"))
+            self.assertIn("1 operations", replay_artifact(rows, artifact, "/app", RUN))
             artifact.write_text("<svg>changed</svg>\n")
             with self.assertRaisesRegex(ValueError, "differs"):
-                replay_artifact(rows, artifact, "/app")
+                replay_artifact(rows, artifact, "/app", RUN)
+
+    def test_replay_reads_agy_1_5_file_tools(self):
+        rows = [
+            row(
+                1,
+                "PLANNER_RESPONSE",
+                tool_calls=[
+                    {
+                        "name": "write_file",
+                        "args": {
+                            "Path": "/app/index.html",
+                            "Content": "<svg>ramen</svg>\n",
+                            "Overwrite": True,
+                        },
+                    }
+                ],
+            ),
+            row(2, "GENERIC", content="written"),
+            row(
+                3,
+                "PLANNER_RESPONSE",
+                tool_calls=[
+                    {
+                        "name": "edit_file",
+                        "args": {
+                            "Path": "/app/index.html",
+                            "Target": "ramen",
+                            "Replacement": "noodles",
+                        },
+                    }
+                ],
+            ),
+            row(4, "GENERIC", content="edited"),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            artifact = Path(directory) / "index.html"
+            artifact.write_text("<svg>noodles</svg>\n")
+            self.assertIn("2 operations", replay_artifact(rows, artifact, "/app", RUN))
 
     def test_normalization_keeps_visible_content_and_omits_private_activity(self):
         rows = [

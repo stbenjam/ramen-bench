@@ -76,6 +76,9 @@
     "openai/gpt-5.5/high/run.json",
     "openai/gpt-5.5/medium/run.json",
     "openai/gpt-5.5/low/run.json",
+    "google/gemini-4-carbon/high/run.json",
+    "google/gemini-4-carbon/medium/run.json",
+    "google/gemini-4-carbon/low/run.json",
     "google/gemini-4-argon/high/run.json",
     "google/gemini-4-argon/medium/run.json",
     "google/gemini-4-argon/low/run.json",
@@ -134,6 +137,7 @@
     "anthropic/haiku-5.5": "2026-10-08T21:21:50.929650Z",
     "meta/muse-wonder-1.0": "2026-10-12T19:58:06.304563Z",
     "google/gemini-4-argon": "2026-10-15T23:32:48.380332Z",
-    "anthropic/fable-5.2": "2026-11-11T00:55:46.154639Z"
+    "anthropic/fable-5.2": "2026-11-11T00:55:46.154639Z",
+    "google/gemini-4-carbon": "2026-11-11T18:59:08.981273Z"
   }
 }
