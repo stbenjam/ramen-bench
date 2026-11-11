@@ -1,5 +1,5 @@
 {
-  "$schema": "https://not-stbenjam.github.io/ramen-bench/schemas/transcript.schema.json",
+  "$schema": "https://stbenjam.github.io/ramen-bench/schemas/transcript.schema.json",
   "schemaVersion": 1,
   "runId": "anthropic/opus-5.5/xhigh",
   "sessionId": "a4f3c8e1-2b7d-4c9a-8e56-1f0d3b9c72aa",

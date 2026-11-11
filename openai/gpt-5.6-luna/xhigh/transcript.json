@@ -1,5 +1,5 @@
 {
-  "$schema": "https://not-stbenjam.github.io/ramen-bench/schemas/transcript.schema.json",
+  "$schema": "https://stbenjam.github.io/ramen-bench/schemas/transcript.schema.json",
   "schemaVersion": 1,
   "runId": "openai/gpt-5.6-luna/xhigh",
   "sessionId": "01a06e7a-f320-7632-a67e-3041f8424929",

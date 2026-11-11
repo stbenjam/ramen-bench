@@ -1,5 +1,5 @@
 {
-  "$schema": "https://not-stbenjam.github.io/ramen-bench/schemas/run.schema.json",
+  "$schema": "https://stbenjam.github.io/ramen-bench/schemas/run.schema.json",
   "schemaVersion": 1,
   "id": "google/gemini-3.7-flash/high",
   "vendor": {

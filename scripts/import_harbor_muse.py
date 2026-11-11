@@ -431,7 +431,7 @@ def build_trial(trial: Path, binary: str) -> tuple[dict, dict, Path]:
         }
         if priced
         else {},
-        "notes": "HTML is unchanged and verified against recorded Muse writes. Generation timing excludes setup and grading. Tokens sum native model_completed events once per retained main and auxiliary session. Input excludes cache hits; reasoning is a subset of native output, split out of usage.tokens.output and counted once in the total. Auxiliary session content, hidden reasoning, system/developer prompts and private activity are excluded from the public transcript. "
+        "notes": "HTML is unchanged and verified against recorded Muse writes. Generation timing excludes setup and verification. Tokens sum native model_completed events once per retained main and auxiliary session. Input excludes cache hits; reasoning is a subset of native output, split out of usage.tokens.output and counted once in the total. Auxiliary session content, hidden reasoning, system/developer prompts and private activity are excluded from the public transcript. "
         + (
             "Cost is an API-equivalent Standard list-price estimate at Meta's published rates, including auxiliary sessions and reasoning once; it is not a recorded charge. "
             if priced

@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-02",
   "vars": {
-    "ALLOWED_ORIGINS": "https://not-stbenjam.github.io,http://localhost:8000,http://127.0.0.1:8000"
+    "ALLOWED_ORIGINS": "https://stbenjam.github.io,http://localhost:8000,http://127.0.0.1:8000"
   },
   "secrets": {
     "required": ["VOTER_HASH_SECRET"]

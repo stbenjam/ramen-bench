@@ -33,9 +33,9 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from censor_transcripts import censor_text, censor_value  # noqa: E402
 
 ANTIGRAVITY_ROOT = Path.home() / ".gemini" / "antigravity-cli"
-RUN_SCHEMA = "https://not-stbenjam.github.io/ramen-bench/schemas/run.schema.json"
+RUN_SCHEMA = "https://stbenjam.github.io/ramen-bench/schemas/run.schema.json"
 TRANSCRIPT_SCHEMA = (
-    "https://not-stbenjam.github.io/ramen-bench/schemas/transcript.schema.json"
+    "https://stbenjam.github.io/ramen-bench/schemas/transcript.schema.json"
 )
 
 RUNS = (

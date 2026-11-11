@@ -131,8 +131,7 @@
         "reasoningIncludedInOutput": true,
         "includesAuxiliarySessions": true,
         "pricedRequests": 12
-      },
-      "harborGradeTrial": "muse-task__XkmsnjC"
+      }
     }
   },
   "resultStats": {
@@ -142,5 +141,5 @@
   "provenance": {
     "pricingSource": "Meta Standard published list prices, pinned 2026-10-12; https://dev.meta.ai/docs/pricing-rate-limits"
   },
-  "notes": "HTML is unchanged and verified against recorded Muse writes. Generation timing excludes setup and grading. Tokens sum native model_completed events once per retained main and auxiliary session. Input excludes cache hits; reasoning is a subset of native output, split out of usage.tokens.output and counted once in the total. Auxiliary session content, hidden reasoning, system/developer prompts and private activity are excluded from the public transcript. Cost is an API-equivalent Standard list-price estimate at Meta's published rates, including auxiliary sessions and reasoning once; it is not a recorded charge. Effort is the explicitly requested setting recorded in Harbor and its Muse invocation. Scores come from a native Harbor regrade of the saved artifact; generation was not repeated."
+  "notes": "HTML is unchanged and verified against recorded Muse writes. Generation timing excludes setup and verification. Tokens sum native model_completed events once per retained main and auxiliary session. Input excludes cache hits; reasoning is a subset of native output, split out of usage.tokens.output and counted once in the total. Auxiliary session content, hidden reasoning, system/developer prompts and private activity are excluded from the public transcript. Cost is an API-equivalent Standard list-price estimate at Meta's published rates, including auxiliary sessions and reasoning once; it is not a recorded charge. Effort is the explicitly requested setting recorded in Harbor and its Muse invocation."
 }

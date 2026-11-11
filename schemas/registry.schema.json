@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://not-stbenjam.github.io/ramen-bench/schemas/registry.schema.json",
+  "$id": "https://stbenjam.github.io/ramen-bench/schemas/registry.schema.json",
   "title": "Ramen Bench registry",
   "type": "object",
   "additionalProperties": false,

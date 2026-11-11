@@ -321,7 +321,10 @@ def censor_text(
 
     if CURRENT_USER:
         value, count = re.subn(
-            rf"(?i)(?<!not-)\b{re.escape(CURRENT_USER)}\b", "<USER>", value
+            # The repository's own public GitHub and Pages URLs name its owner.
+            rf"(?i)(?<!not-)(?<!github\.com/)\b{re.escape(CURRENT_USER)}\b(?!\.github\.io)",
+            "<USER>",
+            value,
         )
         _bump(stats, "usernames", count)
     return value

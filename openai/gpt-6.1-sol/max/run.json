@@ -1,5 +1,5 @@
 {
-  "$schema": "https://not-stbenjam.github.io/ramen-bench/schemas/run.schema.json",
+  "$schema": "https://stbenjam.github.io/ramen-bench/schemas/run.schema.json",
   "schemaVersion": 1,
   "id": "openai/gpt-6.1-sol/max",
   "vendor": {
@@ -97,5 +97,5 @@
   "provenance": {
     "pricingSource": "Harbor native ATIF final_metrics.total_cost_usd (Harbor LiteLLM estimate)"
   },
-  "notes": "Recovered from the completed Codex session, Harbor ATIF trajectory, collected artifact, and saved native verifier grade/reward. Harbor did not finalize result.json. Generation timing uses the recorded Codex session bounds; cost and tokens use Harbor's saved trajectory. No trial result or AgentContext was reconstructed."
+  "notes": "Recovered from the completed Codex session, Harbor ATIF trajectory, and collected artifact. Harbor did not finalize result.json. Generation timing uses the recorded Codex session bounds; cost and tokens use Harbor's saved trajectory. No trial result or AgentContext was reconstructed."
 }

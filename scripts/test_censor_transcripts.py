@@ -72,6 +72,17 @@ class TranscriptCensorTests(unittest.TestCase):
 
         self.assertEqual(censor_value(value), {"content": "Visible answer"})
 
+    def test_keeps_repository_owner_urls_but_redacts_username(self) -> None:
+        from unittest.mock import patch
+
+        with patch("scripts.censor_transcripts.CURRENT_USER", "owner"):
+            self.assertEqual(
+                censor_text(
+                    "https://owner.github.io/x https://github.com/owner/x by owner"
+                ),
+                "https://owner.github.io/x https://github.com/owner/x by <USER>",
+            )
+
     def test_redacts_private_paths_and_large_binary(self) -> None:
         payload = "A" * 5000
         value = {

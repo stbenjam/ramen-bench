@@ -30,9 +30,9 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME = Path.home()
-RUN_SCHEMA_URL = "https://not-stbenjam.github.io/ramen-bench/schemas/run.schema.json"
+RUN_SCHEMA_URL = "https://stbenjam.github.io/ramen-bench/schemas/run.schema.json"
 TRANSCRIPT_SCHEMA_URL = (
-    "https://not-stbenjam.github.io/ramen-bench/schemas/transcript.schema.json"
+    "https://stbenjam.github.io/ramen-bench/schemas/transcript.schema.json"
 )
 EXPECTED_LITELLM_VERSION = "1.83.7"
 PROMPT = (

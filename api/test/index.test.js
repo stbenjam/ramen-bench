@@ -3,7 +3,7 @@ import test from "node:test";
 
 import worker from "../src/index.js";
 
-const allowedOrigin = "https://not-stbenjam.github.io";
+const allowedOrigin = "https://stbenjam.github.io";
 
 function environment() {
   const votes = new Map();

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://not-stbenjam.github.io/ramen-bench/schemas/transcript.schema.json",
+  "$schema": "https://stbenjam.github.io/ramen-bench/schemas/transcript.schema.json",
   "schemaVersion": 1,
   "runId": "mistralai/mistral-large-4-0/default",
   "sessionId": "01a111e5-7c49-7493-9a95-9896a413ceb8",
