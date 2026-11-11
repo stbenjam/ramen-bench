@@ -1,4 +1,4 @@
-"""Price legacy Sonnet 5.5 accounting at pinned official list rates."""
+"""Price Claude Code accounting at pinned official list rates."""
 
 from __future__ import annotations
 
@@ -72,6 +72,64 @@ def sonnet_list_cost(messages: list[dict], state: dict) -> tuple[dict, dict] | N
         "unclassifiedCacheWriteTreatment": "upper tariff bound; duration unknown",
         "totalRangeUsd": [float(total - cache_range), float(total)],
         "auxiliaryCostSource": "recorded Claude Code Haiku costUSD",
+        "thinkingIncludedInOutput": True,
+    }
+    return cost, evidence
+
+
+# Official list rates for models Claude Code can record without pricing.
+LIST_PRICE_SOURCE = "https://platform.claude.com/docs/en/about-claude/pricing"
+LIST_PRICE_AS_OF = "2026-11-11"
+LIST_RATES = {
+    "claude-fable-5-2": {
+        "input": 8,
+        "output": 40,
+        "cacheRead": 0.2,
+        "cacheWrite5m": 10,
+        "cacheWrite1h": 16,
+    },
+}
+TOKEN_RATES = {
+    "inputTokens": ("input", "input"),
+    "outputTokens": ("output", "output"),
+    "cacheReadInputTokens": ("cachedInput", "cacheRead"),
+    "cacheCreationEphemeral5mInputTokens": ("cacheCreationInput", "cacheWrite5m"),
+    "cacheCreationEphemeral1hInputTokens": ("cacheCreationInput", "cacheWrite1h"),
+}
+
+
+def model_usage_list_cost(
+    model_usage: dict, usage: dict
+) -> tuple[dict, dict] | None:
+    """Price Claude Code modelUsage at pinned list rates, or None if any input is unknown."""
+    # Fast mode and US-only inference carry multipliers; web searches are billed separately.
+    if usage.get("speed") != "standard" or usage.get("inference_geo") != "global":
+        return None
+    million = Decimal(1_000_000)
+    costs = dict.fromkeys(("input", "output", "cachedInput", "cacheCreationInput"), Decimal(0))
+    for model, row in model_usage.items():
+        rates = LIST_RATES.get(model)
+        if rates is None or row.get("webSearchRequests", 0):
+            return None
+        counts = {key: row.get(key) for key in (*TOKEN_RATES, "cacheCreationInputTokens")}
+        if any(not isinstance(v, int) or isinstance(v, bool) or v < 0 for v in counts.values()):
+            return None
+        written = counts["cacheCreationEphemeral5mInputTokens"] + counts["cacheCreationEphemeral1hInputTokens"]
+        if written != counts["cacheCreationInputTokens"]:
+            return None
+        for key, (category, rate) in TOKEN_RATES.items():
+            costs[category] += Decimal(counts[key]) * Decimal(str(rates[rate])) / million
+    cost = {
+        "currency": "USD",
+        **{key: float(value) for key, value in costs.items()},
+        "total": float(sum(costs.values())),
+        "estimated": True,
+    }
+    evidence = {
+        "source": LIST_PRICE_SOURCE,
+        "asOf": LIST_PRICE_AS_OF,
+        "usdPerMillionTokens": {model: LIST_RATES[model] for model in model_usage},
+        "tokenSource": "Claude Code modelUsage, including recorded auxiliary requests",
         "thinkingIncludedInOutput": True,
     }
     return cost, evidence

@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from claude_list_prices import model_usage_list_cost
 from import_harbor_claude import ROOT, build_trial, native_usage
 
 
@@ -225,6 +226,38 @@ class HarborClaudeTests(unittest.TestCase):
             result["agent_result"]["n_input_tokens"] += 1
             with self.assertRaisesRegex(ValueError, "usage disagrees"):
                 native_usage(rows, result, completion)
+
+    def test_unpriced_model_uses_list_rates_that_match_recorded_cli_prices(self):
+        # Fable 5.2 Max as Claude Code 2.1.322 recorded it with costBasis "list".
+        recorded = {
+            "inputTokens": 4839,
+            "outputTokens": 455809,
+            "cacheReadInputTokens": 26762291,
+            "cacheCreationInputTokens": 718835,
+            "cacheCreationEphemeral5mInputTokens": 11543,
+            "cacheCreationEphemeral1hInputTokens": 707292,
+            "webSearchRequests": 0,
+        }
+        usage = {"speed": "standard", "inference_geo": "global"}
+        cost, evidence = model_usage_list_cost({"claude-fable-5-2": recorded}, usage)
+        self.assertAlmostEqual(cost["total"], 35.0556322, places=9)
+        self.assertTrue(cost["estimated"])
+        self.assertEqual(evidence["usdPerMillionTokens"]["claude-fable-5-2"]["input"], 8)
+        for change in (
+            {"speed": "fast"},
+            {"inference_geo": "us"},
+        ):
+            self.assertIsNone(
+                model_usage_list_cost({"claude-fable-5-2": recorded}, usage | change)
+            )
+        for change in (
+            {"webSearchRequests": 1},
+            {"cacheCreationEphemeral5mInputTokens": 0},
+        ):
+            self.assertIsNone(
+                model_usage_list_cost({"claude-fable-5-2": recorded | change}, usage)
+            )
+        self.assertIsNone(model_usage_list_cost({"claude-haiku-5-5": recorded}, usage))
 
     def test_verifier_failure_retains_generation_but_agent_failure_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
