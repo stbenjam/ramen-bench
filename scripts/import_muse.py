@@ -22,14 +22,14 @@ def main() -> int:
     subprocess.run(
         [
             sys.executable,
-            ROOT / "meta" / "muse-spark-1.3" / "build_metadata.py",
+            ROOT / "runs" / "meta" / "muse-spark-1.3" / "build_metadata.py",
             *sys.argv[1:],
         ],
         cwd=ROOT,
         check=True,
     )
-    censor_transcripts(["--write", str(ROOT / "meta")])
-    return censor_transcripts([str(ROOT / "meta")])
+    censor_transcripts(["--write", str(ROOT / "runs" / "meta")])
+    return censor_transcripts([str(ROOT / "runs" / "meta")])
 
 
 if __name__ == "__main__":

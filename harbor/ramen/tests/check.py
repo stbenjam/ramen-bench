@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
 """Static checks for the ramen artifact: well-formed, standalone, code-drawn HTML."""
 
 from __future__ import annotations
 
-import argparse
-import json
 import re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -166,39 +163,22 @@ def structure_violations(source: str) -> list[str]:
     return result
 
 
-def check(artifact: Path) -> dict:
+CHECKS = {
+    "well_formed": structure_violations,
+    "standalone": standalone_violations,
+    "self_drawn": procedural_violations,
+}
+
+
+def check(artifact: Path) -> dict[str, list[str]]:
+    """Return each check's violations; an unreadable artifact fails every check."""
     if not artifact.is_file() or not artifact.stat().st_size:
-        return {"reward": 0, "violations": ["Missing or empty artifact"]}
-    try:
-        source = artifact.read_bytes().decode("utf-8")
-    except UnicodeDecodeError:
-        return {"reward": 0, "violations": ["Artifact is not UTF-8 text"]}
-    checks = {
-        "wellFormed": structure_violations(source),
-        "standalone": standalone_violations(source),
-        "selfDrawn": procedural_violations(source),
-    }
-    violations = [item for items in checks.values() for item in items]
-    return {
-        "reward": 0 if violations else 1,
-        **{name: int(not items) for name, items in checks.items()},
-        "violations": violations,
-    }
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--artifact", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-    result = check(args.artifact)
-    args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / "check.json").write_text(json.dumps(result, indent=2) + "\n")
-    rewards = {key: value for key, value in result.items() if key != "violations"}
-    (args.output / "reward.json").write_text(json.dumps(rewards) + "\n")
-    print(json.dumps(result))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+        problem = "Missing or empty artifact"
+    else:
+        try:
+            source = artifact.read_bytes().decode("utf-8")
+        except UnicodeDecodeError:
+            problem = "Artifact is not UTF-8 text"
+        else:
+            return {name: run(source) for name, run in CHECKS.items()}
+    return {name: [problem] for name in CHECKS}

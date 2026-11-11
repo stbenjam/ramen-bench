@@ -4,6 +4,6 @@ Creative-coding tasks that ask an agent for a single, dependency-free HTML page,
 
 | Task | Description |
 | --- | --- |
-| [`stbenjam/ramen`](ramen/README.md) | An interactive, steaming bowl of vegan ramen drawn with code |
+| [`stbenjam/ramen`](https://hub.harborframework.com/tasks/stbenjam/ramen) | An interactive, steaming bowl of vegan ramen drawn with code |
 
-Results are published at [Ramen Bench](https://stbenjam.github.io/ramen-bench/).
+The dataset is published on [Harbor Hub](https://hub.harborframework.com/datasets/stbenjam/ramen-bench), and results at [Ramen Bench](https://stbenjam.github.io/ramen-bench/).

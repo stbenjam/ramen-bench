@@ -16,7 +16,7 @@ import litellm
 from jsonschema import Draft202012Validator, FormatChecker
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from censor_transcripts import censor_text, censor_value  # noqa: E402
 
@@ -34,7 +34,7 @@ EFFORT_NAMES = {
     "high": "High",
     "xhigh": "XHigh",
 }
-WORKSPACE_ROOT = str(Path(__file__).resolve().parents[2])
+WORKSPACE_ROOT = str(REPO_ROOT)
 HOME_ROOT = str(Path.home())
 
 
@@ -388,7 +388,7 @@ def main() -> None:
     args = parser.parse_args()
 
     model_dir = Path(__file__).resolve().parent
-    repo = model_dir.parents[1]
+    repo = REPO_ROOT
     run_schema = repo / "schemas" / "run.schema.json"
     transcript_schema = repo / "schemas" / "transcript.schema.json"
 

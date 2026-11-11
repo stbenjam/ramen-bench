@@ -1,4 +1,4 @@
-"""Static artifact checks used by the Harbor verifier and checks.json."""
+"""Static artifact checks shared by the Harbor verifier and checks.json."""
 
 import sys
 import tempfile
@@ -27,27 +27,29 @@ class StaticCheckTests(unittest.TestCase):
         result = run(
             body='<svg><use href="#bowl"/></svg><img src="data:image/svg+xml,<svg/>">'
         )
-        self.assertEqual(result["reward"], 1)
-        self.assertEqual(result["violations"], [])
+        self.assertEqual(result, {name: [] for name in result})
 
     def test_each_check_fails_independently(self):
         cases = {
-            "wellFormed": run(raw=b"<html><body>ramen</body></html>"),
+            "well_formed": run(raw=b"<html><body>ramen</body></html>"),
             "standalone": run(style="body{background:url(https://example.com/a.png)}"),
-            "selfDrawn": run(body='<img src="data:image/png;base64,AAAA">'),
+            "self_drawn": run(body='<img src="data:image/png;base64,AAAA">'),
         }
         for name, result in cases.items():
-            self.assertEqual(result["reward"], 0, name)
-            self.assertEqual(result[name], 0, name)
+            failed = [check for check, violations in result.items() if violations]
+            self.assertEqual(failed, [name])
 
-    def test_missing_empty_and_binary_artifacts_fail(self):
-        self.assertEqual(check(Path("/nonexistent/index.html"))["reward"], 0)
-        self.assertEqual(run(raw=b"")["reward"], 0)
-        self.assertEqual(run(raw=b"\xff\xfe")["reward"], 0)
+    def test_missing_empty_and_binary_artifacts_fail_every_check(self):
+        for result in (
+            check(Path("/nonexistent/index.html")),
+            run(raw=b""),
+            run(raw=b"\xff\xfe"),
+        ):
+            self.assertTrue(all(result.values()))
 
     def test_comments_and_strings_do_not_count_as_imports(self):
         result = run(script='// import x from "y"\nconst s = "import z from \\"w\\"";')
-        self.assertEqual(result["reward"], 1)
+        self.assertFalse(any(result.values()))
 
 
 if __name__ == "__main__":

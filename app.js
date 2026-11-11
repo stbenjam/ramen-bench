@@ -92,7 +92,7 @@
   }
 
   async function loadEntries() {
-    const registryResponse = await fetch("registry.json", { cache: "no-store" });
+    const registryResponse = await fetch("runs/registry.json", { cache: "no-store" });
     if (!registryResponse.ok) {
       throw new Error(`Registry request failed with ${registryResponse.status}`);
     }
@@ -104,7 +104,7 @@
 
     const checks = await loadChecks();
     const results = await Promise.allSettled(registry.runs.map(async (path) => {
-      const response = await fetch(path, { cache: "no-store" });
+      const response = await fetch(new URL(path, registryResponse.url), { cache: "no-store" });
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       const run = await response.json();
       if (!isRun(run)) throw new Error(`${path}: invalid run manifest`);
@@ -525,7 +525,7 @@
     if (!hasEntries) {
       setWelcome(
         "Ready for the first bowl.",
-        "Add run manifests to registry.json and their single-file results will appear here."
+        "Add run manifests to runs/registry.json and their single-file results will appear here."
       );
       return;
     }
@@ -1091,7 +1091,7 @@
       renderList();
       setWelcome(
         "The registry could not be loaded.",
-        "Serve the repository through a local web server and check registry.json.",
+        "Serve the repository through a local web server and check runs/registry.json.",
         false
       );
     }

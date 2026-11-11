@@ -20,8 +20,8 @@ def main() -> int:
     else:
         import_sessions(["--harness", "codex", *sys.argv[1:]])
     if "--dry-run" not in sys.argv[1:]:
-        censor_transcripts(["--write", str(ROOT / "openai")])
-    return censor_transcripts([str(ROOT / "openai")])
+        censor_transcripts(["--write", str(ROOT / "runs" / "openai")])
+    return censor_transcripts([str(ROOT / "runs" / "openai")])
 
 
 if __name__ == "__main__":

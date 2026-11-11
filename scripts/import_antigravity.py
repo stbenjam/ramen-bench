@@ -20,13 +20,13 @@ def main() -> int:
 
         return import_native(sys.argv[1:])
     subprocess.run(
-        [sys.executable, ROOT / "google" / "import_antigravity_runs.py", *sys.argv[1:]],
+        [sys.executable, ROOT / "runs" / "google" / "import_antigravity_runs.py", *sys.argv[1:]],
         cwd=ROOT,
         check=True,
     )
     if "--check-sources" not in sys.argv[1:]:
-        censor_transcripts(["--write", str(ROOT / "google")])
-    return censor_transcripts([str(ROOT / "google")])
+        censor_transcripts(["--write", str(ROOT / "runs" / "google")])
+    return censor_transcripts([str(ROOT / "runs" / "google")])
 
 
 if __name__ == "__main__":
