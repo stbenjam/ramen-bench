@@ -304,7 +304,7 @@ def main() -> int:
     parser.add_argument("--session", type=Path, required=True)
     parser.add_argument("--artifact", type=Path, required=True)
     parser.add_argument("--usage-file", type=Path)
-    parser.add_argument("--output-root", type=Path, default=ROOT)
+    parser.add_argument("--output-root", type=Path, default=ROOT / "runs")
     parser.add_argument("--harness-version", required=True)
     parser.add_argument("--check-sources", action="store_true")
     parser.add_argument(

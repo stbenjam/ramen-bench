@@ -29,6 +29,7 @@ from claude_list_prices import sonnet_list_cost
 from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[1]
+RUNS = ROOT / "runs"
 HOME = Path.home()
 RUN_SCHEMA_URL = "https://stbenjam.github.io/ramen-bench/schemas/run.schema.json"
 TRANSCRIPT_SCHEMA_URL = (
@@ -461,7 +462,7 @@ def estimated_total_only_cost(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Estimate a total-only Codex run using the same-effort Astra token mix."""
     reference_id = f"openai/gpt-6-astra/{effort}"
-    reference_path = ROOT / reference_id / "run.json"
+    reference_path = RUNS / reference_id / "run.json"
     reference = json.loads(reference_path.read_text())
     reference_tokens = reference["usage"]["tokens"]
     reference_total = reference_tokens["total"]
@@ -512,7 +513,7 @@ def estimated_total_only_cost(
 
 
 def result_stats(run_id: str, artifact: Path | None = None) -> dict[str, int]:
-    data = (artifact or ROOT / run_id / "index.html").read_bytes()
+    data = (artifact or RUNS / run_id / "index.html").read_bytes()
     return {"bytes": len(data), "lines": data.count(b"\n")}
 
 
@@ -680,7 +681,7 @@ def verify_claude_result(
                     operation_count += count
     if content is None:
         raise ValueError(f"{run_id}: no recorded index.html Write found")
-    artifact_bytes = (artifact or ROOT / run_id / "index.html").read_bytes()
+    artifact_bytes = (artifact or RUNS / run_id / "index.html").read_bytes()
     if content.encode("utf-8") != artifact_bytes:
         raise ValueError(f"{run_id}: index.html differs from the final recorded write")
     return f"recorded file-operation replay ({operation_count} operations)"
@@ -893,6 +894,7 @@ def claude_usage(rows: list[dict[str, Any]]) -> tuple[dict[str, Any], str, str]:
 
 def build_claude(run_id: str) -> tuple[dict[str, Any], dict[str, Any], str]:
     filename = CLAUDE_SOURCES[run_id]
+    # Sessions ran in the run directory, before runs/ held the collection.
     project_directory = str(ROOT / run_id).replace(os.sep, "-").replace(".", "-")
     source_root = CLAUDE_SOURCE_ROOTS.get(run_id, ".claude-personal")
     source = HOME / source_root / "projects" / project_directory / filename
@@ -1597,7 +1599,7 @@ def verify_claude_component_result(
                     operation_count += 1
     if content is None:
         raise ValueError(f"{run_id}: no recorded component build found")
-    artifact = (ROOT / run_id / "index.html").read_text()
+    artifact = (RUNS / run_id / "index.html").read_text()
     if content != artifact:
         raise ValueError(f"{run_id}: index.html differs from recorded component build")
     return f"recorded component-build replay ({operation_count} operations)"
@@ -1658,7 +1660,7 @@ def verify_codex_result(
             operation_count += count
     if content is None:
         raise ValueError(f"{run_id}: no recorded index.html creation found")
-    artifact_text = (artifact or ROOT / run_id / "index.html").read_text()
+    artifact_text = (artifact or RUNS / run_id / "index.html").read_text()
     if content != artifact_text:
         raise ValueError(f"{run_id}: index.html differs from recorded file operations")
     return f"recorded file-operation replay ({operation_count} operations)"
@@ -1763,6 +1765,7 @@ def build_codex_session(run_id: str) -> tuple[dict[str, Any], dict[str, Any], st
     rows = read_jsonl(source)
     meta = next(row["payload"] for row in rows if row.get("type") == "session_meta")
     context = next(row["payload"] for row in rows if row.get("type") == "turn_context")
+    # Sessions ran in the run directory, before runs/ held the collection.
     expected_cwd = CODEX_EXPECTED_CWDS.get(run_id, ROOT / run_id)
     expected_model = run_id.split("/")[1]
     expected_effort = run_id.rsplit("/", 1)[1]
@@ -2099,14 +2102,14 @@ def tracked_run_ids() -> list[str]:
             "openai/**/run.json",
             "z.ai/**/run.json",
         ],
-        cwd=ROOT,
+        cwd=RUNS,
         text=True,
     )
     run_ids = []
     for relative in output.splitlines():
         if relative.startswith("openai/gpt-5.3-codex-spark/"):
             continue
-        path = ROOT / relative
+        path = RUNS / relative
         if path.is_file():
             run_ids.append(str(Path(relative).parent))
     return sorted(run_ids)
@@ -2168,7 +2171,7 @@ def main(argv: list[str] | None = None) -> None:
     all_run_ids = tracked_run_ids()
     native_runs = {}
     for run_id in set(all_run_ids) | set(args.run_ids or []):
-        manifest = ROOT / run_id / "run.json"
+        manifest = RUNS / run_id / "run.json"
         if manifest.is_file():
             run = json.loads(manifest.read_text())
             if run.get("harness", {}).get("runtime") == "Harbor" and run.get("harness", {}).get("name") in {"Codex", "Claude Code"}:
@@ -2237,8 +2240,8 @@ def main(argv: list[str] | None = None) -> None:
         ]
         coverage["base64Omissions"] += len(omission_sizes)
         coverage["base64CharactersOmitted"] += sum(omission_sizes)
-        run_path = ROOT / run_id / "run.json"
-        transcript_path = ROOT / run_id / "transcript.json"
+        run_path = RUNS / run_id / "run.json"
+        transcript_path = RUNS / run_id / "transcript.json"
         write_json(run_path, run, args.dry_run)
         write_json(transcript_path, transcript, args.dry_run)
         changed_paths.extend((run_path.relative_to(ROOT), transcript_path.relative_to(ROOT)))

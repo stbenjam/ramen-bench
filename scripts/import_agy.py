@@ -18,7 +18,8 @@ from censor_transcripts import main as censor_transcripts
 from import_harbor_codex import native_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "google"))
+RUNS = ROOT / "runs"
+sys.path.insert(0, str(RUNS / "google"))
 from import_antigravity_runs import extract_user_request
 
 EFFORTS = ("low", "medium", "high")
@@ -422,7 +423,7 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
 
 
 def register(runs: list[dict]):
-    path = ROOT / "registry.json"
+    path = RUNS / "registry.json"
     registry = json.loads(path.read_text())
     prefix = "google/gemini-4-argon/"
     fresh = {f"{r['id']}/run.json" for r in runs}
@@ -453,7 +454,7 @@ def main(argv: list[str]) -> int:
             run, transcript, artifact = build_trial(trial)
             if any(r["id"] == run["id"] for r in built):
                 raise ValueError("Multiple generations for one effort")
-            destination = ROOT / run["id"]
+            destination = RUNS / run["id"]
             if (destination / "index.html").exists() and (
                 destination / "index.html"
             ).read_bytes() != artifact.read_bytes():
@@ -483,6 +484,6 @@ def main(argv: list[str]) -> int:
         raise ValueError("No completed native Harbor agy trials")
     if not args.check_sources and not args.dry_run:
         register(built)
-        if censor_transcripts(["--write", str(ROOT / "google")]):
+        if censor_transcripts(["--write", str(RUNS / "google")]):
             raise ValueError("Public agy censor failed")
     return 0

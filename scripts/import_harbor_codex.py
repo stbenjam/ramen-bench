@@ -12,6 +12,7 @@ from backfill_session_metadata import (
     DISPLAY_NAMES,
     EFFORT_NAMES,
     ROOT,
+    RUNS,
     final_codex_usage,
     normalize_codex_events,
     read_jsonl,
@@ -454,7 +455,7 @@ def register(root: Path, runs: list[dict]) -> None:
 
 
 def build_registered_trial(run_id: str) -> tuple[dict, dict, Path]:
-    recorded = read_json(ROOT / run_id / "run.json")
+    recorded = read_json(RUNS / run_id / "run.json")
     trial_name = recorded["usage"]["raw"]["harborTrial"]
     if Path(trial_name).name != trial_name:
         raise ValueError("Invalid native Harbor trial identifier")
@@ -469,7 +470,7 @@ def build_registered_trial(run_id: str) -> tuple[dict, dict, Path]:
     run, transcript, artifact = builder(matches[0])
     if (
         run["id"] != run_id
-        or artifact.read_bytes() != (ROOT / run_id / "index.html").read_bytes()
+        or artifact.read_bytes() != (RUNS / run_id / "index.html").read_bytes()
     ):
         raise ValueError("Registered bowl differs from its native Harbor source")
     return run, transcript, artifact
@@ -501,7 +502,7 @@ def main(argv: list[str]) -> None:
         if any(previous[1]["id"] == run["id"] for previous in built):
             raise ValueError("Multiple successful trials for the same model and effort")
         built.append((trial, run, artifact))
-        destination = ROOT / run["id"]
+        destination = RUNS / run["id"]
         public_artifact = destination / "index.html"
         if (
             public_artifact.exists()
@@ -520,4 +521,4 @@ def main(argv: list[str]) -> None:
     if not built:
         raise ValueError("No successful, completed Harbor Codex trials found")
     if not args.dry_run:
-        register(ROOT, [run for _, run, _ in built])
+        register(RUNS, [run for _, run, _ in built])

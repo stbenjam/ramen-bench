@@ -1,0 +1,3 @@
+# reward.py is the task's single reward; it passes only when every check passes.
+[scoring.reward]
+aggregation = "all-pass"

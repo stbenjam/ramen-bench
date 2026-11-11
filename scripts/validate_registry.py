@@ -12,6 +12,7 @@ from censor_transcripts import main as audit_censoring
 from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[1]
+RUNS = ROOT / "runs"
 PLACEHOLDER_TRANSCRIPT = "Created the requested single-file ramen scene in index.html."
 
 
@@ -28,17 +29,17 @@ def validate(instance: Any, schema_path: Path, label: str) -> None:
 
 
 def main() -> int:
-    registry_path = ROOT / "registry.json"
+    registry_path = RUNS / "registry.json"
     registry = json.loads(registry_path.read_text())
-    validate(registry, ROOT / "schemas" / "registry.schema.json", "registry.json")
+    validate(registry, ROOT / "schemas" / "registry.schema.json", "runs/registry.json")
     manifests = registry["runs"]
     if len(manifests) != len(set(manifests)):
-        raise ValueError("registry.json contains duplicate manifest paths")
+        raise ValueError("runs/registry.json contains duplicate manifest paths")
 
     run_count = 0
     event_count = 0
     for relative_manifest in manifests:
-        manifest_path = ROOT / relative_manifest
+        manifest_path = RUNS / relative_manifest
         if not manifest_path.is_file():
             raise FileNotFoundError(manifest_path)
         run = json.loads(manifest_path.read_text())
@@ -82,12 +83,7 @@ def main() -> int:
         run_count += 1
         event_count += len(transcript["events"])
 
-    if audit_censoring(
-        [
-            str(ROOT / name)
-            for name in ("anthropic", "openai", "google", "meta", "xai", "z.ai", "mistralai")
-        ]
-    ):
+    if audit_censoring([]):
         raise ValueError("one or more public JSON files need censoring")
     from static_checks import main as audit_static_checks
 

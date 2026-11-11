@@ -14,7 +14,7 @@
 - Generate `run.json` and `transcript.json` with the repository importer for that harness. Do not write or fill transcript events, token counts, timing, costs, or provenance by hand.
 - Use the harness entry points in `scripts/`: `import_claude_code.py`, `import_codex.py`, `import_antigravity.py`, or `import_muse.py`. Extend the appropriate importer when adding another run so the result is reproducible.
 - Prefer provider-recorded costs. Otherwise calculate costs with the pinned LiteLLM catalog only when the recorded token categories are sufficient. Keep cost unknown when calculating it would require guessing.
-- Add the run manifest to `registry.json` under Vendor → Model → Effort. Order models newest to oldest and efforts highest to lowest: Ultra, Max, XHigh, High, Medium, Low.
+- Add the run manifest to `runs/registry.json` under Vendor → Model → Effort. Order models newest to oldest and efforts highest to lowest: Ultra, Max, XHigh, High, Medium, Low.
 
 ## Censor every public transcript with the shared tool
 

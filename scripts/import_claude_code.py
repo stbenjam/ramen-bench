@@ -10,7 +10,7 @@ from backfill_session_metadata import main as import_sessions
 from censor_transcripts import main as censor_transcripts
 
 ROOT = Path(__file__).resolve().parents[1]
-CLAUDE_VENDOR_ROOTS = (ROOT / "anthropic", ROOT / "z.ai")
+CLAUDE_VENDOR_ROOTS = (ROOT / "runs" / "anthropic", ROOT / "runs" / "z.ai")
 
 
 def main() -> int:

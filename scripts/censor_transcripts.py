@@ -435,10 +435,7 @@ def main(argv: list[str] | None = None) -> int:
         "--write", action="store_true", help="write censored JSON in place"
     )
     args = parser.parse_args(argv)
-    paths = args.paths or [
-        REPO_ROOT / name
-        for name in ("anthropic", "openai", "google", "meta", "xai", "z.ai", "mistralai")
-    ]
+    paths = args.paths or [REPO_ROOT / "runs"]
     paths = [path if path.is_absolute() else REPO_ROOT / path for path in paths]
 
     changed = 0

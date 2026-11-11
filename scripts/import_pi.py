@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from backfill_session_metadata import (
     PRIVATE_TOOL_RE,
     ROOT,
+    RUNS,
     content_text,
     public_user_text,
     read_jsonl,
@@ -526,7 +527,7 @@ def main() -> int:
     if len(built) != 1:
         raise ValueError("Expected one completed Pi generation")
     for run, transcript, artifact in built:
-        destination = ROOT / run["id"]
+        destination = RUNS / run["id"]
         target = destination / "index.html"
         if target.exists() and target.read_bytes() != artifact.read_bytes():
             raise ValueError("Refusing to overwrite an immutable model artifact")
@@ -537,10 +538,10 @@ def main() -> int:
         write_json(destination / "run.json", run, args.dry_run)
         write_json(destination / "transcript.json", transcript, args.dry_run)
         if not args.dry_run:
-            register_run(ROOT, run)
+            register_run(RUNS, run)
             censor_transcripts(["--write", str(destination)])
         print(f"Verified {run['id']} against its recorded Pi session")
-    return censor_transcripts([str(ROOT / "mistralai")]) if not args.dry_run else 0
+    return censor_transcripts([str(RUNS / "mistralai")]) if not args.dry_run else 0
 
 
 if __name__ == "__main__":

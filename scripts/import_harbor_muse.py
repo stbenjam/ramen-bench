@@ -11,6 +11,7 @@ from pathlib import Path
 
 from backfill_session_metadata import (
     ROOT,
+    RUNS,
     replay_codex_command,
     replay_codex_patch,
     result_stats,
@@ -457,7 +458,7 @@ def build_trial(trial: Path, binary: str) -> tuple[dict, dict, Path]:
 
 
 def register(runs: list[dict]) -> None:
-    path = ROOT / "registry.json"
+    path = RUNS / "registry.json"
     registry = read_json(path)
     fresh = {f"{r['id']}/run.json" for r in runs}
     all_paths = set(registry["runs"]) | fresh
@@ -494,7 +495,7 @@ def main(argv: list[str]) -> int:
         run, transcript, artifact = build_trial(trial, args.muse_binary)
         if any(item["id"] == run["id"] for item in built):
             raise ValueError("Multiple successful generations for one effort")
-        destination = ROOT / run["id"]
+        destination = RUNS / run["id"]
         if (destination / "index.html").exists() and (
             destination / "index.html"
         ).read_bytes() != artifact.read_bytes():
@@ -519,6 +520,6 @@ def main(argv: list[str]) -> int:
         raise ValueError("No completed native Muse trials found")
     if not args.dry_run and not args.check_sources:
         register(built)
-        if censor_transcripts(["--write", str(ROOT / "meta")]):
+        if censor_transcripts(["--write", str(RUNS / "meta")]):
             raise ValueError("Public Muse censor failed")
     return 0

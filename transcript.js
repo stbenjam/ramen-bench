@@ -39,7 +39,7 @@
     if (!runId) throw new Error("Choose a transcript from a benchmark result.");
 
     elements.back.href = `./#${encodeURIComponent(runId)}`;
-    const { data: registry, url: registryUrl } = await fetchJson("registry.json", "Registry");
+    const { data: registry, url: registryUrl } = await fetchJson("runs/registry.json", "Registry");
     const manifestPath = Array.isArray(registry.runs)
       ? registry.runs.find((path) => String(path).replace(/^\.\//, "") === `${runId}/run.json`)
       : null;

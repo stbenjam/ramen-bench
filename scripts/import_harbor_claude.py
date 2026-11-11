@@ -12,6 +12,7 @@ from pathlib import Path
 from backfill_session_metadata import (
     EFFORT_NAMES,
     ROOT,
+    RUNS,
     claude_tool_call_count,
     latest_claude_messages,
     normalize_claude_events,
@@ -285,7 +286,7 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
 
 
 def build_registered_trial(run_id: str) -> tuple[dict, dict, Path]:
-    recorded = read_json(ROOT / run_id / "run.json")
+    recorded = read_json(RUNS / run_id / "run.json")
     raw = recorded["usage"]["raw"]
     name = raw["harborTrial"]
     if Path(name).name != name:
@@ -296,14 +297,14 @@ def build_registered_trial(run_id: str) -> tuple[dict, dict, Path]:
     run, transcript, artifact = build_trial(matches[0])
     if (
         run["id"] != run_id
-        or artifact.read_bytes() != (ROOT / run_id / "index.html").read_bytes()
+        or artifact.read_bytes() != (RUNS / run_id / "index.html").read_bytes()
     ):
         raise ValueError("Registered bowl differs from its native Claude source")
     return run, transcript, artifact
 
 
 def register(runs: list[dict]) -> None:
-    path = ROOT / "registry.json"
+    path = RUNS / "registry.json"
     registry = read_json(path)
     fresh = sorted(
         {f"{run['id']}/run.json" for run in runs},
@@ -345,7 +346,7 @@ def main(argv: list[str]) -> int:
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate native Claude effort runs")
     for _, run, transcript, artifact in built:
-        target = ROOT / run["id"]
+        target = RUNS / run["id"]
         for name, document in (("run.json", run), ("transcript.json", transcript)):
             write_json(target / name, document, True)
             if args.check_sources and read_json(target / name) != censor_value(
@@ -364,8 +365,8 @@ def main(argv: list[str]) -> int:
             write_json(target / "transcript.json", transcript, False)
     if not args.dry_run and not args.check_sources:
         register([run for _, run, _, _ in built])
-        censor_transcripts(["--write", str(ROOT / "anthropic")])
+        censor_transcripts(["--write", str(RUNS / "anthropic")])
     print(
         f"{'Checked' if args.check_sources or args.dry_run else 'Imported'} {len(built)} native Harbor Claude runs"
     )
-    return censor_transcripts([str(ROOT / "anthropic")])
+    return censor_transcripts([str(RUNS / "anthropic")])

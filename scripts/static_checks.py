@@ -16,12 +16,14 @@ OUTPUT = ROOT / "checks.json"
 
 
 def build() -> str:
-    registry = json.loads((ROOT / "registry.json").read_text())
+    registry = json.loads((ROOT / "runs/registry.json").read_text())
     results = {}
     for manifest in registry["runs"]:
-        run_dir = (ROOT / manifest).parent
+        run_dir = (ROOT / "runs" / manifest).parent
         run = json.loads((run_dir / "run.json").read_text())
-        results[run["id"]] = check(run_dir / run["artifacts"]["result"])
+        failures = check(run_dir / run["artifacts"]["result"]).values()
+        violations = list(dict.fromkeys(item for items in failures for item in items))
+        results[run["id"]] = {"reward": int(not violations), "violations": violations}
     document = {
         "schemaVersion": 1,
         "checker": "harbor/ramen/tests/check.py",

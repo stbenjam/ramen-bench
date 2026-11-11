@@ -28,7 +28,7 @@ from urllib.parse import quote
 import litellm
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from censor_transcripts import censor_text, censor_value  # noqa: E402
 
@@ -536,7 +536,7 @@ def build_run(config: dict[str, str]) -> tuple[Path, Path]:
     model = config["model"]
     variation = config["variation"]
     run_id = f"google/{model}/{variation}"
-    run_dir = REPO_ROOT / run_id
+    run_dir = REPO_ROOT / "runs" / run_id
     result_path = run_dir / "index.html"
     session_id, database_path, transcript_source, cli_log = discover_sources(
         config, run_id
