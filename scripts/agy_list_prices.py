@@ -1,12 +1,11 @@
 """Pinned published list rates for recorded agy usage."""
 
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
 SOURCE = "https://ai.google.dev/gemini-api/docs/pricing#gemini-4-argon"
 AS_OF = "2026-10-15"
-CARBON_SOURCE = "https://openrouter.ai/google/gemini-4-carbon"
-CARBON_AS_OF = "2026-11-11"
 
 
 def list_cost(usage: dict, rates: tuple[str, str, str]) -> dict:
@@ -62,20 +61,57 @@ def argon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
     return list_cost(usage, rates), provenance
 
 
-def carbon_list_cost(usage: dict, completed_at: str) -> tuple[dict, dict]:
-    """Price at OpenRouter's launch rates, which have no published end date."""
-    day = date.fromisoformat(completed_at[:10])
-    if not date(2026, 11, 10) <= day <= date.fromisoformat(CARBON_AS_OF):
-        raise ValueError("Carbon run falls outside this pinned rate snapshot")
-    rates = ("2", "0.10", "10")
-    provenance = {
-        "source": CARBON_SOURCE,
-        "pinnedAt": CARBON_AS_OF,
-        "model": "google/gemini-4-carbon",
-        "tier": "OpenRouter",
-        "basis": "Published OpenRouter list prices with the 50% launch discount; not a recorded charge",
-        "introductory": True,
-        "effectiveThrough": None,
-        **rate_fields(rates),
-    }
-    return list_cost(usage, rates), provenance
+@dataclass(frozen=True)
+class OpenRouterRates:
+    """OpenRouter's published per-million rates for one model, pinned on a date."""
+
+    model: str
+    pinned_at: str
+    first_day: str
+    last_day: str | None
+    rates: tuple[str, str, str]
+    basis: str
+    introductory: bool
+
+    @property
+    def source(self) -> str:
+        return f"https://openrouter.ai/{self.model}"
+
+    def __call__(self, usage: dict, completed_at: str) -> tuple[dict, dict]:
+        day = completed_at[:10]
+        if day < self.first_day or (self.last_day and day > self.last_day):
+            raise ValueError(
+                f"{self.model} run falls outside this pinned rate snapshot"
+            )
+        provenance = {
+            "source": self.source,
+            "pinnedAt": self.pinned_at,
+            "model": self.model,
+            "tier": "OpenRouter",
+            "basis": self.basis,
+            "introductory": self.introductory,
+            "effectiveThrough": None,
+            **rate_fields(self.rates),
+        }
+        return list_cost(usage, self.rates), provenance
+
+
+# The launch discount has no published end date, so only runs up to the pin.
+CARBON = OpenRouterRates(
+    "google/gemini-4-carbon",
+    "2026-11-11",
+    "2026-11-10",
+    "2026-11-11",
+    ("2", "0.10", "10"),
+    "Published OpenRouter list prices with the 50% launch discount; not a recorded charge",
+    True,
+)
+HYDROGEN = OpenRouterRates(
+    "google/gemini-4-hydrogen",
+    "2026-11-12",
+    "2026-11-12",
+    None,
+    ("1.5", "0.075", "7.5"),
+    "Published OpenRouter standard list prices; not a recorded charge",
+    False,
+)

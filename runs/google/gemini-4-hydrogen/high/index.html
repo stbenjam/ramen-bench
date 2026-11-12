@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Vegan Ramen</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #070606;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 75% 65% at 42% 38%, rgba(88, 44, 18, 0.22) 0%, rgba(28, 15, 9, 0.12) 48%, rgba(6, 5, 5, 0) 78%),
+        radial-gradient(circle at 50% 62%, #17100c 0%, #0b0807 52%, #050404 100%);
+    }
+
+    /* Subtle dark atmospheric vignette */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      background: radial-gradient(
+        ellipse 82% 78% at 50% 54%,
+        rgba(0, 0, 0, 0) 46%,
+        rgba(4, 3, 3, 0.42) 78%,
+        rgba(2, 2, 2, 0.84) 100%
+      );
+    }
+
+    canvas.layer-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+    }
+
+    #bg-canvas {
+      z-index: 1;
+    }
+
+    /* Warm key-light atmospheric pool behind & beneath the bowl */
+    .ambient-glow {
+      position: absolute;
+      width: min(115vw, 1100px);
+      height: min(85vh, 760px);
+      left: 50%;
+      top: 56%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 2;
+      background:
+        radial-gradient(ellipse 46% 34% at 48% 58%, rgba(214, 118, 40, 0.16) 0%, rgba(140, 62, 18, 0.07) 48%, rgba(0, 0, 0, 0) 76%),
+        radial-gradient(ellipse 30% 24% at 42% 36%, rgba(255, 182, 95, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(18px);
+      will-change: transform, opacity;
+    }
+
+    /* Centered hero bowl stage — positioned slightly below center to leave dark headroom for rising steam */
+    .bowl-stage {
+      position: relative;
+      z-index: 3;
+      width: min(92vw, 96vh * 1.06, 900px);
+      aspect-ratio: 1000 / 880;
+      transform: translateY(5.5%);
+      will-change: transform;
+    }
+
+    #ramen-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    #steam-canvas {
+      z-index: 4;
+    }
+
+    .parallax-group {
+      will-change: transform;
+    }
+
+    @media (max-aspect-ratio: 3/4) {
+      .bowl-stage {
+        width: min(94vw, 66vh * 1.13);
+        transform: translateY(9%);
+      }
+    }
+
+    @media (max-height: 520px) and (orientation: landscape) {
+      .bowl-stage {
+        width: min(82vw, 88vh * 1.13);
+        transform: translateY(4%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ambient-glow,
+      .bowl-stage,
+      .parallax-group {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" id="scene">
+    <canvas class="layer-canvas" id="bg-canvas" aria-hidden="true"></canvas>
+    <div class="ambient-glow" id="ambient-glow" aria-hidden="true"></div>
+
+    <div class="bowl-stage" id="bowl-stage">
+      <svg id="ramen-svg" viewBox="0 0 1000 880" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Steaming bowl of vegan ramen">
+        <defs>
+          <!-- Static ceramic & organic surface textures -->
+          <filter id="ceramic-grain" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="11" result="noise"/>
+            <feColorMatrix type="matrix" values="
+              0 0 0 0 0.9
+              0 0 0 0 0.72
+              0 0 0 0 0.56
+              0 0 0 0.045 0" in="noise" result="coloredNoise"/>
+            <feComposite in="coloredNoise" in2="SourceGraphic" operator="atop"/>
+          </filter>
+
+          <filter id="soft-blur-lg" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="16"/>
+          </filter>
+
+          <filter id="soft-blur-md" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="8"/>
+          </filter>
+
+          <filter id="soft-blur-sm" x="-15%" y="-15%" width="130%" height="130%">
+            <feGaussianBlur stdDeviation="3.2"/>
+          </filter>
+
+          <filter id="toppings-shadow" x="-15%" y="-15%" width="135%" height="140%">
+            <feDropShadow dx="2" dy="6" stdDeviation="5.5" flood-color="#1a0802" flood-opacity="0.52"/>
+          </filter>
+
+          <filter id="garnish-shadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="1" dy="3" stdDeviation="2.5" flood-color="#1d0902" flood-opacity="0.45"/>
+          </filter>
+
+          <!-- Clip paths -->
+          <clipPath id="broth-clip">
+            <ellipse cx="500" cy="436" rx="298" ry="125"/>
+          </clipPath>
+
+          <clipPath id="bowl-inner-clip">
+            <ellipse cx="500" cy="408" rx="318" ry="137"/>
+          </clipPath>
+
+          <clipPath id="bowl-outer-clip">
+            <path d="M 164,412 C 168,548 250,656 364,686 L 364,714 C 364,734 424,748 500,748 C 576,748 636,734 636,714 L 636,686 C 750,656 832,548 836,412 C 836,332 686,266 500,266 C 314,266 164,332 164,412 Z"/>
+          </clipPath>
+
+          <!-- Table contact shadow -->
+          <radialGradient id="table-shadow-grad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#020101" stop-opacity="0.94"/>
+            <stop offset="48%" stop-color="#050303" stop-opacity="0.72"/>
+            <stop offset="76%" stop-color="#080504" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#080504" stop-opacity="0"/>
+          </radialGradient>
+
+          <radialGradient id="foot-shadow-grad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#000000" stop-opacity="0.95"/>
+            <stop offset="62%" stop-color="#040202" stop-opacity="0.65"/>
+            <stop offset="100%" stop-color="#040202" stop-opacity="0"/>
+          </radialGradient>
+
+          <!-- Ceramic Bowl Exterior (Kuro-Tenmoku dark iron glaze with warm stoneware accents) -->
+          <linearGradient id="bowl-body-grad" x1="18%" y1="15%" x2="84%" y2="85%">
+            <stop offset="0%" stop-color="#352a25"/>
+            <stop offset="16%" stop-color="#221b18"/>
+            <stop offset="46%" stop-color="#14100f"/>
+            <stop offset="74%" stop-color="#0d0a0a"/>
+            <stop offset="92%" stop-color="#1c1411"/>
+            <stop offset="100%" stop-color="#0b0808"/>
+          </linearGradient>
+
+          <!-- Warm specular glaze sheen on front-left belly -->
+          <radialGradient id="bowl-belly-sheen" cx="30%" cy="56%" r="48%">
+            <stop offset="0%" stop-color="#ffb87a" stop-opacity="0.2"/>
+            <stop offset="35%" stop-color="#c97442" stop-opacity="0.1"/>
+            <stop offset="75%" stop-color="#4d2b1a" stop-opacity="0.02"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+          </radialGradient>
+
+          <!-- Ceramic Foot (Kodai) -->
+          <linearGradient id="bowl-foot-grad" x1="15%" y1="0%" x2="85%" y2="0%">
+            <stop offset="0%" stop-color="#281d18"/>
+            <stop offset="28%" stop-color="#47332a"/>
+            <stop offset="56%" stop-color="#241915"/>
+            <stop offset="100%" stop-color="#120c0a"/>
+          </linearGradient>
+
+          <!-- Handcrafted terracotta/copper rim glaze break -->
+          <linearGradient id="bowl-rim-grad" x1="10%" y1="0%" x2="90%" y2="100%">
+            <stop offset="0%" stop-color="#a86239"/>
+            <stop offset="22%" stop-color="#cf8753"/>
+            <stop offset="48%" stop-color="#693b23"/>
+            <stop offset="72%" stop-color="#3d2217"/>
+            <stop offset="88%" stop-color="#7c472b"/>
+            <stop offset="100%" stop-color="#301c14"/>
+          </linearGradient>
+
+          <!-- Interior Ceramic Wall -->
+          <linearGradient id="bowl-inner-wall" x1="25%" y1="0%" x2="75%" y2="100%">
+            <stop offset="0%" stop-color="#3c2b22"/>
+            <stop offset="32%" stop-color="#231915"/>
+            <stop offset="70%" stop-color="#150f0d"/>
+            <stop offset="100%" stop-color="#261a14"/>
+          </linearGradient>
+
+          <!-- Creamy Vegan Miso-Sesame Broth -->
+          <radialGradient id="broth-base-grad" cx="46%" cy="42%" r="58%">
+            <stop offset="0%" stop-color="#edb55c"/>
+            <stop offset="28%" stop-color="#d48832"/>
+            <stop offset="58%" stop-color="#9e4d18"/>
+            <stop offset="82%" stop-color="#5e2609"/>
+            <stop offset="100%" stop-color="#331204"/>
+          </radialGradient>
+
+          <radialGradient id="broth-warm-center" cx="44%" cy="46%" r="44%">
+            <stop offset="0%" stop-color="#ffd98a" stop-opacity="0.48"/>
+            <stop offset="45%" stop-color="#e89b3c" stop-opacity="0.22"/>
+            <stop offset="100%" stop-color="#8c3b0e" stop-opacity="0"/>
+          </radialGradient>
+
+          <radialGradient id="broth-rim-ao" cx="50%" cy="50%" r="50%">
+            <stop offset="76%" stop-color="#240b02" stop-opacity="0"/>
+            <stop offset="93%" stop-color="#1e0902" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#120501" stop-opacity="0.78"/>
+          </radialGradient>
+
+          <!-- Nori seaweed gradients -->
+          <linearGradient id="nori-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#243322"/>
+            <stop offset="35%" stop-color="#141e14"/>
+            <stop offset="72%" stop-color="#0c120d"/>
+            <stop offset="100%" stop-color="#070a07"/>
+          </linearGradient>
+
+          <linearGradient id="nori-grad-2" x1="0%" y1="0%" x2="90%" y2="100%">
+            <stop offset="0%" stop-color="#1e2b1d"/>
+            <stop offset="50%" stop-color="#101810"/>
+            <stop offset="100%" stop-color="#060906"/>
+          </linearGradient>
+
+          <!-- Ramen noodle gradients -->
+          <linearGradient id="noodle-lit" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fae096"/>
+            <stop offset="52%" stop-color="#e2af4f"/>
+            <stop offset="100%" stop-color="#a8701f"/>
+          </linearGradient>
+
+          <linearGradient id="noodle-mid" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ecc068"/>
+            <stop offset="60%" stop-color="#c4852b"/>
+            <stop offset="100%" stop-color="#8b4d12"/>
+          </linearGradient>
+
+          <linearGradient id="noodle-deep" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ba7d27"/>
+            <stop offset="100%" stop-color="#6d350b"/>
+          </linearGradient>
+
+          <!-- Seared Tofu / Vegan Chashu gradients -->
+          <linearGradient id="tofu-crust" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#8c4119"/>
+            <stop offset="45%" stop-color="#5e240b"/>
+            <stop offset="100%" stop-color="#361204"/>
+          </linearGradient>
+
+          <linearGradient id="tofu-interior" x1="15%" y1="10%" x2="85%" y2="90%">
+            <stop offset="0%" stop-color="#fff0d4"/>
+            <stop offset="45%" stop-color="#eed0a1"/>
+            <stop offset="85%" stop-color="#d4a36a"/>
+            <stop offset="100%" stop-color="#b57a42"/>
+          </linearGradient>
+
+          <!-- Shiitake Mushroom gradients -->
+          <radialGradient id="shiitake-cap" cx="38%" cy="32%" r="62%">
+            <stop offset="0%" stop-color="#7c4728"/>
+            <stop offset="38%" stop-color="#532a15"/>
+            <stop offset="78%" stop-color="#2e150a"/>
+            <stop offset="100%" stop-color="#1c0b04"/>
+          </radialGradient>
+
+          <linearGradient id="shiitake-flesh" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f7dfc0"/>
+            <stop offset="65%" stop-color="#d2aa7a"/>
+            <stop offset="100%" stop-color="#9e6d42"/>
+          </linearGradient>
+
+          <!-- King Oyster Mushroom (Eringi) -->
+          <radialGradient id="eringi-grad" cx="38%" cy="35%" r="64%">
+            <stop offset="0%" stop-color="#f7e6c9"/>
+            <stop offset="55%" stop-color="#d8b07b"/>
+            <stop offset="85%" stop-color="#a86d38"/>
+            <stop offset="100%" stop-color="#733f18"/>
+          </radialGradient>
+
+          <!-- Baby Bok Choy gradients -->
+          <linearGradient id="bokchoy-stem" x1="10%" y1="10%" x2="90%" y2="90%">
+            <stop offset="0%" stop-color="#e5f2c4"/>
+            <stop offset="45%" stop-color="#b9d684"/>
+            <stop offset="85%" stop-color="#7fa84f"/>
+            <stop offset="100%" stop-color="#557d32"/>
+          </linearGradient>
+
+          <linearGradient id="bokchoy-leaf" x1="15%" y1="0%" x2="85%" y2="100%">
+            <stop offset="0%" stop-color="#549c45"/>
+            <stop offset="45%" stop-color="#2f6e2b"/>
+            <stop offset="85%" stop-color="#1b471a"/>
+            <stop offset="100%" stop-color="#102b11"/>
+          </linearGradient>
+
+          <!-- Menma (Bamboo Shoots) -->
+          <linearGradient id="menma-grad" x1="0%" y1="0%" x2="100%" y2="90%">
+            <stop offset="0%" stop-color="#e3b15e"/>
+            <stop offset="50%" stop-color="#b9782c"/>
+            <stop offset="100%" stop-color="#784212"/>
+          </linearGradient>
+
+          <!-- Sweet Corn Kernel -->
+          <radialGradient id="corn-grad" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stop-color="#ffea75"/>
+            <stop offset="55%" stop-color="#f5ba26"/>
+            <stop offset="88%" stop-color="#c4760c"/>
+            <stop offset="100%" stop-color="#8a4405"/>
+          </radialGradient>
+
+          <!-- Scallion ring -->
+          <radialGradient id="scallion-grad" cx="45%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#e2f5c4"/>
+            <stop offset="55%" stop-color="#72b849"/>
+            <stop offset="100%" stop-color="#2f6b22"/>
+          </radialGradient>
+
+          <!-- Oil pearl highlight -->
+          <radialGradient id="oil-gold" cx="35%" cy="32%" r="65%">
+            <stop offset="0%" stop-color="#fff4bf" stop-opacity="0.72"/>
+            <stop offset="40%" stop-color="#f0a832" stop-opacity="0.46"/>
+            <stop offset="82%" stop-color="#c46212" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#8c3605" stop-opacity="0.08"/>
+          </radialGradient>
+
+          <radialGradient id="oil-chili" cx="35%" cy="32%" r="65%">
+            <stop offset="0%" stop-color="#ffaa66" stop-opacity="0.78"/>
+            <stop offset="42%" stop-color="#de3d14" stop-opacity="0.62"/>
+            <stop offset="85%" stop-color="#8f1804" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#590b02" stop-opacity="0.1"/>
+          </radialGradient>
+        </defs>
+
+        <!-- 1. Table Cast Shadow & Warm Bounce -->
+        <g id="layer-shadow" class="parallax-group">
+          <ellipse cx="520" cy="726" rx="310" ry="76" fill="url(#table-shadow-grad)"/>
+          <ellipse cx="508" cy="722" rx="176" ry="44" fill="url(#foot-shadow-grad)"/>
+          <ellipse cx="476" cy="712" rx="220" ry="48" fill="#c9651f" opacity="0.06" filter="url(#soft-blur-lg)"/>
+        </g>
+
+        <!-- 2. Ceramic Bowl Exterior & Foot -->
+        <g id="layer-bowl-exterior" class="parallax-group">
+          <!-- Foot (Kodai) -->
+          <path d="M 365,680 L 369,712 C 369,731 428,744 500,744 C 572,744 631,731 631,712 L 635,680 Z"
+                fill="url(#bowl-foot-grad)"/>
+          <ellipse cx="500" cy="713" rx="129" ry="26" fill="none" stroke="#1b120e" stroke-width="2" opacity="0.7"/>
+
+          <!-- Bowl Body -->
+          <path d="M 164,412 C 168,546 250,656 367,687 C 412,699 456,704 500,704 C 544,704 588,699 633,687 C 750,656 832,546 836,412 C 836,332 686,266 500,266 C 314,266 164,332 164,412 Z"
+                fill="url(#bowl-body-grad)" filter="url(#ceramic-grain)"/>
+
+          <!-- Subtle hand-thrown horizontal potter wheel ridges -->
+          <g clip-path="url(#bowl-outer-clip)" opacity="0.16">
+            <path d="M 176,492 Q 500,590 824,492" fill="none" stroke="#855a41" stroke-width="1.6"/>
+            <path d="M 218,568 Q 500,654 782,568" fill="none" stroke="#6b4531" stroke-width="1.3"/>
+            <path d="M 275,632 Q 500,698 725,632" fill="none" stroke="#4f3223" stroke-width="1.2"/>
+          </g>
+
+          <!-- Warm ambient specular belly sheen -->
+          <path d="M 164,412 C 168,546 250,656 367,687 C 412,699 456,704 500,704 C 544,704 588,699 633,687 C 750,656 832,546 836,412 Z"
+                fill="url(#bowl-belly-sheen)"/>
+
+          <!-- Soft warm rim reflection on left belly -->
+          <path d="M 188,468 C 204,548 258,616 332,654" fill="none" stroke="#ffba7a" stroke-width="8" stroke-linecap="round" opacity="0.1" filter="url(#soft-blur-md)"/>
+        </g>
+
+        <!-- 3. Bowl Interior Wall & Rolled Terracotta Rim Base -->
+        <g id="layer-bowl-interior" class="parallax-group">
+          <!-- Outer Rolled Rim -->
+          <ellipse cx="500" cy="410" rx="336" ry="148" fill="url(#bowl-rim-grad)"/>
+          <!-- Interior Bowl Cavity -->
+          <ellipse cx="500" cy="412" rx="318" ry="137" fill="url(#bowl-inner-wall)"/>
+          <!-- Subtle steam-kissed interior glaze sheen along back wall -->
+          <path d="M 215,392 C 258,314 388,284 516,286 C 642,288 748,324 786,392"
+                fill="none" stroke="#d48c59" stroke-width="16" opacity="0.09" filter="url(#soft-blur-md)" clip-path="url(#bowl-inner-clip)"/>
+        </g>
+
+        <!-- 4. Nori Seaweed Sheets (Tucked along back-right rim behind toppings) -->
+        <g id="layer-nori" class="parallax-group" filter="url(#toppings-shadow)">
+          <!-- Back Nori Sheet -->
+          <g transform="translate(598, 250) rotate(12)">
+            <path d="M 0,14 C 32,6 76,2 108,8 C 115,38 118,86 112,126 C 78,132 34,130 2,122 C -4,88 -4,44 0,14 Z"
+                  fill="url(#nori-grad-2)" stroke="#2c3d28" stroke-width="1"/>
+            <!-- Nori crisp fiber lines -->
+            <path d="M 18,16 L 16,118 M 38,14 L 36,120 M 62,12 L 60,122 M 86,12 L 84,120"
+                  stroke="#31472c" stroke-width="0.9" opacity="0.35"/>
+            <!-- Wet broth darkening at bottom -->
+            <path d="M 2,96 C 36,104 78,104 112,96 L 112,126 C 78,132 34,130 2,122 Z"
+                  fill="#050805" opacity="0.65"/>
+          </g>
+          <!-- Front Nori Sheet -->
+          <g transform="translate(642, 268) rotate(22)">
+            <path d="M 0,12 C 36,4 78,3 110,10 C 116,42 115,92 106,132 C 72,138 30,134 0,124 C -5,88 -4,44 0,12 Z"
+                  fill="url(#nori-grad-1)" stroke="#33472e" stroke-width="1.1"/>
+            <path d="M 16,16 L 14,120 M 40,12 L 36,124 M 66,12 L 62,124 M 90,14 L 86,122"
+                  stroke="#3d5737" stroke-width="1" opacity="0.32"/>
+            <!-- Top edge toasted sheen -->
+            <path d="M 4,14 C 38,6 76,5 106,11" fill="none" stroke="#759469" stroke-width="1.6" opacity="0.38"/>
+            <path d="M 0,98 C 36,106 74,106 108,98 L 106,132 C 72,138 30,134 0,124 Z"
+                  fill="#040704" opacity="0.72"/>
+          </g>
+        </g>
+
+        <!-- 5. Broth Surface, Swirls, Ripples & Golden Oil Pearls -->
+        <g id="layer-broth" class="parallax-group">
+          <g clip-path="url(#broth-clip)">
+            <!-- Rich Broth Base -->
+            <ellipse cx="500" cy="436" rx="298" ry="125" fill="url(#broth-base-grad)"/>
+            <ellipse cx="486" cy="434" rx="250" ry="102" fill="url(#broth-warm-center)"/>
+
+            <!-- Aromatic Black Garlic Oil (Mayu) & Chili Oil (Rayu) Swirls -->
+            <g opacity="0.72" filter="url(#soft-blur-sm)">
+              <path d="M 272,442 C 254,412 288,376 346,364 C 388,355 416,364 402,374 C 370,382 318,392 308,424 C 302,442 324,462 312,472 C 294,474 280,460 272,442 Z"
+                    fill="#1f0b03" opacity="0.58"/>
+              <path d="M 692,438 C 718,458 708,494 656,512 C 620,524 584,524 586,514 C 618,504 662,486 672,458 C 678,442 666,426 678,424 Z"
+                    fill="#1a0902" opacity="0.52"/>
+              <path d="M 332,516 C 378,534 452,542 518,536 C 538,534 548,526 530,524 C 468,528 394,520 348,504 C 330,498 320,508 332,516 Z"
+                    fill="#bf360c" opacity="0.46"/>
+              <path d="M 556,342 C 616,348 672,366 704,394 C 712,402 698,408 686,400 C 654,376 604,358 552,352 C 538,350 542,340 556,342 Z"
+                    fill="#c9400e" opacity="0.44"/>
+            </g>
+
+            <!-- Inner broth meniscus & ambient occlusion along ceramic wall -->
+            <ellipse cx="500" cy="436" rx="298" ry="125" fill="url(#broth-rim-ao)"/>
+            <ellipse cx="500" cy="436" rx="296.5" ry="123.5" fill="none" stroke="#ffd89c" stroke-width="1.2" opacity="0.22"/>
+
+            <!-- Dynamic SVG Oil Pearls & Ripples populated by JS -->
+            <g id="broth-ripples"></g>
+            <g id="oil-pearls"></g>
+          </g>
+        </g>
+
+        <!-- 6. Hand-Pulled Alkaline Ramen Noodles (Folded wave emerging from broth) -->
+        <g id="layer-noodles" class="parallax-group" clip-path="url(#broth-clip)">
+          <!-- Soft submerged noodle shadow in broth -->
+          <ellipse cx="486" cy="472" rx="158" ry="58" fill="#4f1c05" opacity="0.48" filter="url(#soft-blur-md)"/>
+
+          <!-- Lower submerged strands -->
+          <g fill="none" stroke-linecap="round" opacity="0.82">
+            <path d="M 318,468 C 356,438 408,494 458,462 C 508,430 558,490 612,456" stroke="url(#noodle-deep)" stroke-width="11"/>
+            <path d="M 332,486 C 378,454 432,512 486,478 C 540,444 590,502 642,472" stroke="url(#noodle-deep)" stroke-width="11.5"/>
+            <path d="M 346,506 C 398,476 448,530 506,496 C 562,464 604,516 646,492" stroke="url(#noodle-deep)" stroke-width="10.5"/>
+            <path d="M 366,448 C 414,418 468,468 522,438 C 570,412 612,456 648,436" stroke="url(#noodle-deep)" stroke-width="10"/>
+          </g>
+
+          <!-- Mid folded wave strands -->
+          <g fill="none" stroke-linecap="round" filter="url(#garnish-shadow)">
+            <path d="M 336,456 C 374,416 422,482 474,442 C 522,406 566,474 618,442" stroke="url(#noodle-mid)" stroke-width="10.5"/>
+            <path d="M 348,472 C 394,432 438,498 492,458 C 542,422 584,486 632,458" stroke="url(#noodle-mid)" stroke-width="11"/>
+            <path d="M 358,490 C 408,452 454,514 508,474 C 556,438 594,496 638,474" stroke="url(#noodle-mid)" stroke-width="10.5"/>
+            <path d="M 378,508 C 426,474 472,526 524,492 C 568,464 602,506 626,494" stroke="url(#noodle-mid)" stroke-width="9.5"/>
+          </g>
+
+          <!-- Top sunlit broth-glistening noodle fold -->
+          <g fill="none" stroke-linecap="round">
+            <path d="M 354,458 C 392,418 436,474 484,438 C 530,404 570,462 612,436" stroke="url(#noodle-lit)" stroke-width="9.5"/>
+            <path d="M 366,474 C 406,434 448,490 498,454 C 544,420 580,476 622,454" stroke="url(#noodle-lit)" stroke-width="10"/>
+            <path d="M 382,492 C 422,456 462,506 512,472 C 554,444 584,486 616,474" stroke="url(#noodle-lit)" stroke-width="9.5"/>
+
+            <!-- Glossy wet broth highlights along noodle crests -->
+            <path d="M 360,451 C 388,424 416,448 442,455 M 462,451 C 492,428 518,424 548,442" stroke="#fff6d4" stroke-width="2" opacity="0.62"/>
+            <path d="M 374,467 C 400,442 428,464 456,470 M 478,464 C 508,440 532,438 560,456" stroke="#fff6d4" stroke-width="2" opacity="0.65"/>
+            <path d="M 390,485 C 418,462 444,482 472,486 M 494,480 C 520,460 544,460 568,472" stroke="#fff6d4" stroke-width="1.8" opacity="0.56"/>
+          </g>
+        </g>
+
+        <!-- 7. Artfully Plated Vegan Toppings -->
+        <g id="layer-toppings" class="parallax-group">
+
+          <!-- A. Blanched Baby Bok Choy (Left ~9:30–10:30) -->
+          <g id="topping-bokchoy" class="float-item" data-float="0.9" data-cx="312" data-cy="402" filter="url(#toppings-shadow)">
+            <!-- Back halved bok choy -->
+            <g transform="translate(232, 338) rotate(-22)">
+              <!-- Ruffled emerald leaves -->
+              <path d="M 34,48 C 12,32 -4,14 6,2 C 18,-10 42,-2 58,12 C 74,2 96,4 102,18 C 106,30 88,46 66,54 Z"
+                    fill="url(#bokchoy-leaf)"/>
+              <path d="M 28,44 C 18,28 16,12 26,8 M 56,42 C 58,24 68,12 82,14"
+                    fill="none" stroke="#8ad472" stroke-width="1.6" stroke-linecap="round" opacity="0.52"/>
+              <!-- Crisp pale celadon stalk base -->
+              <path d="M 34,48 C 52,38 72,42 84,54 C 90,72 80,92 64,98 C 46,96 32,76 34,48 Z"
+                    fill="url(#bokchoy-stem)"/>
+              <path d="M 46,54 C 56,64 62,78 60,92" fill="none" stroke="#f2fae1" stroke-width="2.2" stroke-linecap="round" opacity="0.65"/>
+            </g>
+
+            <!-- Front halved bok choy -->
+            <g transform="translate(262, 368) rotate(-38)">
+              <path d="M 28,50 C 6,34 -8,14 2,2 C 14,-10 40,-4 56,10 C 74,-2 96,4 100,20 C 102,34 84,48 64,56 Z"
+                    fill="url(#bokchoy-leaf)"/>
+              <path d="M 22,44 C 12,28 14,14 24,10 M 54,44 C 58,26 68,14 82,18"
+                    fill="none" stroke="#9be382" stroke-width="1.7" stroke-linecap="round" opacity="0.58"/>
+              <path d="M 28,50 C 48,40 68,44 82,56 C 86,74 76,94 60,100 C 42,96 26,76 28,50 Z"
+                    fill="url(#bokchoy-stem)"/>
+              <!-- Cross-section inner heart -->
+              <path d="M 42,60 C 52,56 64,62 68,74 C 66,86 56,92 48,88 C 40,80 38,68 42,60 Z"
+                    fill="#eff8d8" opacity="0.88"/>
+              <!-- Glossy moisture highlight -->
+              <ellipse cx="48" cy="54" rx="10" ry="3.2" fill="#ffffff" opacity="0.34" transform="rotate(-14 48 54)"/>
+            </g>
+          </g>
+
+          <!-- B. Braised Bamboo Shoots / Menma (Upper-left ~11 o'clock) -->
+          <g id="topping-menma" class="float-item" data-float="0.6" data-cx="415" data-cy="352" filter="url(#toppings-shadow)">
+            <g transform="translate(362, 318) rotate(-14)">
+              <path d="M 0,14 C 24,4 58,2 84,8 L 88,22 C 62,18 28,20 4,28 Z" fill="url(#menma-grad)" stroke="#61330a" stroke-width="0.8"/>
+              <path d="M 10,16 C 34,10 60,10 80,14" stroke="#f5cf84" stroke-width="1.3" fill="none" opacity="0.52"/>
+            </g>
+            <g transform="translate(376, 336) rotate(-4)">
+              <path d="M 0,12 C 28,2 64,2 92,10 L 94,24 C 64,18 28,20 2,26 Z" fill="url(#menma-grad)" stroke="#61330a" stroke-width="0.8"/>
+              <path d="M 12,14 C 38,9 66,9 86,14" stroke="#f7d897" stroke-width="1.4" fill="none" opacity="0.56"/>
+            </g>
+            <g transform="translate(368, 354) rotate(6)">
+              <path d="M 0,10 C 26,3 58,4 82,11 L 84,23 C 58,18 26,18 2,23 Z" fill="url(#menma-grad)" stroke="#61330a" stroke-width="0.8"/>
+            </g>
+          </g>
+
+          <!-- C. Roasted Scored Shiitake & King Oyster Mushroom (Top Center ~12–1 o'clock) -->
+          <g id="topping-mushrooms" class="float-item" data-float="0.7" data-cx="522" data-cy="346" filter="url(#toppings-shadow)">
+            <!-- Seared King Oyster Mushroom (Eringi) Slice behind/right -->
+            <g transform="translate(534, 326) rotate(14)">
+              <ellipse cx="38" cy="28" rx="40" ry="26" fill="url(#eringi-grad)" stroke="#663412" stroke-width="1.4"/>
+              <!-- Diamond char-scoring -->
+              <g stroke="#59280b" stroke-width="1.4" opacity="0.62" stroke-linecap="round">
+                <path d="M 14,22 L 42,10 M 18,34 L 58,16 M 32,42 L 66,26"/>
+                <path d="M 22,12 L 54,40 M 38,10 L 66,34 M 14,24 L 38,44"/>
+              </g>
+              <ellipse cx="28" cy="18" rx="14" ry="6" fill="#fff5de" opacity="0.34" transform="rotate(-12 28 18)"/>
+            </g>
+
+            <!-- Plump Roasted Shiitake Cap with Decorative Star Score (Kazari-boshi) -->
+            <g transform="translate(454, 316) rotate(-8)">
+              <!-- Mushroom rim -->
+              <ellipse cx="48" cy="36" rx="48" ry="30" fill="#240f06"/>
+              <!-- Glossy dome cap -->
+              <path d="M 4,36 C 6,14 26,4 48,4 C 70,4 90,14 92,36 C 92,52 72,62 48,62 C 24,62 4,52 4,36 Z"
+                    fill="url(#shiitake-cap)"/>
+              <!-- Decorative star-cut exposing tender pale mushroom flesh -->
+              <path d="M 48,14 L 52,25 L 68,20 L 55,30 L 66,42 L 50,34 L 44,48 L 44,34 L 26,38 L 41,28 L 30,18 L 45,25 Z"
+                    fill="url(#shiitake-flesh)" stroke="#3b1b0c" stroke-width="0.9"/>
+              <!-- Glossy tare specular highlights -->
+              <path d="M 22,17 C 32,10 44,8 56,10" fill="none" stroke="#ffd8b0" stroke-width="2.4" stroke-linecap="round" opacity="0.42"/>
+              <ellipse cx="32" cy="18" rx="7" ry="2.8" fill="#ffffff" opacity="0.28" transform="rotate(-18 32 18)"/>
+            </g>
+          </g>
+
+          <!-- D. Seared & Tare-Glazed Vegan Tofu Chashu Slices (Right ~3:30–4:30) -->
+          <g id="topping-tofu" class="float-item" data-float="0.85" data-cx="618" data-cy="428" filter="url(#toppings-shadow)">
+            <!-- Back Tofu Slice -->
+            <g transform="translate(566, 378) rotate(14)">
+              <!-- Braised outer caramelized crust -->
+              <path d="M 8,24 C 12,6 42,0 74,4 C 102,8 118,22 114,42 C 110,60 84,70 50,68 C 20,66 4,46 8,24 Z"
+                    fill="url(#tofu-crust)"/>
+              <!-- Tender creamy interior -->
+              <path d="M 15,25 C 18,12 44,7 72,10 C 96,13 108,24 105,40 C 102,54 78,62 50,60 C 24,58 12,42 15,25 Z"
+                    fill="url(#tofu-interior)"/>
+              <!-- Torched grill char stripes -->
+              <g stroke="#5e2408" stroke-width="4" stroke-linecap="round" opacity="0.42">
+                <path d="M 28,16 L 56,52"/>
+                <path d="M 52,12 L 80,48"/>
+                <path d="M 76,16 L 96,42"/>
+              </g>
+              <path d="M 24,18 C 46,12 72,12 92,19" fill="none" stroke="#fff9eb" stroke-width="2.4" stroke-linecap="round" opacity="0.42"/>
+            </g>
+
+            <!-- Front Overlapping Tofu Slice -->
+            <g transform="translate(534, 412) rotate(26)">
+              <path d="M 6,24 C 12,6 44,0 78,5 C 108,10 122,26 116,46 C 110,66 80,74 46,70 C 16,66 2,46 6,24 Z"
+                    fill="url(#tofu-crust)"/>
+              <path d="M 13,25 C 18,12 46,7 74,11 C 99,15 112,28 107,43 C 102,58 76,65 46,62 C 20,59 9,42 13,25 Z"
+                    fill="url(#tofu-interior)"/>
+              <!-- Torched char lines + subtle savory glaze -->
+              <g stroke="#541e06" stroke-width="4.2" stroke-linecap="round" opacity="0.48">
+                <path d="M 26,18 L 54,54"/>
+                <path d="M 50,14 L 78,50"/>
+                <path d="M 74,16 L 96,44"/>
+              </g>
+              <!-- Subtle tofu micro-pores -->
+              <g fill="#bd8248" opacity="0.32">
+                <circle cx="38" cy="36" r="1.4"/><circle cx="62" cy="28" r="1.1"/>
+                <circle cx="72" cy="44" r="1.5"/><circle cx="46" cy="48" r="1.2"/>
+                <circle cx="88" cy="30" r="1.3"/>
+              </g>
+              <!-- Glossy tare highlight -->
+              <path d="M 22,19 C 44,12 72,13 94,21" fill="none" stroke="#fffbf0" stroke-width="2.8" stroke-linecap="round" opacity="0.52"/>
+            </g>
+          </g>
+
+          <!-- E. Charred Sweet Corn Cluster (Lower-left ~7:30) -->
+          <g id="topping-corn" class="float-item" data-float="1.05" data-cx="346" data-cy="468" filter="url(#garnish-shadow)">
+            <g transform="translate(310, 444)">
+              <ellipse cx="14" cy="18" rx="9" ry="7" fill="url(#corn-grad)" transform="rotate(-18 14 18)"/>
+              <ellipse cx="30" cy="14" rx="9.5" ry="7" fill="url(#corn-grad)" transform="rotate(10 30 14)"/>
+              <ellipse cx="46" cy="19" rx="9" ry="6.8" fill="url(#corn-grad)" transform="rotate(24 46 19)"/>
+              <ellipse cx="21" cy="30" rx="9.5" ry="7.2" fill="url(#corn-grad)" transform="rotate(-6 21 30)"/>
+              <ellipse cx="38" cy="29" rx="9.5" ry="7.2" fill="url(#corn-grad)" transform="rotate(12 38 29)"/>
+              <ellipse cx="54" cy="32" rx="8.8" ry="6.6" fill="url(#corn-grad)" transform="rotate(-14 54 32)"/>
+              <ellipse cx="29" cy="42" rx="9" ry="6.8" fill="url(#corn-grad)" transform="rotate(8 29 42)"/>
+              <ellipse cx="45" cy="43" rx="8.8" ry="6.5" fill="url(#corn-grad)" transform="rotate(-8 45 43)"/>
+              <!-- Subtle charred caramel tips -->
+              <circle cx="28" cy="11" r="2.2" fill="#5e2304" opacity="0.58"/>
+              <circle cx="48" cy="16" r="2" fill="#5e2304" opacity="0.52"/>
+              <circle cx="56" cy="29" r="2.1" fill="#5e2304" opacity="0.55"/>
+              <!-- Specular dots -->
+              <g fill="#fffbe0" opacity="0.65">
+                <circle cx="12" cy="15" r="1.6"/><circle cx="28" cy="12" r="1.7"/>
+                <circle cx="44" cy="16" r="1.5"/><circle cx="19" cy="27" r="1.8"/>
+                <circle cx="36" cy="26" r="1.7"/><circle cx="27" cy="39" r="1.5"/>
+              </g>
+            </g>
+          </g>
+
+          <!-- F. Fresh Scallion Rings (Negi), Toasted Sesame & Crimson Chili Threads (Center Garnish Crown) -->
+          <g id="topping-garnish" class="float-item" data-float="1.2" data-cx="474" data-cy="412" filter="url(#garnish-shadow)">
+            <!-- Scallion rings -->
+            <g>
+              <g transform="translate(442, 392) rotate(-14)">
+                <ellipse cx="0" cy="0" rx="13" ry="8.5" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="6.5" ry="4" fill="#d9f2b8"/>
+                <ellipse cx="0" cy="0" rx="3.2" ry="1.8" fill="#5c280a" opacity="0.4"/>
+              </g>
+              <g transform="translate(468, 384) rotate(12)">
+                <ellipse cx="0" cy="0" rx="12" ry="7.8" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="5.8" ry="3.5" fill="#e6f7cb"/>
+              </g>
+              <g transform="translate(494, 396) rotate(22)">
+                <ellipse cx="0" cy="0" rx="13.5" ry="8.5" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="6.8" ry="4" fill="#d4efa8"/>
+                <ellipse cx="0" cy="0" rx="3" ry="1.8" fill="#5c280a" opacity="0.35"/>
+              </g>
+              <g transform="translate(458, 412) rotate(-8)">
+                <ellipse cx="0" cy="0" rx="14" ry="8.8" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="7" ry="4.2" fill="#e0f5be"/>
+                <ellipse cx="0" cy="0" rx="3.4" ry="1.9" fill="#5c280a" opacity="0.38"/>
+              </g>
+              <g transform="translate(486, 418) rotate(8)">
+                <ellipse cx="0" cy="0" rx="11.5" ry="7.4" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="5.5" ry="3.2" fill="#d8f2b0"/>
+              </g>
+              <g transform="translate(430, 416) rotate(-26)">
+                <ellipse cx="0" cy="0" rx="11" ry="7" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="5.2" ry="3" fill="#e4f7c6"/>
+              </g>
+              <g transform="translate(514, 412) rotate(32)">
+                <ellipse cx="0" cy="0" rx="11" ry="6.8" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="5" ry="2.8" fill="#dcf2b8"/>
+              </g>
+              <!-- Floating extra scallion rings in broth -->
+              <g transform="translate(384, 424) rotate(-18)">
+                <ellipse cx="0" cy="0" rx="9.5" ry="5.5" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="4.5" ry="2.4" fill="#d8f2b0"/>
+              </g>
+              <g transform="translate(566, 488) rotate(14)">
+                <ellipse cx="0" cy="0" rx="9" ry="5" fill="url(#scallion-grad)"/>
+                <ellipse cx="0" cy="0" rx="4.2" ry="2.2" fill="#d8f2b0"/>
+              </g>
+            </g>
+
+            <!-- Toasted White & Black Sesame Seeds -->
+            <g>
+              <!-- White/golden toasted sesame -->
+              <g fill="#f5dfb0" stroke="#a87938" stroke-width="0.4">
+                <ellipse cx="476" cy="402" rx="3.2" ry="1.6" transform="rotate(24 476 402)"/>
+                <ellipse cx="446" cy="404" rx="3" ry="1.5" transform="rotate(-32 446 404)"/>
+                <ellipse cx="504" cy="390" rx="3.2" ry="1.6" transform="rotate(14 504 390)"/>
+                <ellipse cx="584" cy="432" rx="3.1" ry="1.5" transform="rotate(-18 584 432)"/>
+                <ellipse cx="602" cy="442" rx="3" ry="1.5" transform="rotate(40 602 442)"/>
+                <ellipse cx="496" cy="342" rx="2.9" ry="1.4" transform="rotate(-12 496 342)"/>
+                <ellipse cx="418" cy="472" rx="3.1" ry="1.5" transform="rotate(22 418 472)"/>
+                <ellipse cx="534" cy="466" rx="3" ry="1.5" transform="rotate(-28 534 466)"/>
+              </g>
+              <!-- Black toasted sesame -->
+              <g fill="#1c1614">
+                <ellipse cx="464" cy="398" rx="2.9" ry="1.5" transform="rotate(-20 464 398)"/>
+                <ellipse cx="484" cy="408" rx="2.8" ry="1.4" transform="rotate(35 484 408)"/>
+                <ellipse cx="592" cy="426" rx="3" ry="1.5" transform="rotate(12 592 426)"/>
+                <ellipse cx="436" cy="428" rx="2.8" ry="1.4" transform="rotate(-42 436 428)"/>
+                <ellipse cx="516" cy="354" rx="2.9" ry="1.4" transform="rotate(18 516 354)"/>
+              </g>
+            </g>
+
+            <!-- Delicate Curling Crimson Chili Threads (Ito-togarashi) -->
+            <g fill="none" stroke-linecap="round">
+              <path d="M 454,394 C 446,374 466,362 486,372 C 502,380 494,398 512,396" stroke="#d9291c" stroke-width="1.7"/>
+              <path d="M 464,404 C 452,388 474,366 498,378 C 514,386 508,404 522,404" stroke="#f04a24" stroke-width="1.4"/>
+              <path d="M 444,404 C 440,384 454,370 474,376 C 488,382 478,402 494,408" stroke="#b81b12" stroke-width="1.5"/>
+              <path d="M 472,388 C 480,368 504,368 510,384 C 514,396 500,406 490,414" stroke="#ff5c33" stroke-width="1.2" opacity="0.9"/>
+              <path d="M 448,384 C 460,364 484,358 494,372" stroke="#e0311f" stroke-width="1.3"/>
+            </g>
+          </g>
+        </g>
+
+        <!-- 8. Front Bowl Lip & Dynamic Specular Rim Highlights -->
+        <g id="layer-bowl-front" class="parallax-group">
+          <!-- Front outer rim lip crescent so bowl clearly wraps in front of broth -->
+          <path d="M 164,410 C 164,492 314,558 500,558 C 686,558 836,492 836,410 L 818,412 C 818,484 676,549 500,549 C 324,549 182,484 182,412 Z"
+                fill="url(#bowl-rim-grad)"/>
+
+          <!-- Subtle inner lip edge -->
+          <path d="M 182,412 C 182,486 324,549 500,549 C 676,549 818,486 818,412"
+                fill="none" stroke="#361e14" stroke-width="1.8" opacity="0.85"/>
+
+          <!-- Dynamic Specular Rim Catchlights (respond subtly to pointer position) -->
+          <path id="rim-highlight-left"
+                d="M 174,392 C 194,322 308,274 448,269"
+                fill="none" stroke="#ffcaa0" stroke-width="3.2" stroke-linecap="round" opacity="0.48"/>
+          <path id="rim-highlight-front"
+                d="M 218,482 C 296,536 426,556 544,552"
+                fill="none" stroke="#ffba80" stroke-width="2.6" stroke-linecap="round" opacity="0.34"/>
+          <path id="rim-highlight-right"
+                d="M 744,332 C 796,356 826,386 828,416"
+                fill="none" stroke="#e89a64" stroke-width="2" stroke-linecap="round" opacity="0.22"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Volumetric Rising Steam Canvas -->
+    <canvas class="layer-canvas" id="steam-canvas" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const BROTH_CX = 500;
+      const BROTH_CY = 436;
+      const BROTH_RX = 294;
+      const BROTH_RY = 121;
+
+      const sceneEl = document.getElementById('scene');
+      const bgCanvas = document.getElementById('bg-canvas');
+      const steamCanvas = document.getElementById('steam-canvas');
+      const bgCtx = bgCanvas.getContext('2d', { alpha: false });
+      const steamCtx = steamCanvas.getContext('2d');
+
+      const ambientGlow = document.getElementById('ambient-glow');
+      const bowlStage = document.getElementById('bowl-stage');
+      const ramenSvg = document.getElementById('ramen-svg');
+
+      const layerShadow = document.getElementById('layer-shadow');
+      const layerExterior = document.getElementById('layer-bowl-exterior');
+      const layerInterior = document.getElementById('layer-bowl-interior');
+      const layerNori = document.getElementById('layer-nori');
+      const layerBroth = document.getElementById('layer-broth');
+      const layerNoodles = document.getElementById('layer-noodles');
+      const layerToppings = document.getElementById('layer-toppings');
+      const layerFront = document.getElementById('layer-bowl-front');
+
+      const rimHighlightLeft = document.getElementById('rim-highlight-left');
+      const rimHighlightFront = document.getElementById('rim-highlight-front');
+      const rimHighlightRight = document.getElementById('rim-highlight-right');
+
+      const oilPearlsGroup = document.getElementById('oil-pearls');
+      const ripplesGroup = document.getElementById('broth-ripples');
+      const floatItems = Array.from(document.querySelectorAll('.float-item'));
+
+      const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let reduceMotion = reducedMotionQuery.matches;
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      // Offscreen dark wood/slate table surface cache
+      let bgTextureCanvas = document.createElement('canvas');
+      let bgTextureCtx = bgTextureCanvas.getContext('2d', { alpha: false });
+
+      // Pointer state (normalized -1..1 + screen px + SVG coords)
+      const pointer = {
+        nx: 0,
+        ny: 0,
+        targetNx: 0,
+        targetNy: 0,
+        sx: width * 0.5,
+        sy: height * 0.5,
+        vx: 0,
+        vy: 0,
+        svgX: BROTH_CX,
+        svgY: BROTH_CY,
+        overBroth: false,
+        active: false,
+        lastRippleTime: 0
+      };
+
+      // Deterministic PRNG for clean initial layouts
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0;
+          a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      const rand = mulberry32(20261112);
+
+      // Map screen coordinates to SVG viewBox coordinates
+      function updateSvgPointerCoords(clientX, clientY) {
+        const rect = ramenSvg.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        pointer.svgX = ((clientX - rect.left) / rect.width) * 1000;
+        pointer.svgY = ((clientY - rect.top) / rect.height) * 880;
+        const dx = (pointer.svgX - BROTH_CX) / BROTH_RX;
+        const dy = (pointer.svgY - BROTH_CY) / BROTH_RY;
+        pointer.overBroth = (dx * dx + dy * dy) <= 0.96;
+      }
+
+      // Compute broth screen-space ellipse for steam origin & lighting
+      function getBrothScreenEllipse() {
+        const rect = ramenSvg.getBoundingClientRect();
+        return {
+          cx: rect.left + (BROTH_CX / 1000) * rect.width,
+          cy: rect.top + (BROTH_CY / 880) * rect.height,
+          rx: (BROTH_RX / 1000) * rect.width,
+          ry: (BROTH_RY / 880) * rect.height
+        };
+      }
+
+      // ---------------------------------------------------------
+      // 1. Procedural Dark Yakisugi / Izakaya Tabletop Texture
+      // ---------------------------------------------------------
+      function buildTableTexture() {
+        const tw = Math.max(1, Math.floor(width));
+        const th = Math.max(1, Math.floor(height));
+        bgTextureCanvas.width = tw;
+        bgTextureCanvas.height = th;
+
+        const ctx = bgTextureCtx;
+        // Deep charcoal-umber base
+        const baseGrad = ctx.createRadialGradient(
+          tw * 0.48, th * 0.54, tw * 0.04,
+          tw * 0.5, th * 0.5, Math.max(tw, th) * 0.78
+        );
+        baseGrad.addColorStop(0, '#1c120d');
+        baseGrad.addColorStop(0.36, '#120c09');
+        baseGrad.addColorStop(0.74, '#090707');
+        baseGrad.addColorStop(1, '#040303');
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, tw, th);
+
+        // Subtle horizontal charred cedar wood planks & fine grain
+        const r = mulberry32(99123);
+        const horizonY = th * 0.22;
+        ctx.save();
+        for (let i = 0; i < 160; i++) {
+          const y = horizonY + r() * (th - horizonY);
+          const alpha = 0.015 + r() * 0.032;
+          const warm = r() > 0.55;
+          ctx.strokeStyle = warm
+            ? `rgba(110, 62, 32, ${alpha})`
+            : `rgba(0, 0, 0, ${alpha * 1.4})`;
+          ctx.lineWidth = 0.7 + r() * 1.6;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          const wave = (r() - 0.5) * 14;
+          ctx.bezierCurveTo(
+            tw * 0.33, y + wave,
+            tw * 0.66, y - wave,
+            tw, y + (r() - 0.5) * 8
+          );
+          ctx.stroke();
+        }
+
+        // Faint subtle plank seams
+        for (let p = 1; p <= 4; p++) {
+          const py = th * (0.34 + p * 0.16);
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.36)';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(0, py);
+          ctx.lineTo(tw, py + 2);
+          ctx.stroke();
+          ctx.strokeStyle = 'rgba(130, 74, 38, 0.04)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, py + 1.5);
+          ctx.lineTo(tw, py + 3.5);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // ---------------------------------------------------------
+      // 2. Ambient Floating Warm Dust Motes (Background Canvas)
+      // ---------------------------------------------------------
+      const motes = [];
+      function initMotes() {
+        motes.length = 0;
+        const count = 30;
+        for (let i = 0; i < count; i++) {
+          motes.push({
+            x: rand(),
+            y: rand(),
+            r: 0.7 + rand() * 1.9,
+            speedY: 0.006 + rand() * 0.014,
+            speedX: (rand() - 0.5) * 0.008,
+            phase: rand() * Math.PI * 2,
+            alpha: 0.08 + rand() * 0.24
+          });
+        }
+      }
+
+      // ---------------------------------------------------------
+      // 3. Broth Golden Oil Pearls & Interactive Ripples (SVG)
+      // ---------------------------------------------------------
+      const oilPearls = [];
+      function initOilPearls() {
+        oilPearlsGroup.innerHTML = '';
+        oilPearls.length = 0;
+
+        const count = 48;
+        for (let i = 0; i < count; i++) {
+          // Place inside broth ellipse avoiding dense center garnish
+          let gx, gy;
+          for (let tries = 0; tries < 10; tries++) {
+            const angle = rand() * Math.PI * 2;
+            const dist = 0.22 + Math.sqrt(rand()) * 0.72;
+            gx = BROTH_CX + Math.cos(angle) * BROTH_RX * dist;
+            gy = BROTH_CY + Math.sin(angle) * BROTH_RY * dist;
+            const distCenter = Math.hypot((gx - 486) / 70, (gy - 404) / 34);
+            if (distCenter > 0.85) break;
+          }
+
+          const radius = 2.0 + Math.pow(rand(), 1.6) * 7.8;
+          const isChili = rand() < 0.26;
+
+          const g = document.createElementNS(SVG_NS, 'g');
+          const el = document.createElementNS(SVG_NS, 'ellipse');
+          el.setAttribute('cx', '0');
+          el.setAttribute('cy', '0');
+          el.setAttribute('rx', radius.toFixed(2));
+          el.setAttribute('ry', (radius * 0.45).toFixed(2));
+          el.setAttribute('fill', isChili ? 'url(#oil-chili)' : 'url(#oil-gold)');
+          el.setAttribute('stroke', isChili ? 'rgba(255, 160, 96, 0.25)' : 'rgba(255, 240, 175, 0.3)');
+          el.setAttribute('stroke-width', '0.5');
+
+          const glint = document.createElementNS(SVG_NS, 'circle');
+          glint.setAttribute('cx', (-radius * 0.28).toFixed(2));
+          glint.setAttribute('cy', (-radius * 0.14).toFixed(2));
+          glint.setAttribute('r', Math.max(0.55, radius * 0.16).toFixed(2));
+          glint.setAttribute('fill', '#fff9de');
+          glint.setAttribute('opacity', (0.45 + rand() * 0.35).toFixed(2));
+
+          g.appendChild(el);
+          g.appendChild(glint);
+          g.setAttribute('transform', `translate(${gx.toFixed(1)}, ${gy.toFixed(1)})`);
+          oilPearlsGroup.appendChild(g);
+
+          oilPearls.push({
+            g,
+            baseX: gx,
+            baseY: gy,
+            x: gx,
+            y: gy,
+            vx: 0,
+            vy: 0,
+            r: radius,
+            phase: rand() * Math.PI * 2,
+            driftFreq: 0.22 + rand() * 0.28,
+            driftAmp: 2.2 + rand() * 4.5
+          });
+        }
+      }
+
+      const activeRipples = [];
+      function spawnRipple(svgX, svgY, strength = 1) {
+        if (reduceMotion) return;
+        // Clamp inside broth ellipse
+        const dx = (svgX - BROTH_CX) / (BROTH_RX * 0.92);
+        const dy = (svgY - BROTH_CY) / (BROTH_RY * 0.92);
+        const mag = Math.hypot(dx, dy);
+        let rx = svgX;
+        let ry = svgY;
+        if (mag > 1) {
+          rx = BROTH_CX + (dx / mag) * (BROTH_RX * 0.92);
+          ry = BROTH_CY + (dy / mag) * (BROTH_RY * 0.92);
+        }
+
+        const ring = document.createElementNS(SVG_NS, 'ellipse');
+        ring.setAttribute('cx', rx.toFixed(1));
+        ring.setAttribute('cy', ry.toFixed(1));
+        ring.setAttribute('rx', '4');
+        ring.setAttribute('ry', '1.8');
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#ffdf9e');
+        ring.setAttribute('stroke-width', (1.4 * strength).toFixed(2));
+        ring.setAttribute('opacity', '0.45');
+        ripplesGroup.appendChild(ring);
+
+        activeRipples.push({
+          el: ring,
+          x: rx,
+          y: ry,
+          radius: 4,
+          maxRadius: (58 + Math.random() * 34) * strength,
+          speed: 44 + strength * 18,
+          strength,
+          age: 0
+        });
+
+        if (activeRipples.length > 10) {
+          const old = activeRipples.shift();
+          if (old.el && old.el.parentNode) old.el.parentNode.removeChild(old.el);
+        }
+      }
+
+      // Initialize float item physics state
+      const floatStates = floatItems.map((el, idx) => ({
+        el,
+        factor: parseFloat(el.dataset.float || '0.8'),
+        cx: parseFloat(el.dataset.cx || '500'),
+        cy: parseFloat(el.dataset.cy || '430'),
+        phase: idx * 1.37,
+        ox: 0,
+        oy: 0,
+        vx: 0,
+        vy: 0
+      }));
+
+      // ---------------------------------------------------------
+      // 4. Volumetric Rising Steam Engine (Steam Canvas)
+      // ---------------------------------------------------------
+      const steamPuffs = [];
+      const STEAM_COUNT = 54;
+
+      function createSteamPuff(prewarm = false) {
+        const broth = getBrothScreenEllipse();
+        // Sample inside hot center/mid area of broth
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.pow(Math.random(), 0.72) * 0.84;
+        const originX = broth.cx + Math.cos(angle) * broth.rx * dist;
+        const originY = broth.cy + Math.sin(angle) * broth.ry * dist * 0.78;
+
+        const life = prewarm ? Math.random() : 0;
+        const maxLife = 4.6 + Math.random() * 3.8;
+        const baseScale = Math.max(28, broth.rx * (0.16 + Math.random() * 0.18));
+
+        return {
+          x: originX,
+          y: originY - life * broth.ry * 2.5,
+          vx: (Math.random() - 0.5) * 9,
+          vy: -(34 + Math.random() * 28) * (broth.ry / 105 + 0.38),
+          age: life * maxLife,
+          maxLife,
+          size: baseScale,
+          growRate: 16 + Math.random() * 16,
+          alphaPeak: 0.065 + Math.random() * 0.065,
+          curlSeed: Math.random() * Math.PI * 2,
+          curlFreq: 0.8 + Math.random() * 0.9,
+          aspect: 0.72 + Math.random() * 0.34,
+          tilt: (Math.random() - 0.5) * 0.45
+        };
+      }
+
+      function initSteam() {
+        steamPuffs.length = 0;
+        for (let i = 0; i < STEAM_COUNT; i++) {
+          steamPuffs.push(createSteamPuff(true));
+        }
+      }
+
+      function drawSteamPuff(ctx, p, broth) {
+        const t = Math.min(1, Math.max(0, p.age / p.maxLife));
+        // Smooth bell curve: gentle fade-in near broth, long soft fade-out upward
+        const fadeIn = Math.min(1, t / 0.16);
+        const fadeOut = Math.pow(1 - t, 1.55);
+        const alpha = p.alphaPeak * fadeIn * fadeOut;
+        if (alpha <= 0.0015) return;
+
+        // Warm amber-peach near broth -> cool misty ivory higher up
+        const warmth = Math.max(0, 1 - t * 1.4);
+        const r = Math.round(234 + warmth * 21);
+        const g = Math.round(232 + warmth * 6);
+        const b = Math.round(236 - warmth * 26);
+
+        const radius = p.size + t * p.growRate * (broth.rx / 240);
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.tilt + Math.sin(p.age * 0.6 + p.curlSeed) * 0.18);
+        ctx.scale(1, p.aspect + t * 0.38);
+
+        const grad = ctx.createRadialGradient(0, 0, radius * 0.06, 0, 0, radius);
+        grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(4)})`);
+        grad.addColorStop(0.42, `rgba(${r}, ${g}, ${b}, ${(alpha * 0.52).toFixed(4)})`);
+        grad.addColorStop(0.78, `rgba(${r}, ${g}, ${b}, ${(alpha * 0.14).toFixed(4)})`);
+        grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // ---------------------------------------------------------
+      // 5. Resize & Layout Sync
+      // ---------------------------------------------------------
+      function handleResize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        bgCanvas.width = Math.floor(width * dpr);
+        bgCanvas.height = Math.floor(height * dpr);
+        steamCanvas.width = Math.floor(width * dpr);
+        steamCanvas.height = Math.floor(height * dpr);
+
+        bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        steamCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        buildTableTexture();
+        if (reduceMotion) renderReducedFrame();
+      }
+
+      // ---------------------------------------------------------
+      // 6. Pointer & Touch Interactivity
+      // ---------------------------------------------------------
+      function onPointerMove(e) {
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+        const dx = clientX - pointer.sx;
+        const dy = clientY - pointer.sy;
+
+        pointer.vx = pointer.vx * 0.6 + dx * 0.4;
+        pointer.vy = pointer.vy * 0.6 + dy * 0.4;
+        pointer.sx = clientX;
+        pointer.sy = clientY;
+        pointer.targetNx = (clientX / width) * 2 - 1;
+        pointer.targetNy = (clientY / height) * 2 - 1;
+        pointer.active = true;
+
+        updateSvgPointerCoords(clientX, clientY);
+
+        const now = performance.now();
+        const speed = Math.hypot(dx, dy);
+        if (pointer.overBroth && speed > 4.5 && now - pointer.lastRippleTime > 170) {
+          spawnRipple(pointer.svgX, pointer.svgY, Math.min(1.1, 0.55 + speed * 0.015));
+          pointer.lastRippleTime = now;
+        }
+      }
+
+      function onPointerDown(e) {
+        pointer.sx = e.clientX;
+        pointer.sy = e.clientY;
+        pointer.targetNx = (e.clientX / width) * 2 - 1;
+        pointer.targetNy = (e.clientY / height) * 2 - 1;
+        pointer.active = true;
+        updateSvgPointerCoords(e.clientX, e.clientY);
+
+        if (pointer.overBroth) {
+          spawnRipple(pointer.svgX, pointer.svgY, 1.35);
+          // Gentle impulse to nearby oil pearls
+          for (const pearl of oilPearls) {
+            const pdx = pearl.x - pointer.svgX;
+            const pdy = (pearl.y - pointer.svgY) * 2.1;
+            const dist = Math.hypot(pdx, pdy);
+            if (dist < 110 && dist > 1) {
+              const force = (1 - dist / 110) * 24;
+              pearl.vx += (pdx / dist) * force;
+              pearl.vy += (pdy / dist) * force * 0.48;
+            }
+          }
+        }
+      }
+
+      function onPointerLeave() {
+        pointer.targetNx = 0;
+        pointer.targetNy = 0;
+        pointer.overBroth = false;
+        pointer.active = false;
+      }
+
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      window.addEventListener('pointerdown', onPointerDown, { passive: true });
+      window.addEventListener('pointerleave', onPointerLeave, { passive: true });
+      window.addEventListener('resize', handleResize);
+
+      // ---------------------------------------------------------
+      // 7. Main Animation Loop & Reduced-Motion Handler
+      // ---------------------------------------------------------
+      let rafId = null;
+      let lastTime = performance.now();
+
+      function renderReducedFrame() {
+        // Draw static dark tabletop
+        bgCtx.drawImage(bgTextureCanvas, 0, 0, width, height);
+
+        // Draw serene static mist veil above bowl
+        steamCtx.clearRect(0, 0, width, height);
+        const broth = getBrothScreenEllipse();
+        for (let i = 0; i < steamPuffs.length; i++) {
+          const p = steamPuffs[i];
+          drawSteamPuff(steamCtx, p, broth);
+        }
+
+        // Reset transforms to neutral resting position
+        ambientGlow.style.transform = 'translate(-50%, -50%)';
+        layerShadow.style.transform = '';
+        layerExterior.style.transform = '';
+        layerInterior.style.transform = '';
+        layerNori.style.transform = '';
+        layerBroth.style.transform = '';
+        layerNoodles.style.transform = '';
+        layerToppings.style.transform = '';
+        layerFront.style.transform = '';
+        for (const f of floatStates) {
+          f.el.style.transform = '';
+        }
+      }
+
+      function tick(now) {
+        const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+        lastTime = now;
+        const t = now * 0.001;
+
+        // Smooth pointer interpolation & velocity decay
+        pointer.nx += (pointer.targetNx - pointer.nx) * 0.065;
+        pointer.ny += (pointer.targetNy - pointer.ny) * 0.065;
+        pointer.vx *= 0.88;
+        pointer.vy *= 0.88;
+
+        // Subtle warm lantern breathing
+        const candleBreath = 1 + Math.sin(t * 1.45) * 0.035 + Math.sin(t * 3.1) * 0.015;
+
+        // 1. Background Canvas + Ambient Warm Dust Motes
+        bgCtx.drawImage(bgTextureCanvas, 0, 0, width, height);
+        const broth = getBrothScreenEllipse();
+
+        // Warm subtle overhead-left key-light beam
+        const lightGrad = bgCtx.createRadialGradient(
+          broth.cx - broth.rx * 0.45 + pointer.nx * 18,
+          broth.cy - broth.ry * 2.1 + pointer.ny * 10,
+          10,
+          broth.cx,
+          broth.cy - broth.ry * 0.4,
+          Math.max(width, height) * 0.62
+        );
+        lightGrad.addColorStop(0, `rgba(255, 168, 76, ${(0.075 * candleBreath).toFixed(4)})`);
+        lightGrad.addColorStop(0.45, `rgba(186, 88, 28, ${(0.032 * candleBreath).toFixed(4)})`);
+        lightGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        bgCtx.fillStyle = lightGrad;
+        bgCtx.fillRect(0, 0, width, height);
+
+        // Drifting warm motes
+        for (const m of motes) {
+          m.y -= m.speedY * dt;
+          m.x += (m.speedX + Math.sin(t * 0.6 + m.phase) * 0.003) * dt;
+          if (m.y < -0.04) {
+            m.y = 1.04;
+            m.x = Math.random();
+          }
+          if (m.x < -0.04) m.x = 1.04;
+          if (m.x > 1.04) m.x = -0.04;
+
+          const mx = m.x * width + pointer.nx * (6 + m.r * 3);
+          const my = m.y * height + pointer.ny * (4 + m.r * 2);
+          const shimmer = 0.65 + 0.35 * Math.sin(t * 2.2 + m.phase);
+          bgCtx.fillStyle = `rgba(255, 206, 138, ${(m.alpha * shimmer).toFixed(3)})`;
+          bgCtx.beginPath();
+          bgCtx.arc(mx, my, m.r, 0, Math.PI * 2);
+          bgCtx.fill();
+        }
+
+        // Ambient glow subtle follow & warmth pulse
+        ambientGlow.style.opacity = (0.86 + 0.14 * Math.sin(t * 1.4)).toFixed(3);
+        ambientGlow.style.transform = `translate(calc(-50% + ${(pointer.nx * 10).toFixed(2)}px), calc(-50% + ${(pointer.ny * 6).toFixed(2)}px))`;
+
+        // 2. 3D Depth Parallax on SVG Bowl Layers
+        const px = pointer.nx;
+        const py = pointer.ny;
+        layerShadow.style.transform = `translate(${(-px * 4.5).toFixed(2)}px, ${(-py * 2.5).toFixed(2)}px)`;
+        layerExterior.style.transform = `translate(${(px * 2.2).toFixed(2)}px, ${(py * 1.4).toFixed(2)}px)`;
+        layerInterior.style.transform = `translate(${(px * 3.0).toFixed(2)}px, ${(py * 1.8).toFixed(2)}px)`;
+        layerNori.style.transform = `translate(${(px * 4.4).toFixed(2)}px, ${(py * 2.4).toFixed(2)}px)`;
+        layerBroth.style.transform = `translate(${(px * 3.8).toFixed(2)}px, ${(py * 2.2).toFixed(2)}px)`;
+        layerNoodles.style.transform = `translate(${(px * 5.2).toFixed(2)}px, ${(py * 2.8).toFixed(2)}px)`;
+        layerToppings.style.transform = `translate(${(px * 6.8).toFixed(2)}px, ${(py * 3.5).toFixed(2)}px)`;
+        layerFront.style.transform = `translate(${(px * 3.6).toFixed(2)}px, ${(py * 2.2).toFixed(2)}px)`;
+
+        // Dynamic ceramic rim specular catchlights
+        rimHighlightLeft.setAttribute('opacity', (0.44 - px * 0.14 - py * 0.08).toFixed(3));
+        rimHighlightFront.setAttribute('opacity', (0.34 + py * 0.1).toFixed(3));
+        rimHighlightRight.setAttribute('opacity', (0.22 + px * 0.12).toFixed(3));
+
+        // 3. Broth Ripples Update
+        for (let i = activeRipples.length - 1; i >= 0; i--) {
+          const rp = activeRipples[i];
+          rp.age += dt;
+          rp.radius += rp.speed * dt;
+          const progress = rp.radius / rp.maxRadius;
+          if (progress >= 1) {
+            if (rp.el.parentNode) rp.el.parentNode.removeChild(rp.el);
+            activeRipples.splice(i, 1);
+            continue;
+          }
+          const opacity = Math.pow(1 - progress, 1.7) * 0.42 * rp.strength;
+          rp.el.setAttribute('rx', rp.radius.toFixed(1));
+          rp.el.setAttribute('ry', (rp.radius * 0.42).toFixed(1));
+          rp.el.setAttribute('opacity', opacity.toFixed(3));
+        }
+
+        // 4. Floating Toppings Buoyancy + Ripple Interaction
+        for (const f of floatStates) {
+          // Gentle natural simmering bob & micro-sway
+          const bobY = Math.sin(t * 1.35 + f.phase) * 1.15 * f.factor;
+          const bobX = Math.cos(t * 0.95 + f.phase * 1.3) * 0.65 * f.factor;
+          const bobRot = Math.sin(t * 0.8 + f.phase) * 0.35 * f.factor;
+
+          // Ripple wave push
+          for (const rp of activeRipples) {
+            const dx = f.cx - rp.x;
+            const dy = (f.cy - rp.y) * 2.1;
+            const dist = Math.hypot(dx, dy);
+            if (Math.abs(dist - rp.radius) < 14 && dist > 1) {
+              const push = (1 - rp.radius / rp.maxRadius) * 2.8 * f.factor * rp.strength;
+              f.vx += (dx / dist) * push * dt * 18;
+              f.vy += (dy / dist) * push * 0.45 * dt * 18 - push * 0.6 * dt * 14;
+            }
+          }
+
+          // Spring back to anchor
+          f.vx += -f.ox * 16 * dt;
+          f.vy += -f.oy * 16 * dt;
+          f.vx *= 0.91;
+          f.vy *= 0.91;
+          f.ox += f.vx * dt;
+          f.oy += f.vy * dt;
+
+          f.el.style.transform = `translate(${(bobX + f.ox).toFixed(2)}px, ${(bobY + f.oy).toFixed(2)}px) rotate(${bobRot.toFixed(2)}deg)`;
+        }
+
+        // 5. Golden Oil Pearls Convection Drift
+        for (const pearl of oilPearls) {
+          const driftX = Math.sin(t * pearl.driftFreq + pearl.phase) * pearl.driftAmp;
+          const driftY = Math.cos(t * pearl.driftFreq * 0.85 + pearl.phase) * pearl.driftAmp * 0.42;
+
+          // Gentle pointer stir when hovering directly over broth
+          if (pointer.overBroth) {
+            const pdx = pearl.x - pointer.svgX;
+            const pdy = (pearl.y - pointer.svgY) * 2.1;
+            const dist = Math.hypot(pdx, pdy);
+            if (dist < 72 && dist > 1) {
+              const repel = (1 - dist / 72) * 14;
+              pearl.vx += (pdx / dist) * repel * dt;
+              pearl.vy += (pdy / dist) * repel * 0.45 * dt;
+            }
+          }
+
+          const targetX = pearl.baseX + driftX;
+          const targetY = pearl.baseY + driftY;
+          pearl.vx += (targetX - pearl.x) * 2.2 * dt;
+          pearl.vy += (targetY - pearl.y) * 2.2 * dt;
+          pearl.vx *= 0.92;
+          pearl.vy *= 0.92;
+          pearl.x += pearl.vx * dt;
+          pearl.y += pearl.vy * dt;
+
+          const pulse = 1 + Math.sin(t * 1.8 + pearl.phase) * 0.06;
+          pearl.g.setAttribute('transform', `translate(${pearl.x.toFixed(1)}, ${pearl.y.toFixed(1)}) scale(${pulse.toFixed(3)})`);
+        }
+
+        // 6. Volumetric Rising Steam Simulation
+        steamCtx.clearRect(0, 0, width, height);
+        for (let i = 0; i < steamPuffs.length; i++) {
+          const p = steamPuffs[i];
+          p.age += dt;
+          if (p.age >= p.maxLife) {
+            steamPuffs[i] = createSteamPuff(false);
+            continue;
+          }
+
+          // Organic curling convection
+          const curlX = Math.sin(p.age * p.curlFreq + p.curlSeed + p.y * 0.012) * 22;
+          const curlY = Math.cos(p.age * 0.9 + p.curlSeed) * 4;
+
+          // Pointer air-current wake interaction
+          let wakeX = 0;
+          let wakeY = 0;
+          if (pointer.active) {
+            const dx = p.x - pointer.sx;
+            const dy = p.y - pointer.sy;
+            const dist = Math.hypot(dx, dy);
+            const wakeRadius = Math.max(90, broth.rx * 0.48);
+            if (dist < wakeRadius && dist > 1) {
+              const falloff = Math.pow(1 - dist / wakeRadius, 1.6);
+              // Gentle parting + momentum transfer from moving cursor
+              wakeX = (dx / dist) * falloff * 54 + pointer.vx * falloff * 2.4;
+              wakeY = (dy / dist) * falloff * 24 + pointer.vy * falloff * 1.6;
+            }
+          }
+
+          p.x += (p.vx + curlX + wakeX) * dt;
+          p.y += (p.vy + curlY + wakeY) * dt;
+
+          drawSteamPuff(steamCtx, p, broth);
+        }
+
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function startAnimation() {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        if (reduceMotion) {
+          renderReducedFrame();
+          return;
+        }
+        lastTime = performance.now();
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function handleReducedMotionChange(e) {
+        reduceMotion = e.matches;
+        if (reduceMotion) {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+          renderReducedFrame();
+        } else {
+          startAnimation();
+        }
+      }
+
+      if (typeof reducedMotionQuery.addEventListener === 'function') {
+        reducedMotionQuery.addEventListener('change', handleReducedMotionChange);
+      } else if (typeof reducedMotionQuery.addListener === 'function') {
+        reducedMotionQuery.addListener(handleReducedMotionChange);
+      }
+
+      // Initialize scene
+      initMotes();
+      initOilPearls();
+      handleResize();
+      initSteam();
+      startAnimation();
+    })();
+  </script>
+</body>
+</html>

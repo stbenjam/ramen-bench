@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vegan Ramen</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #090706;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .scene {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 44%, rgba(168, 86, 30, 0.16) 0%, rgba(92, 40, 14, 0.08) 32%, rgba(14, 10, 8, 0.94) 68%, #070504 100%),
+        linear-gradient(180deg, #100c0a 0%, #090706 100%);
+    }
+
+    /* Subtle charred wood table texture via CSS gradients */
+    .table-surface {
+      position: absolute;
+      inset: -8%;
+      background:
+        repeating-linear-gradient(
+          92deg,
+          rgba(255, 220, 180, 0.012) 0px,
+          rgba(255, 220, 180, 0.012) 2px,
+          transparent 2px,
+          transparent 18px,
+          rgba(0, 0, 0, 0.18) 18px,
+          rgba(0, 0, 0, 0.18) 21px
+        ),
+        radial-gradient(ellipse 68% 54% at 50% 48%, rgba(120, 62, 24, 0.22) 0%, rgba(45, 24, 12, 0.14) 45%, rgba(8, 6, 5, 0.85) 85%);
+      pointer-events: none;
+      transform: translate3d(var(--bg-x, 0px), var(--bg-y, 0px), 0);
+      will-change: transform;
+    }
+
+    /* Ambient warm lantern glow that responds subtly to cursor */
+    .ambient-glow {
+      position: absolute;
+      width: min(95vw, 95vh);
+      height: min(95vw, 95vh);
+      border-radius: 50%;
+      background: radial-gradient(
+        circle at 50% 50%,
+        rgba(245, 152, 66, 0.14) 0%,
+        rgba(212, 92, 28, 0.07) 38%,
+        rgba(120, 42, 12, 0.02) 64%,
+        transparent 75%
+      );
+      filter: blur(18px);
+      pointer-events: none;
+      transform: translate3d(var(--glow-x, 0px), var(--glow-y, 0px), 0);
+      will-change: transform;
+    }
+
+    /* Background atmospheric dust/ember motes canvas */
+    #ambient-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Hero bowl container */
+    .bowl-stage {
+      position: relative;
+      z-index: 2;
+      width: min(86vw, 86vh, 720px);
+      height: min(86vw, 86vh, 720px);
+      display: grid;
+      place-items: center;
+      transform: translate3d(var(--bowl-x, 0px), var(--bowl-y, 0px), 0)
+                 rotateX(var(--tilt-x, 0deg))
+                 rotateY(var(--tilt-y, 0deg));
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .ramen-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 36px 48px rgba(0, 0, 0, 0.85));
+    }
+
+    /* Steam and interactive broth-ripple canvas layered over the bowl */
+    #steam-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* Subtle organic animations for broth & toppings */
+    @keyframes brothBreath {
+      0%, 100% { transform: scale(1) translateY(0px); opacity: 0.85; }
+      50% { transform: scale(1.012) translateY(-0.6px); opacity: 1; }
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translate3d(0px, 0px, 0) rotate(0deg); }
+      50% { transform: translate3d(0.8px, -1.6px, 0) rotate(0.45deg); }
+    }
+
+    @keyframes floatSlowAlt {
+      0%, 100% { transform: translate3d(0px, 0px, 0) rotate(0deg); }
+      50% { transform: translate3d(-1px, -1.3px, 0) rotate(-0.5deg); }
+    }
+
+    @keyframes oilShimmer {
+      0%, 100% { opacity: 0.72; transform: scale(1); }
+      50% { opacity: 0.96; transform: scale(1.06); }
+    }
+
+    .broth-shimmer {
+      transform-origin: 400px 395px;
+      animation: brothBreath 6.5s ease-in-out infinite;
+    }
+
+    .topping-float-a {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: floatSlow 5.8s ease-in-out infinite;
+    }
+
+    .topping-float-b {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: floatSlowAlt 6.4s ease-in-out infinite;
+    }
+
+    .topping-float-c {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: floatSlow 7.2s ease-in-out -2.1s infinite;
+    }
+
+    .oil-drop {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: oilShimmer 4.8s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .broth-shimmer,
+      .topping-float-a,
+      .topping-float-b,
+      .topping-float-c,
+      .oil-drop {
+        animation: none !important;
+      }
+      .table-surface,
+      .ambient-glow,
+      .bowl-stage {
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" id="scene" aria-label="Steaming bowl of vegan ramen">
+    <div class="table-surface"></div>
+    <div class="ambient-glow"></div>
+    <canvas id="ambient-canvas"></canvas>
+
+    <div class="bowl-stage" id="bowl-stage">
+      <svg class="ramen-svg" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+        <defs>
+          <!-- Table contact shadow & warm bounce -->
+          <radialGradient id="bowlContactShadow" cx="50%" cy="54%" r="50%">
+            <stop offset="0%" stop-color="#000000" stop-opacity="0.92" />
+            <stop offset="58%" stop-color="#050302" stop-opacity="0.72" />
+            <stop offset="82%" stop-color="#1a0b04" stop-opacity="0.28" />
+            <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+          </radialGradient>
+
+          <!-- Artisanal ceramic outer glaze -->
+          <linearGradient id="ceramicOuter" x1="18%" y1="10%" x2="82%" y2="95%">
+            <stop offset="0%" stop-color="#2c2623" />
+            <stop offset="32%" stop-color="#1b1715" />
+            <stop offset="72%" stop-color="#110e0d" />
+            <stop offset="100%" stop-color="#090706" />
+          </linearGradient>
+
+          <!-- Warm kiln-fired rim glaze -->
+          <linearGradient id="ceramicRim" x1="15%" y1="5%" x2="85%" y2="95%">
+            <stop offset="0%" stop-color="#b86b3a" />
+            <stop offset="22%" stop-color="#7c4222" />
+            <stop offset="52%" stop-color="#3a2921" />
+            <stop offset="82%" stop-color="#69391f" />
+            <stop offset="100%" stop-color="#241c18" />
+          </linearGradient>
+
+          <!-- Inner ceramic wall shadow -->
+          <radialGradient id="innerWallGrad" cx="46%" cy="42%" r="54%">
+            <stop offset="68%" stop-color="#14100e" />
+            <stop offset="88%" stop-color="#251d19" />
+            <stop offset="96%" stop-color="#3d2b22" />
+            <stop offset="100%" stop-color="#1c1512" />
+          </radialGradient>
+
+          <!-- Rich vegan miso-sesame-shoyu broth -->
+          <radialGradient id="brothBase" cx="46%" cy="44%" r="52%">
+            <stop offset="0%" stop-color="#e59b3e" />
+            <stop offset="28%" stop-color="#c96b22" />
+            <stop offset="62%" stop-color="#8c3b11" />
+            <stop offset="88%" stop-color="#521d08" />
+            <stop offset="100%" stop-color="#2b0d03" />
+          </radialGradient>
+
+          <!-- Broth warm overhead sheen -->
+          <radialGradient id="brothSheen" cx="38%" cy="34%" r="48%">
+            <stop offset="0%" stop-color="#ffd58a" stop-opacity="0.42" />
+            <stop offset="38%" stop-color="#f29b42" stop-opacity="0.16" />
+            <stop offset="100%" stop-color="#8c3b11" stop-opacity="0" />
+          </radialGradient>
+
+          <!-- Broth depth vignette around rim -->
+          <radialGradient id="brothRimDepth" cx="50%" cy="50%" r="50%">
+            <stop offset="72%" stop-color="#000000" stop-opacity="0" />
+            <stop offset="92%" stop-color="#1a0802" stop-opacity="0.52" />
+            <stop offset="100%" stop-color="#0a0301" stop-opacity="0.82" />
+          </radialGradient>
+
+          <!-- Chili oil (Rayu) droplets -->
+          <radialGradient id="chiliOil" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.92" />
+            <stop offset="45%" stop-color="#d63615" stop-opacity="0.88" />
+            <stop offset="85%" stop-color="#8a1806" stop-opacity="0.85" />
+            <stop offset="100%" stop-color="#590d02" stop-opacity="0" />
+          </radialGradient>
+
+          <!-- Golden sesame oil droplets -->
+          <radialGradient id="sesameOil" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#ffe299" stop-opacity="0.85" />
+            <stop offset="55%" stop-color="#d98c2b" stop-opacity="0.7" />
+            <stop offset="100%" stop-color="#8a4c0f" stop-opacity="0" />
+          </radialGradient>
+
+          <!-- Noodle gradient -->
+          <linearGradient id="noodleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fae096" />
+            <stop offset="50%" stop-color="#e5b85b" />
+            <stop offset="100%" stop-color="#bd862d" />
+          </linearGradient>
+
+          <!-- Seared Tofu -->
+          <linearGradient id="tofuBody" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f7ebd2" />
+            <stop offset="65%" stop-color="#ebd4aa" />
+            <stop offset="100%" stop-color="#cfa972" />
+          </linearGradient>
+          <linearGradient id="tofuCrust" x1="0%" y1="0%" x2="100%" y2="85%">
+            <stop offset="0%" stop-color="#d97b29" />
+            <stop offset="50%" stop-color="#9e4713" />
+            <stop offset="100%" stop-color="#612507" />
+          </linearGradient>
+
+          <!-- Shiitake Mushroom -->
+          <radialGradient id="shiitakeCap" cx="42%" cy="38%" r="60%">
+            <stop offset="0%" stop-color="#7a4c32" />
+            <stop offset="55%" stop-color="#4d2c1b" />
+            <stop offset="100%" stop-color="#29150b" />
+          </radialGradient>
+
+          <!-- Bok Choy -->
+          <linearGradient id="bokChoyLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6bbd6e" />
+            <stop offset="50%" stop-color="#357d44" />
+            <stop offset="100%" stop-color="#1b4a26" />
+          </linearGradient>
+          <linearGradient id="bokChoyStem" x1="0%" y1="0%" x2="80%" y2="100%">
+            <stop offset="0%" stop-color="#edf5dc" />
+            <stop offset="65%" stop-color="#c3dba8" />
+            <stop offset="100%" stop-color="#8ab573" />
+          </linearGradient>
+
+          <!-- Nori Seaweed -->
+          <linearGradient id="noriGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#223022" />
+            <stop offset="50%" stop-color="#141e15" />
+            <stop offset="100%" stop-color="#0b110c" />
+          </linearGradient>
+
+          <!-- Menma (Bamboo Shoots) -->
+          <linearGradient id="menmaGrad" x1="0%" y1="0%" x2="100%" y2="90%">
+            <stop offset="0%" stop-color="#e3ad59" />
+            <stop offset="55%" stop-color="#b87627" />
+            <stop offset="100%" stop-color="#784611" />
+          </linearGradient>
+
+          <!-- Chopsticks Dark Walnut -->
+          <linearGradient id="chopstickGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5c3824" />
+            <stop offset="45%" stop-color="#331d12" />
+            <stop offset="100%" stop-color="#1a0d07" />
+          </linearGradient>
+
+          <!-- Soft drop shadow filter for toppings -->
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="2" dy="6" stdDeviation="5" flood-color="#1a0702" flood-opacity="0.62" />
+          </filter>
+
+          <!-- Subtle ceramic speckle noise -->
+          <filter id="ceramicGrain" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" result="noise" />
+            <feColorMatrix type="matrix" values="0 0 0 0 0.8  0 0 0 0 0.55  0 0 0 0 0.35  0 0 0 0.06 0" in="noise" result="coloredNoise" />
+            <feComposite operator="in" in2="SourceGraphic" />
+          </filter>
+
+          <!-- Clip path for the broth surface -->
+          <ellipse id="brothClipShape" cx="400" cy="396" rx="242" ry="222" />
+          <clipPath id="brothClip">
+            <use href="#brothClipShape" />
+          </clipPath>
+        </defs>
+
+        <!-- Ground contact shadow beneath the bowl -->
+        <ellipse cx="405" cy="438" rx="315" ry="275" fill="url(#bowlContactShadow)" />
+
+        <!-- Subtle warm reflected light on the table right below the bowl rim -->
+        <ellipse cx="385" cy="415" rx="285" ry="255" fill="none" stroke="rgba(214, 118, 48, 0.10)" stroke-width="18" />
+
+        <!-- Outer ceramic bowl body (3/4 overhead perspective) -->
+        <path d="M 134 396 C 134 558, 244 654, 400 654 C 556 654, 666 558, 666 396 Z" fill="url(#ceramicOuter)" />
+        <!-- Bowl foot ring shadow -->
+        <ellipse cx="400" cy="642" rx="115" ry="24" fill="#050403" opacity="0.85" />
+
+        <!-- Bowl outer rim -->
+        <ellipse cx="400" cy="392" rx="268" ry="246" fill="url(#ceramicRim)" />
+        <!-- Rim specular highlight (top-left warm light) -->
+        <path d="M 162 290 A 262 240 0 0 1 560 198" fill="none" stroke="rgba(255, 206, 158, 0.28)" stroke-width="5" stroke-linecap="round" />
+
+        <!-- Inner ceramic wall -->
+        <ellipse cx="400" cy="395" rx="252" ry="230" fill="url(#innerWallGrad)" />
+
+        <!-- BROTH LAYER (clipped to inner bowl) -->
+        <g clip-path="url(#brothClip)">
+          <rect x="140" y="150" width="520" height="500" fill="url(#brothBase)" />
+
+          <!-- Subtle swirling broth currents -->
+          <g class="broth-shimmer">
+            <ellipse cx="382" cy="378" rx="190" ry="165" fill="url(#brothSheen)" />
+            <path d="M 240 340 Q 350 280, 470 330 T 580 390" fill="none" stroke="rgba(255, 205, 130, 0.14)" stroke-width="18" stroke-linecap="round" />
+            <path d="M 210 440 Q 330 490, 450 450 T 560 470" fill="none" stroke="rgba(235, 140, 52, 0.11)" stroke-width="14" stroke-linecap="round" />
+          </g>
+
+          <!-- Submerged noodle mass (softly tinted by broth) -->
+          <g opacity="0.58" stroke="#c98532" stroke-width="9" stroke-linecap="round" fill="none">
+            <path d="M 235 415 C 265 375, 325 365, 365 405 C 405 445, 455 440, 495 395" />
+            <path d="M 250 445 C 295 405, 355 425, 395 465 C 435 505, 495 475, 530 435" />
+            <path d="M 275 485 C 315 445, 380 460, 425 495 C 470 530, 525 500, 545 465" />
+            <path d="M 215 385 C 255 345, 310 345, 345 380" />
+            <path d="M 310 515 C 365 485, 430 510, 475 535" />
+          </g>
+
+          <!-- Top-layer glistening ramen noodles peeking above broth -->
+          <g filter="url(#softShadow)" stroke-linecap="round" fill="none">
+            <!-- Noodle strand cluster -->
+            <path d="M 255 428 C 282 396, 328 398, 356 426 C 384 454, 428 452, 462 424" stroke="url(#noodleGrad)" stroke-width="8.5" />
+            <path d="M 244 452 C 282 416, 336 424, 372 456 C 408 488, 462 482, 498 446" stroke="url(#noodleGrad)" stroke-width="9" />
+            <path d="M 268 474 C 304 440, 358 446, 394 478 C 430 510, 478 504, 514 470" stroke="url(#noodleGrad)" stroke-width="8.5" />
+            <path d="M 294 494 C 330 462, 382 468, 418 498 C 454 528, 496 520, 524 492" stroke="#e8ba61" stroke-width="8" />
+            <path d="M 232 412 C 266 376, 316 380, 348 408" stroke="#f5d98e" stroke-width="7.5" />
+            <path d="M 326 410 C 362 384, 408 392, 438 420" stroke="#f5d98e" stroke-width="7.5" />
+            <!-- Glossy highlights on noodles -->
+            <path d="M 284 410 C 312 400, 338 406, 354 422" stroke="rgba(255, 248, 220, 0.55)" stroke-width="2.2" />
+            <path d="M 286 436 C 322 426, 352 436, 374 456" stroke="rgba(255, 248, 220, 0.5)" stroke-width="2.2" />
+            <path d="M 308 462 C 344 452, 374 462, 396 480" stroke="rgba(255, 248, 220, 0.48)" stroke-width="2" />
+          </g>
+
+          <!-- Floating Chili Oil (Rayu) & Sesame Oil Droplets -->
+          <g class="oil-drop">
+            <circle cx="236" cy="336" r="14" fill="url(#chiliOil)" />
+            <circle cx="232" cy="332" r="3" fill="rgba(255, 235, 200, 0.65)" />
+
+            <circle cx="212" cy="368" r="8" fill="url(#chiliOil)" />
+            <circle cx="258" cy="312" r="6" fill="url(#sesameOil)" />
+            <circle cx="524" cy="318" r="11" fill="url(#chiliOil)" />
+            <circle cx="521" cy="314" r="2.2" fill="rgba(255, 235, 200, 0.6)" />
+
+            <circle cx="556" cy="352" r="7" fill="url(#sesameOil)" />
+            <circle cx="542" cy="488" r="12" fill="url(#chiliOil)" />
+            <circle cx="539" cy="484" r="2.5" fill="rgba(255, 235, 200, 0.6)" />
+
+            <circle cx="222" cy="488" r="9.5" fill="url(#chiliOil)" />
+            <circle cx="244" cy="516" r="6.5" fill="url(#sesameOil)" />
+            <circle cx="388" cy="566" r="10.5" fill="url(#chiliOil)" />
+            <circle cx="385" cy="562" r="2.2" fill="rgba(255, 235, 200, 0.55)" />
+
+            <circle cx="445" cy="552" r="6" fill="url(#sesameOil)" />
+            <circle cx="318" cy="242" r="8.5" fill="url(#chiliOil)" />
+            <circle cx="348" cy="228" r="5.5" fill="url(#sesameOil)" />
+            <circle cx="578" cy="412" r="8" fill="url(#chiliOil)" />
+            <circle cx="195" cy="422" r="7" fill="url(#sesameOil)" />
+          </g>
+
+          <!-- TOPPINGS -->
+
+          <!-- 1. Roasted Nori Seaweed Sheets (tucked along upper-right inner rim) -->
+          <g class="topping-float-b" filter="url(#softShadow)">
+            <path d="M 488 214 L 584 268 L 542 346 L 452 292 Z" fill="url(#noriGrad)" stroke="#2b3d2b" stroke-width="1.5" />
+            <path d="M 518 202 L 606 254 L 566 322 L 486 274 Z" fill="url(#noriGrad)" opacity="0.92" stroke="#283828" stroke-width="1.2" />
+            <!-- Crisp nori texture lines -->
+            <path d="M 505 232 L 565 266 M 495 248 L 555 282 M 485 264 L 545 298" stroke="rgba(120, 160, 110, 0.14)" stroke-width="1.2" />
+          </g>
+
+          <!-- 2. Crisp Blanched Bok Choy (lower-left / left-center) -->
+          <g class="topping-float-a" filter="url(#softShadow)">
+            <!-- Outer leaf 1 -->
+            <path d="M 206 382 C 186 342, 208 292, 252 288 C 282 285, 304 314, 294 348 C 284 378, 246 398, 206 382 Z" fill="url(#bokChoyLeaf)" />
+            <path d="M 214 378 C 232 344, 250 318, 266 298" stroke="#9be084" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55" />
+            <!-- Outer leaf 2 -->
+            <path d="M 192 426 C 172 396, 184 352, 224 344 C 258 338, 286 364, 276 398 C 266 428, 222 444, 192 426 Z" fill="url(#bokChoyLeaf)" />
+            <!-- Crisp pale-green stems -->
+            <path d="M 218 394 C 242 368, 268 358, 298 372 C 306 386, 292 406, 268 412 C 244 418, 224 410, 218 394 Z" fill="url(#bokChoyStem)" />
+            <path d="M 238 424 C 264 402, 292 398, 314 416 C 316 432, 294 446, 268 444 C 248 442, 236 434, 238 424 Z" fill="url(#bokChoyStem)" />
+          </g>
+
+          <!-- 3. Marinated Menma / Bamboo Shoots (upper-left) -->
+          <g class="topping-float-c" filter="url(#softShadow)">
+            <g transform="translate(278, 258) rotate(-24)">
+              <rect x="0" y="0" width="68" height="15" rx="4" fill="url(#menmaGrad)" />
+              <line x1="8" y1="5" x2="58" y2="5" stroke="rgba(90, 42, 6, 0.35)" stroke-width="1.2" />
+              <line x1="12" y1="10" x2="62" y2="10" stroke="rgba(255, 220, 150, 0.25)" stroke-width="1" />
+            </g>
+            <g transform="translate(296, 278) rotate(-12)">
+              <rect x="0" y="0" width="72" height="14" rx="4" fill="url(#menmaGrad)" />
+              <line x1="6" y1="5" x2="64" y2="5" stroke="rgba(90, 42, 6, 0.35)" stroke-width="1.2" />
+            </g>
+            <g transform="translate(268, 286) rotate(-32)">
+              <rect x="0" y="0" width="60" height="13" rx="3.5" fill="url(#menmaGrad)" />
+            </g>
+          </g>
+
+          <!-- 4. Crispy Seared & Glazed Tofu Slices (upper-center-left) -->
+          <g class="topping-float-b" filter="url(#softShadow)">
+            <!-- Tofu slice 1 -->
+            <g transform="translate(362, 228) rotate(12)">
+              <rect x="0" y="0" width="84" height="54" rx="8" fill="url(#tofuCrust)" />
+              <rect x="5" y="5" width="74" height="44" rx="5" fill="url(#tofuBody)" />
+              <!-- Caramelized sear marks -->
+              <path d="M 14 14 L 34 38 M 36 10 L 56 36 M 56 14 L 70 30" stroke="#9e4713" stroke-width="3.5" stroke-linecap="round" opacity="0.55" />
+              <!-- Glaze highlight -->
+              <path d="M 12 10 Q 38 6, 66 12" stroke="rgba(255, 245, 225, 0.65)" stroke-width="2.5" stroke-linecap="round" fill="none" />
+            </g>
+            <!-- Tofu slice 2 (overlapping) -->
+            <g transform="translate(402, 256) rotate(24)">
+              <rect x="0" y="0" width="82" height="52" rx="8" fill="url(#tofuCrust)" />
+              <rect x="5" y="5" width="72" height="42" rx="5" fill="url(#tofuBody)" />
+              <path d="M 14 14 L 32 36 M 36 12 L 54 36 M 54 14 L 68 30" stroke="#9e4713" stroke-width="3.5" stroke-linecap="round" opacity="0.55" />
+              <path d="M 14 10 Q 42 7, 64 12" stroke="rgba(255, 245, 225, 0.65)" stroke-width="2.5" stroke-linecap="round" fill="none" />
+            </g>
+          </g>
+
+          <!-- 5. Star-Scored Charred Shiitake Mushrooms (right-center) -->
+          <g class="topping-float-a" filter="url(#softShadow)">
+            <!-- Shiitake 1 -->
+            <g transform="translate(506, 368) rotate(14)">
+              <ellipse cx="0" cy="0" rx="40" ry="33" fill="url(#shiitakeCap)" />
+              <!-- Decorative star-cut score revealing pale mushroom flesh -->
+              <path d="M -22 -4 L 22 4 M -4 -20 L 4 20 M -15 -14 L 15 14 M -14 15 L 14 -15" stroke="#e8d2b2" stroke-width="4.2" stroke-linecap="round" />
+              <path d="M -18 -2 L 18 2 M -2 -16 L 2 16" stroke="#b58d60" stroke-width="1.5" stroke-linecap="round" />
+              <!-- Glossy broth sheen -->
+              <ellipse cx="-14" cy="-12" rx="10" ry="5" fill="rgba(255, 220, 175, 0.22)" transform="rotate(-25 -14 -12)" />
+            </g>
+            <!-- Shiitake 2 -->
+            <g transform="translate(534, 428) rotate(-18)">
+              <ellipse cx="0" cy="0" rx="34" ry="28" fill="url(#shiitakeCap)" />
+              <path d="M -18 -3 L 18 3 M -3 -16 L 3 16 M -12 -11 L 12 11 M -11 12 L 11 -12" stroke="#e8d2b2" stroke-width="3.6" stroke-linecap="round" />
+              <ellipse cx="-11" cy="-9" rx="8" ry="4" fill="rgba(255, 220, 175, 0.2)" transform="rotate(-20 -11 -9)" />
+            </g>
+          </g>
+
+          <!-- 6. Sweet Roasted Corn Kernels (lower-right cluster) -->
+          <g class="topping-float-c" filter="url(#softShadow)">
+            <g fill="#f2bc38" stroke="#c47f14" stroke-width="0.8">
+              <ellipse cx="474" cy="496" rx="8" ry="6.5" transform="rotate(15 474 496)" />
+              <ellipse cx="490" cy="488" rx="8" ry="6.5" transform="rotate(-10 490 488)" />
+              <ellipse cx="484" cy="508" rx="7.5" ry="6" transform="rotate(30 484 508)" />
+              <ellipse cx="502" cy="502" rx="8" ry="6.5" transform="rotate(5 502 502)" />
+              <ellipse cx="464" cy="512" rx="7.5" ry="6" transform="rotate(-22 464 512)" />
+              <ellipse cx="496" cy="518" rx="7" ry="5.5" transform="rotate(18 496 518)" />
+              <ellipse cx="514" cy="488" rx="7.5" ry="6" transform="rotate(42 514 488)" />
+            </g>
+            <!-- Corn kernel specular highlights -->
+            <g fill="rgba(255, 250, 210, 0.65)">
+              <circle cx="472" cy="494" r="2" />
+              <circle cx="488" cy="486" r="2" />
+              <circle cx="500" cy="500" r="2" />
+              <circle cx="482" cy="506" r="1.8" />
+            </g>
+          </g>
+
+          <!-- 7. Fresh Scallion Rings (Negi) & Fine Chili Threads (Ito-togarashi) -->
+          <g class="topping-float-b" filter="url(#softShadow)">
+            <!-- Scallion rings -->
+            <g fill="none" stroke-width="4.2">
+              <ellipse cx="378" cy="368" rx="11" ry="8" stroke="#68b849" transform="rotate(12 378 368)" />
+              <ellipse cx="378" cy="368" rx="7" ry="4.5" stroke="#d8f0c0" stroke-width="2" transform="rotate(12 378 368)" />
+
+              <ellipse cx="404" cy="354" rx="10" ry="7.5" stroke="#53a337" transform="rotate(-18 404 354)" />
+              <ellipse cx="404" cy="354" rx="6" ry="4" stroke="#d8f0c0" stroke-width="1.8" transform="rotate(-18 404 354)" />
+
+              <ellipse cx="394" cy="388" rx="11.5" ry="8.5" stroke="#75c754" transform="rotate(28 394 388)" />
+              <ellipse cx="394" cy="388" rx="7.5" ry="4.8" stroke="#e4f5d0" stroke-width="2" transform="rotate(28 394 388)" />
+
+              <ellipse cx="354" cy="386" rx="9.5" ry="7" stroke="#53a337" transform="rotate(-8 354 386)" />
+              <ellipse cx="424" cy="378" rx="10" ry="7.5" stroke="#68b849" transform="rotate(18 424 378)" />
+              <ellipse cx="332" cy="472" rx="9.5" ry="7" stroke="#53a337" transform="rotate(34 332 472)" />
+              <ellipse cx="436" cy="436" rx="9" ry="6.5" stroke="#68b849" transform="rotate(-24 436 436)" />
+            </g>
+
+            <!-- Delicate crimson chili threads (Ito-togarashi) in center -->
+            <g stroke="#d92b18" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0.92">
+              <path d="M 366 356 Q 388 338, 412 352" />
+              <path d="M 372 364 Q 396 346, 422 362" />
+              <path d="M 364 348 Q 392 362, 418 344" />
+              <path d="M 378 342 Q 396 368, 408 378" />
+              <path d="M 368 372 Q 394 356, 416 370" />
+            </g>
+          </g>
+
+          <!-- 8. Toasted White & Black Sesame Seeds -->
+          <g opacity="0.9">
+            <g fill="#f5e3ba">
+              <ellipse cx="326" cy="342" rx="3" ry="1.6" transform="rotate(25 326 342)" />
+              <ellipse cx="348" cy="332" rx="2.8" ry="1.5" transform="rotate(-40 348 332)" />
+              <ellipse cx="456" cy="348" rx="3" ry="1.6" transform="rotate(62 456 348)" />
+              <ellipse cx="468" cy="366" rx="2.8" ry="1.5" transform="rotate(-15 468 366)" />
+              <ellipse cx="312" cy="442" rx="3" ry="1.6" transform="rotate(12 312 442)" />
+              <ellipse cx="364" cy="512" rx="2.8" ry="1.5" transform="rotate(-55 364 512)" />
+              <ellipse cx="416" cy="522" rx="3" ry="1.6" transform="rotate(38 416 522)" />
+              <ellipse cx="298" cy="378" rx="2.8" ry="1.5" transform="rotate(-22 298 378)" />
+            </g>
+            <g fill="#1c1613">
+              <ellipse cx="338" cy="348" rx="2.8" ry="1.5" transform="rotate(-18 338 348)" />
+              <ellipse cx="442" cy="356" rx="2.8" ry="1.5" transform="rotate(44 442 356)" />
+              <ellipse cx="384" cy="414" rx="2.8" ry="1.5" transform="rotate(-30 384 414)" />
+              <ellipse cx="452" cy="408" rx="2.6" ry="1.4" transform="rotate(15 452 408)" />
+              <ellipse cx="344" cy="496" rx="2.8" ry="1.5" transform="rotate(52 344 496)" />
+              <ellipse cx="396" cy="532" rx="2.6" ry="1.4" transform="rotate(-12 396 532)" />
+            </g>
+          </g>
+
+          <!-- Inner bowl rim shadow vignette over broth -->
+          <rect x="140" y="150" width="520" height="500" fill="url(#brothRimDepth)" pointer-events="none" />
+        </g>
+
+        <!-- Artisanal rim glaze subtle speckle overlay -->
+        <ellipse cx="400" cy="392" rx="268" ry="246" fill="none" stroke="rgba(210, 128, 68, 0.14)" stroke-width="6" />
+
+        <!-- Sleek Dark-Walnut Chopsticks (Hashi) resting naturally across the upper-right rim -->
+        <g filter="url(#softShadow)">
+          <!-- Chopstick 1 -->
+          <polygon points="482,118 492,114 688,434 683,437" fill="url(#chopstickGrad)" />
+          <line x1="485" y1="117" x2="685" y2="435" stroke="rgba(255, 200, 150, 0.18)" stroke-width="1.2" />
+          <!-- Chopstick 2 -->
+          <polygon points="504,108 514,104 714,418 709,421" fill="url(#chopstickGrad)" />
+          <line x1="507" y1="107" x2="711" y2="419" stroke="rgba(255, 200, 150, 0.16)" stroke-width="1.2" />
+        </g>
+      </svg>
+
+      <!-- Steam + Broth Ripple Canvas -->
+      <canvas id="steam-canvas"></canvas>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const scene = document.getElementById('scene');
+      const bowlStage = document.getElementById('bowl-stage');
+      const steamCanvas = document.getElementById('steam-canvas');
+      const ambientCanvas = document.getElementById('ambient-canvas');
+      const sCtx = steamCanvas.getContext('2d');
+      const aCtx = ambientCanvas.getContext('2d');
+
+      const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let prefersReducedMotion = reducedMotionQuery.matches;
+
+      // Mouse & interaction state
+      const pointer = {
+        x: 0.5,
+        y: 0.5,
+        targetX: 0.5,
+        targetY: 0.5,
+        vx: 0,
+        vy: 0,
+        lastClientX: null,
+        lastClientY: null,
+        active: false
+      };
+
+      // Broth ripple state
+      const ripples = [];
+      let lastRippleTime = 0;
+
+      // Steam particles
+      const steamPuffs = [];
+      const MAX_STEAM = 44;
+
+      // Ambient warm dust/ember motes
+      const motes = [];
+      const MAX_MOTES = 28;
+
+      function resizeCanvases() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        const sRect = bowlStage.getBoundingClientRect();
+        steamCanvas.width = Math.max(1, Math.floor(sRect.width * dpr));
+        steamCanvas.height = Math.max(1, Math.floor(sRect.height * dpr));
+        sCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const aRect = scene.getBoundingClientRect();
+        ambientCanvas.width = Math.max(1, Math.floor(aRect.width * dpr));
+        ambientCanvas.height = Math.max(1, Math.floor(aRect.height * dpr));
+        aCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function createSteamPuff(initialProgress = 0) {
+        const w = steamCanvas.clientWidth || 600;
+        const h = steamCanvas.clientHeight || 600;
+        // Originates from the hot broth surface (centered ~ 50% width, 49% height)
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.sqrt(Math.random()) * w * 0.22;
+        const startX = w * 0.5 + Math.cos(angle) * radius;
+        const startY = h * 0.49 + Math.sin(angle) * radius * 0.78;
+
+        const life = 1;
+        const maxLife = 3.6 + Math.random() * 2.8;
+        const age = initialProgress * maxLife;
+
+        return {
+          x: startX,
+          y: startY - initialProgress * h * 0.34,
+          vx: (Math.random() - 0.5) * 6,
+          vy: -(22 + Math.random() * 18),
+          baseRadius: w * (0.045 + Math.random() * 0.055),
+          age,
+          maxLife,
+          life,
+          wobbleFreq: 0.8 + Math.random() * 1.1,
+          wobblePhase: Math.random() * Math.PI * 2,
+          wobbleAmp: 10 + Math.random() * 16,
+          alphaMax: 0.085 + Math.random() * 0.065
+        };
+      }
+
+      function createMote() {
+        const w = ambientCanvas.clientWidth || window.innerWidth;
+        const h = ambientCanvas.clientHeight || window.innerHeight;
+        return {
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: 0.8 + Math.random() * 2.1,
+          vx: (Math.random() - 0.5) * 8,
+          vy: -(4 + Math.random() * 10),
+          phase: Math.random() * Math.PI * 2,
+          alpha: 0.08 + Math.random() * 0.22
+        };
+      }
+
+      function initParticles() {
+        steamPuffs.length = 0;
+        for (let i = 0; i < MAX_STEAM; i++) {
+          steamPuffs.push(createSteamPuff(i / MAX_STEAM));
+        }
+        motes.length = 0;
+        for (let i = 0; i < MAX_MOTES; i++) {
+          motes.push(createMote());
+        }
+      }
+
+      function spawnRipple(normX, normY) {
+        const now = performance.now();
+        if (now - lastRippleTime < 140) return;
+        lastRippleTime = now;
+        const w = steamCanvas.clientWidth || 600;
+        const h = steamCanvas.clientHeight || 600;
+        ripples.push({
+          x: normX * w,
+          y: normY * h,
+          r: 4,
+          maxR: w * (0.06 + Math.random() * 0.05),
+          alpha: 0.32
+        });
+      }
+
+      function handlePointerMove(clientX, clientY) {
+        if (prefersReducedMotion) return;
+
+        const w = window.innerWidth || 1;
+        const h = window.innerHeight || 1;
+        pointer.targetX = clientX / w;
+        pointer.targetY = clientY / h;
+        pointer.active = true;
+
+        if (pointer.lastClientX !== null) {
+          pointer.vx = Math.max(-45, Math.min(45, clientX - pointer.lastClientX));
+          pointer.vy = Math.max(-45, Math.min(45, clientY - pointer.lastClientY));
+        }
+        pointer.lastClientX = clientX;
+        pointer.lastClientY = clientY;
+
+        // Check if pointer is over the broth area to trigger subtle ripples
+        const rect = bowlStage.getBoundingClientRect();
+        const bx = (clientX - rect.left) / rect.width;
+        const by = (clientY - rect.top) / rect.height;
+        const dx = (bx - 0.5) / 0.30;
+        const dy = (by - 0.49) / 0.27;
+        if (dx * dx + dy * dy < 1) {
+          spawnRipple(bx, by);
+        }
+      }
+
+      window.addEventListener('pointermove', (e) => {
+        handlePointerMove(e.clientX, e.clientY);
+      }, { passive: true });
+
+      window.addEventListener('pointerleave', () => {
+        pointer.targetX = 0.5;
+        pointer.targetY = 0.5;
+        pointer.vx = 0;
+        pointer.vy = 0;
+        pointer.lastClientX = null;
+        pointer.lastClientY = null;
+        pointer.active = false;
+      });
+
+      function renderStaticScene() {
+        const sw = steamCanvas.clientWidth || 600;
+        const sh = steamCanvas.clientHeight || 600;
+        sCtx.clearRect(0, 0, sw, sh);
+
+        // Draw serene static steam wisps
+        for (const p of steamPuffs) {
+          const progress = p.age / p.maxLife;
+          const fadeIn = Math.min(1, progress * 3.5);
+          const fadeOut = Math.pow(Math.max(0, 1 - progress), 1.4);
+          const alpha = p.alphaMax * fadeIn * fadeOut;
+          if (alpha <= 0.002) continue;
+
+          const radius = p.baseRadius * (0.7 + progress * 1.85);
+          const grad = sCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
+          grad.addColorStop(0, `rgba(255, 240, 224, ${alpha.toFixed(3)})`);
+          grad.addColorStop(0.55, `rgba(248, 222, 196, ${(alpha * 0.42).toFixed(3)})`);
+          grad.addColorStop(1, 'rgba(240, 210, 180, 0)');
+          sCtx.fillStyle = grad;
+          sCtx.beginPath();
+          sCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+          sCtx.fill();
+        }
+
+        const aw = ambientCanvas.clientWidth || window.innerWidth;
+        const ah = ambientCanvas.clientHeight || window.innerHeight;
+        aCtx.clearRect(0, 0, aw, ah);
+        for (const m of motes) {
+          aCtx.fillStyle = `rgba(255, 198, 130, ${m.alpha.toFixed(3)})`;
+          aCtx.beginPath();
+          aCtx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+          aCtx.fill();
+        }
+      }
+
+      let lastTime = performance.now();
+      let rafId = null;
+
+      function animate(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+
+        // Smooth pointer interpolation
+        pointer.x += (pointer.targetX - pointer.x) * 0.065;
+        pointer.y += (pointer.targetY - pointer.y) * 0.065;
+        pointer.vx *= 0.9;
+        pointer.vy *= 0.9;
+
+        const offsetX = pointer.x - 0.5;
+        const offsetY = pointer.y - 0.5;
+
+        // Subtle 3D parallax & ambient light response
+        scene.style.setProperty('--bg-x', `${(-offsetX * 14).toFixed(2)}px`);
+        scene.style.setProperty('--bg-y', `${(-offsetY * 14).toFixed(2)}px`);
+        scene.style.setProperty('--glow-x', `${(offsetX * 42).toFixed(2)}px`);
+        scene.style.setProperty('--glow-y', `${(offsetY * 42).toFixed(2)}px`);
+        scene.style.setProperty('--bowl-x', `${(offsetX * 10).toFixed(2)}px`);
+        scene.style.setProperty('--bowl-y', `${(offsetY * 10).toFixed(2)}px`);
+        scene.style.setProperty('--tilt-x', `${(-offsetY * 3.2).toFixed(2)}deg`);
+        scene.style.setProperty('--tilt-y', `${(offsetX * 3.2).toFixed(2)}deg`);
+
+        // Render ambient warm motes
+        const aw = ambientCanvas.clientWidth || window.innerWidth;
+        const ah = ambientCanvas.clientHeight || window.innerHeight;
+        aCtx.clearRect(0, 0, aw, ah);
+
+        for (const m of motes) {
+          m.x += m.vx * dt + Math.sin(now * 0.0007 + m.phase) * 0.15;
+          m.y += m.vy * dt;
+          if (m.y < -10) {
+            m.y = ah + 10;
+            m.x = Math.random() * aw;
+          }
+          if (m.x < -10) m.x = aw + 10;
+          if (m.x > aw + 10) m.x = -10;
+
+          const twinkle = 0.65 + 0.35 * Math.sin(now * 0.0018 + m.phase);
+          aCtx.fillStyle = `rgba(255, 192, 122, ${(m.alpha * twinkle).toFixed(3)})`;
+          aCtx.beginPath();
+          aCtx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+          aCtx.fill();
+        }
+
+        // Render broth ripples & volumetric steam
+        const sw = steamCanvas.clientWidth || 600;
+        const sh = steamCanvas.clientHeight || 600;
+        sCtx.clearRect(0, 0, sw, sh);
+
+        // Broth ripples
+        for (let i = ripples.length - 1; i >= 0; i--) {
+          const rp = ripples[i];
+          rp.r += dt * 42;
+          rp.alpha -= dt * 0.35;
+          if (rp.alpha <= 0 || rp.r >= rp.maxR) {
+            ripples.splice(i, 1);
+            continue;
+          }
+          sCtx.strokeStyle = `rgba(255, 224, 175, ${rp.alpha.toFixed(3)})`;
+          sCtx.lineWidth = 1.4;
+          sCtx.beginPath();
+          sCtx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.85, 0, 0, Math.PI * 2);
+          sCtx.stroke();
+        }
+
+        // Pointer position in steamCanvas coordinates for steam dispersion
+        const rect = bowlStage.getBoundingClientRect();
+        const px = pointer.lastClientX !== null ? pointer.lastClientX - rect.left : -9999;
+        const py = pointer.lastClientY !== null ? pointer.lastClientY - rect.top : -9999;
+
+        for (let i = 0; i < steamPuffs.length; i++) {
+          const p = steamPuffs[i];
+          p.age += dt;
+          if (p.age >= p.maxLife) {
+            steamPuffs[i] = createSteamPuff(0);
+            continue;
+          }
+
+          const progress = p.age / p.maxLife;
+          // Organic rising curl
+          const curl = Math.sin(p.age * p.wobbleFreq + p.wobblePhase) * p.wobbleAmp * dt;
+          p.x += p.vx * dt + curl;
+          p.y += p.vy * dt;
+
+          // Interactive cursor disturbance: push/swirl steam near pointer
+          if (pointer.active) {
+            const dx = p.x - px;
+            const dy = p.y - py;
+            const distSq = dx * dx + dy * dy;
+            const influenceR = sw * 0.16;
+            if (distSq < influenceR * influenceR && distSq > 1) {
+              const dist = Math.sqrt(distSq);
+              const force = (1 - dist / influenceR) * 120 * dt;
+              p.x += (dx / dist) * force + pointer.vx * 0.28 * dt;
+              p.y += (dy / dist) * force + pointer.vy * 0.18 * dt;
+            }
+          }
+
+          const fadeIn = Math.min(1, progress * 3.2);
+          const fadeOut = Math.pow(Math.max(0, 1 - progress), 1.45);
+          const alpha = p.alphaMax * fadeIn * fadeOut;
+          if (alpha <= 0.002) continue;
+
+          const radius = p.baseRadius * (0.65 + progress * 1.95);
+          const grad = sCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
+          grad.addColorStop(0, `rgba(255, 244, 232, ${alpha.toFixed(3)})`);
+          grad.addColorStop(0.5, `rgba(250, 226, 202, ${(alpha * 0.45).toFixed(3)})`);
+          grad.addColorStop(1, 'rgba(240, 210, 180, 0)');
+
+          sCtx.fillStyle = grad;
+          sCtx.beginPath();
+          sCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+          sCtx.fill();
+        }
+
+        rafId = requestAnimationFrame(animate);
+      }
+
+      function syncMotionPreference() {
+        prefersReducedMotion = reducedMotionQuery.matches;
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        if (prefersReducedMotion) {
+          scene.style.removeProperty('--bg-x');
+          scene.style.removeProperty('--bg-y');
+          scene.style.removeProperty('--glow-x');
+          scene.style.removeProperty('--glow-y');
+          scene.style.removeProperty('--bowl-x');
+          scene.style.removeProperty('--bowl-y');
+          scene.style.removeProperty('--tilt-x');
+          scene.style.removeProperty('--tilt-y');
+          renderStaticScene();
+        } else {
+          lastTime = performance.now();
+          rafId = requestAnimationFrame(animate);
+        }
+      }
+
+      window.addEventListener('resize', () => {
+        resizeCanvases();
+        if (prefersReducedMotion) {
+          renderStaticScene();
+        }
+      });
+
+      reducedMotionQuery.addEventListener('change', syncMotionPreference);
+
+      resizeCanvases();
+      initParticles();
+      syncMotionPreference();
+    })();
+  </script>
+</body>
+</html>

@@ -300,6 +300,18 @@
       "reward": 1,
       "violations": []
     },
+    "google/gemini-4-hydrogen/high": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-hydrogen/medium": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-hydrogen/low": {
+      "reward": 1,
+      "violations": []
+    },
     "google/gemini-4-carbon/high": {
       "reward": 1,
       "violations": []

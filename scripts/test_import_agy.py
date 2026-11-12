@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from agy_list_prices import argon_list_cost, carbon_list_cost
+from agy_list_prices import CARBON, HYDROGEN, argon_list_cost
 from import_agy import (
     build_trial,
     normalize,
@@ -56,13 +56,26 @@ class AgyImportTests(unittest.TestCase):
             "output_tokens": 1_000_000,
             "thinking_tokens": 500_000,
         }
-        cost, source = carbon_list_cost(usage, "2026-11-11T18:00:00Z")
+        cost, source = CARBON(usage, "2026-11-11T18:00:00Z")
         self.assertEqual(cost["total"], 12.1)
         self.assertTrue(cost["estimated"])
         self.assertTrue(source["introductory"])
         for day in ("2026-11-09T23:00:00Z", "2026-11-12T00:00:00Z"):
             with self.assertRaisesRegex(ValueError, "outside"):
-                carbon_list_cost(usage, day)
+                CARBON(usage, day)
+
+    def test_hydrogen_uses_pinned_standard_openrouter_rates_from_release(self):
+        usage = {
+            "input_tokens": 1_000_000,
+            "cache_read_tokens": 1_000_000,
+            "output_tokens": 1_000_000,
+            "thinking_tokens": 500_000,
+        }
+        cost, source = HYDROGEN(usage, "2026-11-13T01:00:00Z")
+        self.assertEqual(cost["total"], 9.075)
+        self.assertFalse(source["introductory"])
+        with self.assertRaisesRegex(ValueError, "outside"):
+            HYDROGEN(usage, "2026-11-11T23:00:00Z")
 
     def test_carbon_route_requires_the_openrouter_gateway(self):
         agent = {

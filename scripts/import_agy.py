@@ -12,12 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from agy_list_prices import AS_OF as PRICE_DATE
-from agy_list_prices import (
-    CARBON_AS_OF,
-    CARBON_SOURCE,
-    argon_list_cost,
-    carbon_list_cost,
-)
+from agy_list_prices import CARBON, HYDROGEN, argon_list_cost
 from agy_list_prices import SOURCE as PRICE_SOURCE
 from backfill_session_metadata import replay_codex_command, result_stats
 from censor_transcripts import censor_value
@@ -52,6 +47,12 @@ class Route:
         return self.native_model.format(effort=effort)
 
 
+OPENROUTER_GATEWAY = (
+    ("AGY_LLM_GATEWAY_URL", "https://openrouter.ai/api/v1"),
+    ("AGY_LLM_GATEWAY_WIRE_PROTOCOL", "openai"),
+)
+
+
 ROUTES = (
     Route(
         "gemini-4-argon",
@@ -73,13 +74,23 @@ ROUTES = (
         "google/gemini-4-carbon",
         "openrouter",
         "Native Harbor agy with pinned executable through the OpenRouter gateway",
-        carbon_list_cost,
-        f"OpenRouter published list prices with the 50% launch discount, pinned {CARBON_AS_OF}; {CARBON_SOURCE}",
+        CARBON,
+        f"OpenRouter published list prices with the 50% launch discount, pinned {CARBON.pinned_at}; {CARBON.source}",
         "Pricing uses OpenRouter's pinned published list prices, including the 50% launch discount, with cache hits discounted and thinking included once; it is not a recorded provider charge.",
-        (
-            ("AGY_LLM_GATEWAY_URL", "https://openrouter.ai/api/v1"),
-            ("AGY_LLM_GATEWAY_WIRE_PROTOCOL", "openai"),
-        ),
+        OPENROUTER_GATEWAY,
+    ),
+    Route(
+        "gemini-4-hydrogen",
+        "Gemini 4 Hydrogen",
+        "antigravity-cli",
+        "openrouter/google/gemini-4-hydrogen",
+        "google/gemini-4-hydrogen",
+        "openrouter",
+        "Native Harbor agy with pinned executable through the OpenRouter gateway",
+        HYDROGEN,
+        f"OpenRouter published standard list prices, pinned {HYDROGEN.pinned_at}; {HYDROGEN.source}",
+        "Pricing uses OpenRouter's pinned published standard list prices, with cache hits discounted and thinking included once; it is not a recorded provider charge.",
+        OPENROUTER_GATEWAY,
     ),
 )
 VERIFIER_FAILURES = {"RewardFileNotFoundError", "VerifierTimeoutError"}
