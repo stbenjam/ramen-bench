@@ -9,9 +9,9 @@
     >
     <meta name="theme-color" content="#120e0b">
     <title>Ramen Bench</title>
-    <link rel="stylesheet" href="styles.css?v=20261111-runs-hub">
-    <script src="site.config.js?v=20261111-runs-hub" defer></script>
-    <script src="app.js?v=20261111-runs-hub" defer></script>
+    <link rel="stylesheet" href="styles.css?v=20261115-newest">
+    <script src="site.config.js?v=20261115-newest" defer></script>
+    <script src="app.js?v=20261115-newest" defer></script>
   </head>
   <body>
     <button class="mobile-menu" id="mobile-menu" type="button" aria-controls="sidebar" aria-expanded="false">
@@ -66,9 +66,9 @@
         </label>
         <div class="filter-row">
           <label>
-            <span class="sr-only">Filter by creator</span>
-            <select id="creator-filter">
-              <option value="">Creator</option>
+            <span class="sr-only">Filter by vendor</span>
+            <select id="vendor-filter">
+              <option value="">Vendor</option>
             </select>
           </label>
           <label>
@@ -81,6 +81,10 @@
         <div class="filter-meta">
           <span id="filter-count" aria-live="polite"></span>
           <button id="clear-filters" type="button" hidden>Clear</button>
+          <div class="sort-switch" role="group" aria-label="Sort models">
+            <button id="sort-newest" type="button" aria-pressed="true">Newest</button>
+            <button id="sort-vendor" type="button" aria-pressed="false">Vendor</button>
+          </div>
         </div>
       </div>
 

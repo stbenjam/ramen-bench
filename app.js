@@ -4,6 +4,9 @@
   let entries = [];
   let toastTimer;
   const voteStoragePrefix = "rb-vote-";
+  const sortStorageKey = "rb-sort";
+  const newModelWindowMs = 14 * 24 * 60 * 60 * 1000;
+  const harnessAliases = { Codex: "Codex CLI" };
   const ratingsApiUrl = String(window.RAMEN_BENCH_CONFIG?.ratingsApiUrl || "").replace(/\/+$/, "");
   const ratingsByRun = new Map();
   const sessionVotes = new Map();
@@ -32,10 +35,12 @@
     singleMode: document.querySelector("#single-mode"),
     gridMode: document.querySelector("#grid-mode"),
     search: document.querySelector("#model-search"),
-    creatorFilter: document.querySelector("#creator-filter"),
+    vendorFilter: document.querySelector("#vendor-filter"),
     harnessFilter: document.querySelector("#harness-filter"),
     filterCount: document.querySelector("#filter-count"),
     clearFilters: document.querySelector("#clear-filters"),
+    sortNewest: document.querySelector("#sort-newest"),
+    sortVendor: document.querySelector("#sort-vendor"),
     list: document.querySelector("#model-list"),
     gridHint: document.querySelector("#grid-hint"),
     viewer: document.querySelector("#viewer"),
@@ -51,6 +56,7 @@
 
   const state = {
     mode: "single",
+    sort: loadSort(),
     activeId: null,
     selectedIds: new Set(),
     filteredEntries: []
@@ -68,14 +74,20 @@
     );
   }
 
-  function normalizeRun(run, manifestUrl) {
+  function normalizeRun(run, manifestUrl, modelAddedAt) {
     const resolveArtifact = (path) => path ? new URL(path, manifestUrl).href : null;
     return {
       id: run.id,
       name: run.model.displayName,
-      creator: run.vendor.displayName,
+      vendor: run.vendor.displayName,
       badge: run.variation.displayName,
       harness: formatHarness(run.harness),
+      harnessName: harnessAliases[run.harness.name] || run.harness.name,
+      addedAt: Date.parse(
+        modelAddedAt?.[`${run.vendor.slug}/${run.model.slug}`]
+        || run.timing?.completedAt
+        || run.timing?.startedAt
+      ),
       resultUrl: resolveArtifact(run.artifacts.result),
       transcriptUrl: resolveArtifact(run.artifacts.transcript),
       rawTranscriptUrl: resolveArtifact(run.artifacts.rawTranscript),
@@ -108,7 +120,7 @@
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       const run = await response.json();
       if (!isRun(run)) throw new Error(`${path}: invalid run manifest`);
-      return { ...normalizeRun(run, response.url), check: checks[run.id] };
+      return { ...normalizeRun(run, response.url, registry.modelAddedAt), check: checks[run.id] };
     }));
 
     const failures = results.filter((result) => result.status === "rejected");
@@ -138,8 +150,41 @@
     return entries.find((entry) => entry.id === id);
   }
 
+  function modelKey(entry) {
+    return `${entry.vendor}\u0000${entry.name}`;
+  }
+
   function expandEntryModel(entry) {
-    if (entry) expandedModels.add(`${entry.creator}\u0000${entry.name}`);
+    if (entry) expandedModels.add(modelKey(entry));
+  }
+
+  function loadSort() {
+    try {
+      if (window.localStorage.getItem(sortStorageKey) === "vendor") return "vendor";
+    } catch (_error) {
+      // Fall back to the default order when storage is unavailable.
+    }
+    return "newest";
+  }
+
+  function setSort(sort) {
+    if (sort === state.sort) return;
+    state.sort = sort;
+    try {
+      window.localStorage.setItem(sortStorageKey, sort);
+    } catch (_error) {
+      // The choice still applies for this visit.
+    }
+    syncSortControls();
+    render();
+    revealEntryInSidebar(state.activeId);
+  }
+
+  function syncSortControls() {
+    for (const [button, sort] of [[elements.sortNewest, "newest"], [elements.sortVendor, "vendor"]]) {
+      button.classList.toggle("active", state.sort === sort);
+      button.setAttribute("aria-pressed", String(state.sort === sort));
+    }
   }
 
   async function fetchVotes({ quiet = true } = {}) {
@@ -242,27 +287,35 @@
 
   function applyFilters() {
     const term = elements.search.value.trim().toLocaleLowerCase();
-    const creator = elements.creatorFilter.value;
+    const vendor = elements.vendorFilter.value;
     const harness = elements.harnessFilter.value;
 
     state.filteredEntries = entries.filter((entry) => {
-      const searchable = [entry.name, entry.creator, entry.harness, entry.badge]
+      const searchable = [entry.name, entry.vendor, entry.harness, entry.badge]
         .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase();
       return (!term || searchable.includes(term))
-        && (!creator || entry.creator === creator)
-        && (!harness || entry.harness === harness);
+        && (!vendor || entry.vendor === vendor)
+        && (!harness || entry.harnessName === harness);
     });
 
-    const hasFilters = Boolean(term || creator || harness);
-    elements.creatorFilter.classList.toggle("active", Boolean(creator));
+    const hasFilters = Boolean(term || vendor || harness);
+    elements.vendorFilter.classList.toggle("active", Boolean(vendor));
     elements.harnessFilter.classList.toggle("active", Boolean(harness));
     elements.clearFilters.hidden = !hasFilters;
     elements.filterCount.textContent = entries.length
       ? `${state.filteredEntries.length} of ${entries.length}`
       : "No entries yet";
     renderList();
+  }
+
+  function filtersActive() {
+    return Boolean(
+      elements.search.value.trim()
+      || elements.vendorFilter.value
+      || elements.harnessFilter.value
+    );
   }
 
   function renderList() {
@@ -278,100 +331,130 @@
       return;
     }
 
-    for (const [creator, models] of groupEntries(state.filteredEntries)) {
+    let modelIndex = 0;
+    for (const { vendor, models } of sidebarSections(state.filteredEntries)) {
       const section = document.createElement("section");
       section.className = "model-group";
-      const heading = document.createElement("h2");
-      heading.className = "group-label";
-      const vendorButton = document.createElement("button");
-      vendorButton.type = "button";
-      vendorButton.className = "vendor-button";
-      vendorButton.textContent = creator;
-      vendorButton.title = `Open the first ${creator} result`;
-      vendorButton.addEventListener("click", () => {
-        const firstEntry = entriesInModelOrder(models)[0];
-        if (firstEntry) chooseSingleEntry(firstEntry);
-      });
-      heading.append(vendorButton);
-      section.append(heading);
-
-      let modelIndex = 0;
-      for (const [model, modelRuns] of [...models].sort(compareModels)) {
-        const modelSection = document.createElement("section");
-        modelSection.className = "model-family";
-        const modelHeading = document.createElement("h3");
-        modelHeading.className = "model-family-label";
-        const modelKey = `${creator}\u0000${model}`;
-        const effortsId = `efforts-${slugify(creator)}-${slugify(model)}-${modelIndex++}`;
-        const filtersActive = Boolean(
-          elements.search.value.trim()
-          || elements.creatorFilter.value
-          || elements.harnessFilter.value
-        );
-        const expanded = expandedModels.has(modelKey) || filtersActive;
-        const toggle = document.createElement("button");
-        toggle.type = "button";
-        toggle.className = "model-family-toggle";
-        toggle.setAttribute("aria-controls", effortsId);
-        toggle.setAttribute("aria-expanded", String(expanded));
-        const chevron = document.createElement("span");
-        chevron.className = "model-family-chevron";
-        chevron.setAttribute("aria-hidden", "true");
-        chevron.textContent = "›";
-        const label = document.createElement("span");
-        label.textContent = model;
-        toggle.append(chevron, label);
-        modelHeading.append(toggle);
-
-        const efforts = document.createElement("div");
-        efforts.className = "effort-list";
-        efforts.id = effortsId;
-        efforts.hidden = !expanded;
-
-        for (const entry of [...modelRuns].sort(compareEffort)) {
-          efforts.append(createModelButton(entry));
-        }
-        toggle.addEventListener("click", () => {
-          const nextExpanded = !expandedModels.has(modelKey);
-          if (nextExpanded) expandedModels.add(modelKey);
-          else expandedModels.delete(modelKey);
-          toggle.setAttribute("aria-expanded", String(nextExpanded));
-          efforts.hidden = !nextExpanded;
-        });
-        modelSection.append(modelHeading, efforts);
-        section.append(modelSection);
+      if (vendor) {
+        const heading = document.createElement("h2");
+        heading.className = "group-label";
+        const vendorButton = document.createElement("button");
+        vendorButton.type = "button";
+        vendorButton.className = "vendor-button";
+        vendorButton.textContent = vendor;
+        vendorButton.title = `Open the newest ${vendor} result`;
+        vendorButton.addEventListener("click", () => chooseSingleEntry(models[0].runs[0]));
+        heading.append(vendorButton);
+        section.append(heading);
+      }
+      for (const model of models) {
+        section.append(createModelFamily(model, !vendor, modelIndex++));
       }
       elements.list.append(section);
     }
   }
 
-  function groupEntries(list) {
-    const groups = new Map();
-    for (const entry of list) {
-      const creator = entry.creator || "Other";
-      const model = entry.name || "Unknown model";
-      if (!groups.has(creator)) groups.set(creator, new Map());
-      const models = groups.get(creator);
-      if (!models.has(model)) models.set(model, []);
-      models.get(model).push(entry);
+  function createModelFamily(model, showVendor, index) {
+    const modelSection = document.createElement("section");
+    modelSection.className = `model-family${showVendor ? " flat" : ""}`;
+    const modelHeading = document.createElement("h3");
+    modelHeading.className = "model-family-label";
+    const effortsId = `efforts-${slugify(model.vendor)}-${slugify(model.name)}-${index}`;
+    const expanded = expandedModels.has(model.key) || filtersActive();
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "model-family-toggle";
+    toggle.setAttribute("aria-controls", effortsId);
+    toggle.setAttribute("aria-expanded", String(expanded));
+    const chevron = document.createElement("span");
+    chevron.className = "model-family-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "›";
+
+    const copy = document.createElement("span");
+    copy.className = "model-family-copy";
+    const nameRow = document.createElement("span");
+    nameRow.className = "model-family-name";
+    nameRow.textContent = model.name;
+    if (Date.now() - model.addedAt < newModelWindowMs) {
+      const chip = document.createElement("span");
+      chip.className = "new-chip";
+      chip.textContent = "New";
+      nameRow.append(chip);
     }
-    return groups;
+    copy.append(nameRow);
+    if (showVendor) {
+      const meta = document.createElement("span");
+      meta.className = "model-family-meta";
+      meta.textContent = [model.vendor, formatAddedAt(model.addedAt)].filter(Boolean).join(" · ");
+      copy.append(meta);
+    }
+    if (Number.isFinite(model.addedAt)) {
+      toggle.title = `Added ${new Date(model.addedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}`;
+    }
+    toggle.append(chevron, copy);
+    modelHeading.append(toggle);
+
+    const efforts = document.createElement("div");
+    efforts.className = "effort-list";
+    efforts.id = effortsId;
+    efforts.hidden = !expanded;
+    for (const entry of model.runs) {
+      efforts.append(createModelButton(entry));
+    }
+    toggle.addEventListener("click", () => {
+      const nextExpanded = !expandedModels.has(model.key);
+      if (nextExpanded) expandedModels.add(model.key);
+      else expandedModels.delete(model.key);
+      toggle.setAttribute("aria-expanded", String(nextExpanded));
+      efforts.hidden = !nextExpanded;
+    });
+    modelSection.append(modelHeading, efforts);
+    return modelSection;
+  }
+
+  function formatAddedAt(timestamp) {
+    if (!Number.isFinite(timestamp)) return "";
+    const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+    const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+    if (days < 30) return format.format(-days, "day");
+    if (days < 365) return format.format(-Math.floor(days / 30), "month");
+    return format.format(-Math.floor(days / 365), "year");
+  }
+
+  // Models newest first, each with its runs from highest to lowest effort.
+  function modelsInOrder(list) {
+    const models = new Map();
+    for (const entry of list) {
+      const key = modelKey(entry);
+      if (!models.has(key)) {
+        models.set(key, { key, vendor: entry.vendor, name: entry.name, addedAt: -Infinity, runs: [] });
+      }
+      const model = models.get(key);
+      if (entry.addedAt > model.addedAt) model.addedAt = entry.addedAt;
+      model.runs.push(entry);
+    }
+    for (const model of models.values()) model.runs.sort(compareEffort);
+    return [...models.values()].sort((a, b) => (
+      a.addedAt === b.addedAt ? a.name.localeCompare(b.name) : b.addedAt - a.addedAt
+    ));
+  }
+
+  // The sidebar's sections: one flat list when sorting by newest, otherwise one
+  // per vendor, with vendors ordered by their newest model.
+  function sidebarSections(list) {
+    const models = modelsInOrder(list);
+    if (state.sort === "newest") return [{ vendor: null, models }];
+    const sections = new Map();
+    for (const model of models) {
+      if (!sections.has(model.vendor)) sections.set(model.vendor, { vendor: model.vendor, models: [] });
+      sections.get(model.vendor).models.push(model);
+    }
+    return [...sections.values()];
   }
 
   function entriesInSidebarOrder(list = state.filteredEntries) {
-    const ordered = [];
-    for (const [, models] of groupEntries(list)) {
-      ordered.push(...entriesInModelOrder(models));
-    }
-    return ordered;
-  }
-
-  function entriesInModelOrder(models) {
-    const ordered = [];
-    for (const [, modelRuns] of [...models].sort(compareModels)) {
-      ordered.push(...[...modelRuns].sort(compareEffort));
-    }
-    return ordered;
+    return sidebarSections(list).flatMap(({ models }) => models.flatMap((model) => model.runs));
   }
 
   function compareEffort(a, b) {
@@ -381,15 +464,6 @@
       return index === -1 ? effortOrder.length : index;
     };
     return rank(a) - rank(b) || String(a.badge || "").localeCompare(String(b.badge || ""));
-  }
-
-  function compareModels([nameA, runsA], [nameB, runsB]) {
-    const latest = runs => Math.max(...runs.map(entry => {
-      const timestamp = Date.parse(entry.run.timing?.completedAt || entry.run.timing?.startedAt);
-      return Number.isFinite(timestamp) ? timestamp : -Infinity;
-    }));
-    const a = latest(runsA), b = latest(runsB);
-    return a === b ? nameA.localeCompare(nameB) : a > b ? -1 : 1;
   }
 
   function slugify(value) {
@@ -423,7 +497,7 @@
 
     const harness = document.createElement("span");
     harness.className = "model-harness";
-    harness.textContent = entry.harness;
+    harness.textContent = entry.harnessName;
     copy.append(nameRow, harness);
 
     const score = document.createElement("span");
@@ -495,7 +569,7 @@
     elements.gridMode.setAttribute("aria-pressed", String(mode === "grid"));
 
     if (mode === "grid" && !state.selectedIds.size) {
-      entries.slice(0, 4).forEach((entry) => state.selectedIds.add(entry.id));
+      entriesInSidebarOrder(entries).slice(0, 4).forEach((entry) => state.selectedIds.add(entry.id));
     }
     render();
   }
@@ -1002,15 +1076,17 @@
   function bindEvents() {
     bindSwipeNavigation();
     elements.search.addEventListener("input", applyFilters);
-    elements.creatorFilter.addEventListener("change", applyFilters);
+    elements.vendorFilter.addEventListener("change", applyFilters);
     elements.harnessFilter.addEventListener("change", applyFilters);
     elements.clearFilters.addEventListener("click", () => {
       elements.search.value = "";
-      elements.creatorFilter.value = "";
+      elements.vendorFilter.value = "";
       elements.harnessFilter.value = "";
       applyFilters();
       elements.search.focus();
     });
+    elements.sortNewest.addEventListener("click", () => setSort("newest"));
+    elements.sortVendor.addEventListener("click", () => setSort("vendor"));
     elements.singleMode.addEventListener("click", () => setMode("single"));
     elements.gridMode.addEventListener("click", () => setMode("grid"));
     elements.previous.addEventListener("click", () => move(-1));
@@ -1068,6 +1144,7 @@
 
   async function init() {
     bindEvents();
+    syncSortControls();
     setWelcome("Loading the kitchen…", "Reading the benchmark registry.", false);
     elements.previous.hidden = true;
     elements.next.hidden = true;
@@ -1078,9 +1155,9 @@
       const initialEntry = hashEntry || entriesInSidebarOrder(entries)[0] || null;
       state.activeId = initialEntry?.id || null;
       expandEntryModel(initialEntry);
-      state.selectedIds = new Set(entries.slice(0, 4).map((entry) => entry.id));
-      populateSelect(elements.creatorFilter, uniqueValues("creator"));
-      populateSelect(elements.harnessFilter, uniqueValues("harness"));
+      state.selectedIds = new Set(entriesInSidebarOrder(entries).slice(0, 4).map((entry) => entry.id));
+      populateSelect(elements.vendorFilter, uniqueValues("vendor"));
+      populateSelect(elements.harnessFilter, uniqueValues("harnessName"));
       buildFrames();
       applyFilters();
       renderViewer();
