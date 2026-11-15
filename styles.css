@@ -299,21 +299,52 @@ select:focus-visible {
 }
 
 .filter-meta {
-  min-height: 18px;
+  min-height: 22px;
   display: flex;
-  align-items: end;
-  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
   color: var(--muted);
   font-size: 9px;
 }
 
-.filter-meta button {
-  padding: 4px 0 0 8px;
+#clear-filters {
+  padding: 0;
   color: var(--accent-bright);
   background: none;
   border: 0;
   cursor: pointer;
   font-size: 9px;
+}
+
+.sort-switch {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  padding: 2px;
+  background: #0e0b09;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.sort-switch button {
+  padding: 3px 7px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.sort-switch button:hover {
+  color: var(--text);
+}
+
+.sort-switch button.active {
+  color: #ffd1a6;
+  background: var(--accent-soft);
 }
 
 .model-list {
@@ -386,6 +417,43 @@ select:focus-visible {
   letter-spacing: 0.01em;
   text-align: left;
   cursor: pointer;
+}
+
+.model-family.flat .model-family-toggle {
+  padding-left: 16px;
+}
+
+.model-family-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-family-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-family-meta {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.new-chip {
+  padding: 1px 5px;
+  color: #1a1009;
+  background: var(--accent);
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .model-family-toggle:hover {
