@@ -142,6 +142,10 @@
       "reward": 1,
       "violations": []
     },
+    "openai/gpt-6.2-astra/max": {
+      "reward": 1,
+      "violations": []
+    },
     "openai/gpt-6.2-astra/xhigh": {
       "reward": 1,
       "violations": []

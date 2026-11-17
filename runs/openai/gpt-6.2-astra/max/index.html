@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151615">
+  <link rel="icon" href="data:,">
+  <title>Vegan Ramen</title>
+  <style>
+    :root { color-scheme: dark; background: #131515; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    main {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      height: 100svh;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        radial-gradient(ellipse at 40% 62%, rgba(100, 57, 31, .25), transparent 49%),
+        radial-gradient(ellipse at 50% 52%, #352a22 0%, #24211e 33%, #1b1c1a 60%, #111515 100%);
+    }
+    main::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 51% 34%, rgba(159, 109, 62, .055), transparent 48%);
+      pointer-events: none;
+    }
+    #scene, #vapor-layer {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(125vw, 134vh);
+      width: min(125vw, 134svh);
+      height: auto;
+      overflow: visible;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #vapor-layer { will-change: transform; }
+    #grain {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: .20;
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+    .glimmer { animation: glimmer 7s ease-in-out infinite alternate; }
+    .glimmer.late { animation-delay: -4s; animation-duration: 9s; }
+    @keyframes glimmer { from { opacity: .40; } to { opacity: .86; } }
+    @media (prefers-reduced-motion: reduce) {
+      .glimmer { animation: none; opacity: .65; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <svg id="scene" viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="art-title art-description" stroke-linecap="round" stroke-linejoin="round">
+    <title id="art-title">A steaming bowl of vegan ramen</title>
+    <desc id="art-description">Golden noodles in amber broth with bok choy, shiitake mushrooms, seared tofu, radishes, and scallions. Steam curls above a vermilion bowl painted with overlapping waves.</desc>
+    <defs>
+      <radialGradient id="lamplight">
+        <stop stop-color="#c1874b" stop-opacity=".29"/>
+        <stop offset=".37" stop-color="#a36f3f" stop-opacity=".19"/>
+        <stop offset=".73" stop-color="#8c6039" stop-opacity=".075"/>
+        <stop offset="1" stop-color="#795235" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="cast-shadow">
+        <stop stop-color="#0b0909" stop-opacity=".95"/>
+        <stop offset=".46" stop-color="#100c0b" stop-opacity=".82"/>
+        <stop offset=".75" stop-color="#18120f" stop-opacity=".44"/>
+        <stop offset="1" stop-color="#1b1512" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="contact-shadow">
+        <stop stop-color="#080808" stop-opacity=".97"/>
+        <stop offset=".52" stop-color="#0b0908" stop-opacity=".91"/>
+        <stop offset="1" stop-color="#120e0c" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="foot-glaze" x1="0" x2="1" y1=".2" y2=".4" gradientUnits="objectBoundingBox">
+        <stop stop-color="#4e2724"/><stop offset=".2" stop-color="#a74934"/>
+        <stop offset=".47" stop-color="#7b3029"/><stop offset=".78" stop-color="#442423"/><stop offset="1" stop-color="#291c1e"/>
+      </linearGradient>
+      <linearGradient id="clay" x1=".01" y1=".33" x2=".99" y2=".57" gradientUnits="objectBoundingBox">
+        <stop stop-color="#934934"/><stop offset=".12" stop-color="#bc5439"/>
+        <stop offset=".30" stop-color="#c05c3f"/><stop offset=".51" stop-color="#a34332"/>
+        <stop offset=".72" stop-color="#78322d"/><stop offset=".91" stop-color="#4d2929"/>
+        <stop offset="1" stop-color="#372626"/>
+      </linearGradient>
+      <linearGradient id="clay-depth" x1="0" y1="0" x2=".12" y2="1" gradientUnits="objectBoundingBox">
+        <stop offset=".12" stop-color="#431e20" stop-opacity=".11"/>
+        <stop offset=".52" stop-color="#b95841" stop-opacity="0"/>
+        <stop offset=".85" stop-color="#502526" stop-opacity=".23"/>
+        <stop offset="1" stop-color="#321e21" stop-opacity=".70"/>
+      </linearGradient>
+      <linearGradient id="wave-ink" x1="163" x2="826" y1="510" y2="510" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#cc885a"/><stop offset=".18" stop-color="#f1b77c"/>
+        <stop offset=".40" stop-color="#f5c68e"/><stop offset=".65" stop-color="#d59665"/>
+        <stop offset=".85" stop-color="#a4674a"/><stop offset="1" stop-color="#734c3d"/>
+      </linearGradient>
+      <linearGradient id="rim" x1="0" y1="0" x2=".90" y2=".85" gradientUnits="objectBoundingBox">
+        <stop stop-color="#dab68a"/><stop offset=".17" stop-color="#f5dbaf"/>
+        <stop offset=".38" stop-color="#efcd9d"/><stop offset=".64" stop-color="#d6ac7e"/>
+        <stop offset=".89" stop-color="#be8d64"/><stop offset="1" stop-color="#986646"/>
+      </linearGradient>
+      <linearGradient id="inside" x1=".28" y1="0" x2=".54" y2=".97" gradientUnits="objectBoundingBox">
+        <stop stop-color="#856144"/><stop offset=".12" stop-color="#b18c68"/>
+        <stop offset=".40" stop-color="#dbc099"/><stop offset=".74" stop-color="#eed1a3"/>
+        <stop offset="1" stop-color="#f5dfb3"/>
+      </linearGradient>
+      <radialGradient id="broth" cx=".40" cy=".48" r=".80">
+        <stop stop-color="#eba23d"/><stop offset=".36" stop-color="#d88a2e"/>
+        <stop offset=".68" stop-color="#bc7126"/><stop offset=".89" stop-color="#a25722"/>
+        <stop offset="1" stop-color="#793e20"/>
+      </radialGradient>
+      <linearGradient id="oil" x1="0" y1="0" x2=".48" y2="1" gradientUnits="objectBoundingBox">
+        <stop stop-color="#9d4820"/><stop offset=".36" stop-color="#bb6022"/>
+        <stop offset=".84" stop-color="#df882c"/><stop offset="1" stop-color="#edb252"/>
+      </linearGradient>
+      <linearGradient id="kelp" x1="0" y1="0" x2="1" y2=".84" gradientUnits="objectBoundingBox">
+        <stop stop-color="#56614a"/><stop offset=".22" stop-color="#354636"/>
+        <stop offset=".6" stop-color="#2a3930"/><stop offset="1" stop-color="#1e2c27"/>
+      </linearGradient>
+      <linearGradient id="leaf-green" x1=".04" y1="0" x2=".86" y2=".91" gradientUnits="objectBoundingBox">
+        <stop stop-color="#8a9d50"/><stop offset=".20" stop-color="#70894b"/>
+        <stop offset=".50" stop-color="#497547"/><stop offset=".81" stop-color="#365e3b"/><stop offset="1" stop-color="#304e32"/>
+      </linearGradient>
+      <linearGradient id="leaf-deep" x1="0" y1="0" x2=".90" y2=".90" gradientUnits="objectBoundingBox">
+        <stop stop-color="#758a4d"/><stop offset=".28" stop-color="#4b754a"/>
+        <stop offset=".64" stop-color="#366747"/><stop offset="1" stop-color="#274a38"/>
+      </linearGradient>
+      <linearGradient id="stem-green" x1=".05" y1=".25" x2=".85" y2=".70" gradientUnits="objectBoundingBox">
+        <stop stop-color="#83a363"/><stop offset=".28" stop-color="#b2c481"/>
+        <stop offset=".51" stop-color="#d6d89b"/><stop offset=".72" stop-color="#c4cf86"/>
+        <stop offset="1" stop-color="#8da461"/>
+      </linearGradient>
+      <radialGradient id="cap-brown" cx=".34" cy=".20" r=".90">
+        <stop stop-color="#b47c48"/><stop offset=".28" stop-color="#9b6238"/>
+        <stop offset=".57" stop-color="#804b2f"/><stop offset=".81" stop-color="#603822"/><stop offset="1" stop-color="#432a21"/>
+      </radialGradient>
+      <linearGradient id="cut-flesh" x1="0" y1="0" x2=".24" y2="1" gradientUnits="objectBoundingBox">
+        <stop stop-color="#ebd1a4"/><stop offset=".53" stop-color="#dfbe8c"/><stop offset="1" stop-color="#bc966e"/>
+      </linearGradient>
+      <linearGradient id="tofu-top" x1="0" y1="0" x2=".9" y2=".9" gradientUnits="objectBoundingBox">
+        <stop stop-color="#fff1c7"/><stop offset=".38" stop-color="#efd7a4"/><stop offset=".78" stop-color="#e6bc7c"/><stop offset="1" stop-color="#c79154"/>
+      </linearGradient>
+      <linearGradient id="tofu-front" x1=".1" y1="0" x2=".7" y2="1" gradientUnits="objectBoundingBox">
+        <stop stop-color="#e3ba7f"/><stop offset=".5" stop-color="#d7aa70"/><stop offset="1" stop-color="#af7744"/>
+      </linearGradient>
+      <linearGradient id="tofu-side" x1=".25" y1="0" x2=".8" y2="1" gradientUnits="objectBoundingBox">
+        <stop stop-color="#c48d51"/><stop offset=".57" stop-color="#b37c43"/><stop offset="1" stop-color="#925e33"/>
+      </linearGradient>
+      <radialGradient id="radish" cx=".44" cy=".55" r=".62">
+        <stop stop-color="#edd6ab"/><stop offset=".45" stop-color="#f5dfbd"/>
+        <stop offset=".75" stop-color="#f0c9ae"/><stop offset=".94" stop-color="#dfa298"/><stop offset="1" stop-color="#cd7c7a"/>
+      </radialGradient>
+      <linearGradient id="kernel" x1=".18" y1="0" x2=".85" y2="1" gradientUnits="objectBoundingBox">
+        <stop stop-color="#ffdb75"/><stop offset=".46" stop-color="#f1b744"/><stop offset="1" stop-color="#d8922b"/>
+      </linearGradient>
+      <linearGradient id="steam-color" x1="0" y1="1" x2=".03" y2="0" gradientUnits="objectBoundingBox">
+        <stop stop-color="#e8cba3" stop-opacity="0"/>
+        <stop offset=".14" stop-color="#e9d4b6" stop-opacity=".36"/>
+        <stop offset=".41" stop-color="#f1e0c8" stop-opacity=".64"/>
+        <stop offset=".66" stop-color="#ecdcc5" stop-opacity=".45"/>
+        <stop offset=".85" stop-color="#d7c9b9" stop-opacity=".27"/>
+        <stop offset="1" stop-color="#d7cec1" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="mist-edge" x="-45%" y="-18%" width="190%" height="136%">
+        <feGaussianBlur stdDeviation="1.1"/>
+      </filter>
+      <filter id="food-contact" x="-20%" y="-24%" width="144%" height="155%">
+        <feDropShadow dx=".8" dy="2.3" stdDeviation="1.55" flood-color="#694422" flood-opacity=".62"/>
+      </filter>
+      <filter id="mist-soft" x="-50%" y="-20%" width="200%" height="140%">
+        <feGaussianBlur stdDeviation="2.8"/>
+      </filter>
+      <filter id="mist-diffuse" x="-65%" y="-24%" width="230%" height="148%">
+        <feGaussianBlur stdDeviation="7"/>
+      </filter>
+      <filter id="small-shadow" x="-35%" y="-65%" width="180%" height="240%">
+        <feGaussianBlur stdDeviation="2.7"/>
+      </filter>
+
+      <path id="vessel-form" d="M150 401 C151 457 188 531 241 577 C309 640 403 665 498 666 C607 666 697 631 763 573 C815 523 846 456 850 401Z"/>
+      <clipPath id="vessel-clip"><use href="#vessel-form"/></clipPath>
+      <clipPath id="soup-clip"><ellipse cx="500" cy="408" rx="333" ry="113"/></clipPath>
+      <clipPath id="band-clip"><path id="band-boundary"/></clipPath>
+      <path id="nori-shape"/>
+      <clipPath id="nori-clip"><use href="#nori-shape"/></clipPath>
+      <path id="leaf-shape" d="M-3 2C-12-2-13-15-19-25C-25-37-40-33-43-45C-45-50-41-55-47-61C-56-67-54-74-50-78C-44-85-55-91-50-99C-47-104-42-105-43-114C-44-123-38-128-31-127C-24-125-26-141-16-142C-8-141-9-149-1-151C9-155 11-145 17-144C25-147 31-139 30-131C29-124 39-125 41-118C45-111 39-107 43-100C49-94 46-88 42-83C38-77 45-74 41-65C37-57 31-61 28-54C23-48 31-42 23-34C16-28 12-20 11-12C10-3 4 4-3 2Z"/>
+      <clipPath id="leaf-clip"><use href="#leaf-shape"/></clipPath>
+      <g id="bok-leaf">
+        <use href="#leaf-shape" fill="var(--leaf-paint, url(#leaf-green))" stroke="#384e30" stroke-width="1.5"/>
+        <g clip-path="url(#leaf-clip)">
+          <path d="M-1-148C-20-137-12-118-35-111C-46-108-43-94-50-88C-28-95-19-105-10-118C-16-96-31-82-49-76C-37-72-23-83-14-90C-17-74-35-63-43-62C-32-59-22-64-13-73C-12-63-19-50-28-46C-21-44-10-51-5-57Z" fill="#a3ad60" opacity=".33"/>
+          <path d="M3-145C9-130 7-112 1-97C19-109 17-119 17-132C25-115 14-96 7-88C22-91 35-106 39-114C40-94 21-82 9-78C21-81 34-88 44-92C41-76 20-68 11-62C26-65 31-71 39-73C37-57 19-51 6-44Z" fill="#213f32" opacity=".42"/>
+          <g id="leaf-grain"/>
+          <g fill="none" stroke="#a2b275" stroke-width="1.25" opacity=".88">
+            <path d="M-3-119Q-16-127-17-138M-5-105Q-24-110-30-125M-5-92Q-29-94-42-112M-5-78Q-32-80-45-94M-4-63Q-25-61-46-76M-3-52Q-26-49-38-59"/>
+            <path d="M-3-116Q10-125 15-140M-4-101Q13-106 26-129M-4-85Q18-91 34-111M-4-70Q17-73 35-94M-2-56Q15-55 32-73"/>
+          </g>
+          <g fill="none" stroke="#344e34" stroke-width=".85" opacity=".85">
+            <path d="M-16-124Q-25-126-25-131M-24-110Q-31-110-38-118M-27-97Q-35-96-41-101M-29-82Q-37-81-45-85M-24-64Q-33-64-40-68M14-112Q15-121 14-125M22-98Q26-99 32-105M20-78Q29-79 34-84"/>
+          </g>
+          <path d="M-19-31C-21-39-19-45-24-53C-16-48-11-43-8-42C-7-56-10-74-8-93C-6-110-5-126-1-138C-2-113-1-88 0-75C2-61 4-50 5-47C12-54 18-55 22-66C21-53 14-41 13-30C11-19 19-6 9 1C-1 8-13 3-15-7Z" fill="url(#stem-green)"/>
+          <path d="M-6-107C-9-75-3-57-4-37S-9-13-2-2M-18-42C-12-28-15-16-8-8M14-42C5-32 9-17 6-8" fill="none" stroke="#eff0bb" stroke-width="1.5" opacity=".68"/>
+          <path d="M-13-35C-6-22-11-14-6-5M0-67C5-45-2-29 2-17" fill="none" stroke="#839c63" stroke-width="1.1"/>
+          <path d="M-49-93Q-51-97-46-101M-43-116Q-42-125-36-125M-22-135Q-20-142-16-141M-5-148Q0-152 4-150M22-141L26-137" fill="none" stroke="#beC681" stroke-width="1.6" opacity=".75"/>
+        </g>
+      </g>
+
+      <path id="cap-shape" d="M-70 6C-72-8-62-26-49-36C-34-46-15-50 4-49C25-49 43-40 55-29C65-20 71-7 70 5C69 17 58 26 40 32C23 39-3 41-24 37C-45 34-66 23-70 10Z"/>
+      <clipPath id="cap-clip"><use href="#cap-shape"/></clipPath>
+      <g id="shiitake">
+        <path d="M-65 7C-66 30-40 44-11 47C18 51 53 40 64 22L67 5Z" fill="url(#cut-flesh)" stroke="#583b28" stroke-width="1.6"/>
+        <g id="cap-gills" fill="none"/>
+        <use href="#cap-shape" fill="url(#cap-brown)" stroke="#513626" stroke-width="1.8"/>
+        <g clip-path="url(#cap-clip)">
+          <g id="cap-texture"/>
+          <path d="M-72 3C-57 19-47 23-34 25C-25 29-12 31-1 30C23 32 59 24 71 3L75 23C41 61-51 59-73 20Z" fill="#473123" opacity=".42"/>
+          <path d="M-60-16C-53-31-35-41-22-42M-16-44L-8-45M-63 3Q-64-4-59-11M45 25L51 22M-39 24L-33 26" fill="none" stroke="#d1aa76" stroke-width="1.6" opacity=".70"/>
+          <path d="M-32-36C-21-33-10-26-1-20C3-27 10-36 17-42C14-32 10-24 8-17C23-18 38-18 52-15C38-12 23-9 11-9C20 1 25 12 28 21C17 14 5 3-1-4C-10 5-23 15-33 19C-29 11-20-1-13-9C-26-11-40-13-52-18C-37-19-24-19-12-17C-19-25-27-31-32-36Z" fill="#593c2a" opacity=".84" transform="translate(.3 1.7)"/>
+          <path d="M-32-36C-21-33-10-26-1-20C3-27 10-36 17-42C14-32 10-24 8-17C23-18 38-18 52-15C38-12 23-9 11-9C20 1 25 12 28 21C17 14 5 3-1-4C-10 5-23 15-33 19C-29 11-20-1-13-9C-26-11-40-13-52-18C-37-19-24-19-12-17C-19-25-27-31-32-36Z" fill="url(#cut-flesh)" stroke="#785439" stroke-width=".7"/>
+          <path d="M-32-36L1-13L17-42L8-17L2-12L52-15L11-9L3-10L28 21L-1-4L-1-10L-33 19L-13-9L-5-12L-52-18L-12-17Z" fill="#ba966c" opacity=".77"/>
+          <path d="M-25-32L-10-22M12-34L5-21M-39-17L-24-15M18-13L35-14M-25 12L-15 2M14 5L21 13" stroke="#f4ddb1" stroke-width="1.25" fill="none"/>
+        </g>
+      </g>
+
+      <path id="tofu-lid" d="M-41-15Q-42-17-38-18L-3-32Q0-33 4-32L41-17Q45-15 41-12L5 5Q2 7-2 5Z"/>
+      <path id="tofu-left" d="M-41-16L2 4L3 35Q1 37-3 35L-38 18Q-41 17-41 14Z"/>
+      <path id="tofu-right" d="M2 4L44-15L42 13Q42 16 39 18L3 35Z"/>
+      <clipPath id="tofu-top-clip"><use href="#tofu-lid"/></clipPath>
+      <clipPath id="tofu-left-clip"><use href="#tofu-left"/></clipPath>
+      <clipPath id="tofu-right-clip"><use href="#tofu-right"/></clipPath>
+      <g id="tofu">
+        <use href="#tofu-left" fill="url(#tofu-front)" stroke="#9a693e" stroke-width="1.3"/>
+        <use href="#tofu-right" fill="url(#tofu-side)" stroke="#8e623d" stroke-width="1.25"/>
+        <g id="tofu-side-grain"/>
+        <use href="#tofu-lid" fill="url(#tofu-top)" stroke="#c08d53" stroke-width="1"/>
+        <g clip-path="url(#tofu-top-clip)">
+          <path d="M-43-15Q-41-22-31-20C-33-17-20-19-23-17C-25-14-17-15-14-12C-18-10-25-11-27-12L-26-10ZM-2-33Q12-34 20-26C13-28 14-24 7-24C7-27 1-25-3-26L-11-28ZM14-10Q20-12 20-10Q24-9 30-14L39-14L38-8L14 4L6 0Q8-3 15-3C17-4 10-5 14-7Z" fill="#bd8143" opacity=".78"/>
+          <g id="tofu-top-grain"/>
+        </g>
+        <path d="M-40 9C-28 17-17 20-8 25L2 29L3 35C-9 32-25 22-38 18Q-41 17-40 9Z" fill="#a47440" opacity=".37"/>
+        <path d="M3 29C16 25 32 15 42 11L41 16L3 35Z" fill="#90602e" opacity=".43"/>
+        <path d="M-38-17L-10-28M-39-14L-27-9M-22-7L-7 .3M5 4L20-3M-38-11L-38-4" stroke="#fff0c0" stroke-width="1.6" opacity=".88" fill="none"/>
+        <path d="M3 9L3 21M-34 18L-24 23M10 30L18 26" stroke="#f4cb86" stroke-width="1.3" fill="none"/>
+      </g>
+
+      <g id="radish-slice">
+        <path d="M-37 1C-38-12-20-22 0-22C20-23 39-15 40-2C42 11 23 23 2 24C-19 26-36 17-37 5Z" fill="#a65056" stroke="#8e4547" stroke-width="1"/>
+        <path d="M-37-1C-37-15-17-23 2-23C23-24 39-14 39-3C39 9 23 19 1 21C-19 22-36 13-37 1Z" fill="url(#radish)" stroke="#d58386" stroke-width="2.6"/>
+        <g id="radish-fibres"/>
+        <path d="M-33-7Q-23-20-4-20M4-21L12-20" stroke="#ffe7ca" stroke-width="1.4" fill="none"/>
+      </g>
+      <g id="corn">
+        <path d="M-8-5Q-6-10 0-9Q8-10 10-4L9 3Q9 9 3 10L-4 9Q-10 7-9 3Z" fill="url(#kernel)" stroke="#be872f" stroke-width=".9"/>
+        <path d="M-6-4Q-4-7 1-7M-7-1L-7 2" fill="none" stroke="#ffe397" stroke-width="1.5"/>
+        <path d="M7 3Q6 8 2 8" fill="none" stroke="#c68a30" stroke-width=".9"/>
+      </g>
+      <g id="onion-ring">
+        <path d="M-12 1C-13-4-9-8-2-9C6-10 12-7 13-3L13 1C14 6 8 10 1 11C-6 12-12 9-12 4ZM-7 1C-6 4-1 5 3 4C8 3 10 0 8-2C5-5-1-4-4-3Q-8-1-7 1Z" fill="var(--onion-side, #4b7140)" fill-rule="evenodd"/>
+        <path d="M-12 .3C-13-4.6-8-8.4-1.7-9.2C5.5-10.3 12-7.4 12.8-3C13.8 1.4 8.3 5.8 1.3 7.2C-5.5 8.8-11.2 6.2-12 .3ZM-7 0C-7 3-2 4.3 2.3 3.5C7 2.6 9.5-.3 8-2.4C6-5.3 1-5-3.5-3.7Q-7.5-2-7 0Z" fill="var(--onion-top, #a9ba73)" fill-rule="evenodd" stroke="#587340" stroke-width=".65"/>
+        <path d="M-10-2Q-8-6-3-7M3-8Q7-8 9-6M-5 5Q-2 6 1 5" fill="none" stroke="#dae0a5" stroke-width="1.15"/>
+      </g>
+      <g id="chili-ring">
+        <path d="M-13-1C-12-6-5-9 2-8C9-8 14-4 13 1C11 7 3 10-4 9C-10 9-15 5-13-1ZM-8 0C-9 3-6 5-1 5C4 5 9 3 9 0C9-3 4-5 0-4Q-6-4-8 0Z" fill="#ad4331" fill-rule="evenodd" stroke="#913e29" stroke-width="1"/>
+        <path d="M-11-2Q-8-7 0-7M4-6Q9-6 11-2M-6 6L-2 7" stroke="#eb8760" stroke-width="1.5" fill="none"/>
+      </g>
+      <g id="sesame">
+        <path d="M-3.2 .1C-2.5-1.5 .2-2.1 2.2-1.5C4.2-.9 3.5.7 1.7 1.3C-.2 2-3.2 1.6-3.2 .1Z" fill="#685133" opacity=".57" transform="translate(.5 1)"/>
+        <path d="M-3.2 .1C-2.5-1.5 .2-2.1 2.2-1.5C4.2-.9 3.5.7 1.7 1.3C-.2 2-3.2 1.6-3.2 .1Z" fill="var(--seed, #ead5a4)"/>
+        <path d="M-1.7-.4Q-.4-1.2 1-1.1" stroke="#f5e8bf" stroke-width=".6" opacity=".85" fill="none"/>
+      </g>
+    </defs>
+
+    <g id="ground" aria-hidden="true">
+      <ellipse cx="431" cy="670" rx="580" ry="125" fill="url(#lamplight)" transform="rotate(-4 431 670)"/>
+      <g id="table-grain"/>
+      <ellipse cx="563" cy="678" rx="338" ry="46" fill="url(#cast-shadow)" transform="rotate(3 563 678)"/>
+      <ellipse cx="510" cy="681" rx="188" ry="21" fill="url(#contact-shadow)"/>
+    </g>
+    <g id="air-dust" aria-hidden="true"/>
+    <g id="still-life">
+      <g id="vessel">
+        <path d="M389 632C433 650 563 653 612 632L610 669C605 681 564 691 504 691C445 691 397 683 390 670Z" fill="url(#foot-glaze)" stroke="#372825" stroke-width="2"/>
+        <path d="M391 663C420 685 569 691 609 662M397 674C443 694 564 693 602 675" fill="none" stroke="#c18d62" stroke-width="1.7" opacity=".76"/>
+        <path d="M414 680Q446 687 473 687" fill="none" stroke="#e1b17c" stroke-width="1.3" opacity=".71"/>
+        <use href="#vessel-form" fill="url(#clay)" stroke="#372728" stroke-width="2.3"/>
+        <use href="#vessel-form" fill="url(#clay-depth)"/>
+        <g clip-path="url(#vessel-clip)">
+          <g id="glaze-marks"/>
+          <g id="ceramic-paint"/>
+          <g id="pot-grain"/>
+        </g>
+        <ellipse cx="500" cy="403" rx="351" ry="134" fill="#a15f43" stroke="#54392e" stroke-width="2"/>
+        <ellipse cx="500" cy="399" rx="351" ry="134" fill="url(#rim)" stroke="#d3ae81" stroke-width="1.5"/>
+        <ellipse cx="500" cy="399" rx="341" ry="126" fill="url(#inside)" stroke="#b58d68" stroke-width="1.7"/>
+        <path d="M165 387C180 326 319 277 483 274M187 361Q211 334 253 316" fill="none" stroke="#f8e0b8" stroke-width="1.6" opacity=".83"/>
+        <path d="M167 402C170 338 320 282 492 281C637 279 757 315 808 349" fill="none" stroke="#8e644c" stroke-width="2.1" opacity=".51"/>
+        <path d="M172 392C192 337 327 289 481 288" fill="none" stroke="#edcca5" stroke-width="2" opacity=".64"/>
+      </g>
+
+      <g clip-path="url(#soup-clip)">
+        <ellipse cx="500" cy="408" rx="333" ry="113" fill="url(#broth)"/>
+        <path d="M166 412C177 348 303 300 470 298S791 329 831 398" fill="none" stroke="#764321" stroke-width="6" opacity=".64"/>
+        <g id="broth-swirls"/>
+        <g id="broth-oil"/>
+        <g id="noodle-bed" fill="none"/>
+        <g id="water-reaction" fill="none"/>
+      </g>
+
+      <g id="toppings">
+        <path d="M215 374C239 354 281 360 313 359C354 329 397 333 408 358C421 386 378 414 349 418C301 423 240 412 215 393Z" fill="#5e632e" opacity=".4" filter="url(#small-shadow)"/>
+        <g transform="translate(422 239) rotate(-11)">
+          <use href="#nori-shape" fill="url(#kelp)" stroke="#303b2d" stroke-width="2"/>
+          <g id="nori-fibres" clip-path="url(#nori-clip)"/>
+        </g>
+        <g id="greens">
+          <use href="#bok-leaf" transform="translate(356 390) rotate(-56) scale(.93 .99)" style="--leaf-paint:url(#leaf-deep)"/>
+          <use href="#bok-leaf" transform="translate(366 386) rotate(-27) scale(.92 1.05)"/>
+          <use href="#bok-leaf" transform="translate(371 386) rotate(13) scale(.82 .89)" style="--leaf-paint:url(#leaf-deep)"/>
+          <use href="#bok-leaf" transform="translate(365 397) rotate(-69) scale(.79 .96)"/>
+          <use href="#bok-leaf" transform="translate(374 401) rotate(-28) scale(.78 .89)"/>
+          <g fill="url(#stem-green)" stroke="#869b62" stroke-width=".85">
+            <path d="M302 372C324 374 338 383 352 384C360 384 368 381 376 387C383 392 379 400 372 402C360 407 351 400 341 395C327 387 316 377 302 372Z"/>
+            <path d="M332 346C340 360 351 375 365 381C376 386 385 382 387 390C390 399 382 405 374 404C362 403 355 391 350 381C345 369 338 356 332 346Z"/>
+            <path d="M377 346C372 361 365 375 369 386C372 395 379 402 386 400C396 397 394 388 388 381C379 370 376 360 377 346Z"/>
+          </g>
+          <g fill="none" stroke="#edf0ba" opacity=".68">
+            <path d="M323 381C344 387 353 399 366 400M343 365C353 380 357 388 370 395M373 365C370 377 372 386 379 391" stroke-width="1.7"/>
+            <path d="M348 376Q362 398 374 398M333 384L347 393M380 376Q389 389 386 394" stroke-width=".86"/>
+          </g>
+          <g id="leaf-dew"/>
+        </g>
+        <g id="corn-pile" filter="url(#food-contact)"/>
+        <g id="mushrooms" filter="url(#food-contact)">
+          <path d="M555 323C572 299 656 299 684 316C713 327 701 346 678 356C645 371 580 371 554 351Z" fill="#764c28" opacity=".56" filter="url(#small-shadow)"/>
+          <use href="#shiitake" transform="translate(614 308) rotate(-12) scale(1.06 1.04)"/>
+          <g transform="translate(716 335) rotate(19) scale(.84)">
+            <path d="M-64 1C-62-19-39-39-14-43C16-49 51-36 62-12C73 8 61 23 41 29C4 40-46 29-64 9Z" fill="url(#cap-brown)" stroke="#543b28" stroke-width="1.8"/>
+            <path d="M-62 4C-56-4-39-7-18-7C8-9 42-6 60 3C64 6 64 12 59 17C49 30 29 37 2 37C-27 37-52 26-61 13Q-65 8-62 4Z" fill="url(#cut-flesh)" stroke="#755034" stroke-width="1.35"/>
+            <g id="slice-gills" fill="none"/>
+            <path d="M-10 12C-8 22-6 29-8 39C-10 44-7 48 1 50C9 52 16 49 17 45C18 35 10 25 13 16Q3 10-10 12Z" fill="url(#cut-flesh)" stroke="#9c7b57" stroke-width="1.2"/>
+            <path d="M-5 22Q-1 32-4 41M0 20Q6 33 5 44M10 29L13 43" fill="none" stroke="#b59569" stroke-width="1.15"/>
+            <path d="M-61 3C-43-14 33-16 62 2M-54-13Q-48-24-33-31M-24-36L-18-38" fill="none" stroke="#c49a67" stroke-width="1.6"/>
+            <g id="slice-freckles"/>
+          </g>
+        </g>
+        <g id="tofu-pile" filter="url(#food-contact)">
+          <path d="M642 376C665 354 759 351 782 381C798 406 754 447 707 451C670 454 637 418 642 376Z" fill="#8f5728" opacity=".61" filter="url(#small-shadow)"/>
+          <use href="#tofu" transform="translate(678 380) rotate(-14) scale(.94)"/>
+          <use href="#tofu" transform="translate(755 378) rotate(9) scale(.77 .83)"/>
+          <use href="#tofu" transform="translate(721 415) rotate(-5) scale(.92 .85)"/>
+        </g>
+        <g id="radishes" filter="url(#food-contact)">
+          <path d="M554 446C561 424 622 402 654 411C681 421 659 448 623 465C592 479 550 467 554 446Z" fill="#9a552e" opacity=".56" filter="url(#small-shadow)"/>
+          <use href="#radish-slice" transform="translate(625 420) rotate(-32) scale(.98 .80)"/>
+          <use href="#radish-slice" transform="translate(611 434) rotate(-20) scale(1.04 .86)"/>
+          <use href="#radish-slice" transform="translate(593 448) rotate(-9) scale(1.04 .78)"/>
+        </g>
+        <g id="alliums"/>
+        <g id="chili-threads" fill="none"/>
+        <g id="seasoning"/>
+      </g>
+
+      <g fill="none">
+        <path d="M154 411C170 473 311 528 485 531C642 535 783 496 834 446" stroke="#f1cd99" stroke-width="1.8" opacity=".88"/>
+        <path d="M173 432C198 472 269 502 343 517M363 521Q397 528 430 529" stroke="#fbe0b3" stroke-width="2.3"/>
+        <path d="M169 418C188 465 283 504 397 517" stroke="#f4d298" stroke-width="1.5" opacity=".86"/>
+        <path d="M492 522C579 525 674 508 729 488" stroke="#fff0be" stroke-width="1.5" opacity=".70"/>
+      </g>
+    </g>
+  </svg>
+  <svg id="vapor-layer" viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <g id="steam" fill="url(#steam-color)"></g>
+  </svg>
+  <svg id="grain" width="100%" height="100%" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="paper-filter" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency=".83" numOctaves="3" stitchTiles="stitch"/>
+        <feColorMatrix type="saturate" values="0"/>
+      </filter>
+      <pattern id="paper" width="160" height="160" patternUnits="userSpaceOnUse">
+        <rect width="160" height="160" filter="url(#paper-filter)" opacity=".88"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#paper)"/>
+  </svg>
+</main>
+<script>
+(() => {
+  "use strict";
+  const ns = "http://www.w3.org/2000/svg";
+  const id = name => document.getElementById(name);
+  const scene = id("scene");
+  const tau = Math.PI * 2;
+  const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+  const round = value => Math.round(value * 100) / 100;
+  const coord = point => point.map(round).join(" ");
+  const line = points => points.length ? "M" + points.map(coord).join("L") : "";
+  const curve = points => {
+    if (!points.length) return "";
+    let d = "M" + coord(points[0]);
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[Math.max(0, i - 1)], b = points[i];
+      const c = points[i + 1], e = points[Math.min(points.length - 1, i + 2)];
+      d += "C" + coord([b[0] + (c[0] - a[0]) / 6, b[1] + (c[1] - a[1]) / 6]) + " ";
+      d += coord([c[0] - (e[0] - b[0]) / 6, c[1] - (e[1] - b[1]) / 6]) + " " + coord(c);
+    }
+    return d;
+  };
+  function add(tag, attributes, parent) {
+    const node = document.createElementNS(ns, tag);
+    for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+    parent.appendChild(node);
+    return node;
+  }
+  function path(parent, d, attributes = {}) {
+    return add("path", { d, ...attributes }, parent);
+  }
+  function use(parent, name, transform, attributes = {}) {
+    return add("use", { href: "#" + name, transform, ...attributes }, parent);
+  }
+  function ellipse(parent, x, y, rx, ry, attributes) {
+    return add("ellipse", { cx: round(x), cy: round(y), rx: round(rx), ry: round(ry), ...attributes }, parent);
+  }
+  function pose(x, y, angle, sx, sy = sx) {
+    return "translate(" + round(x) + " " + round(y) + ") rotate(" + round(angle) + ") scale(" + round(sx) + " " + round(sy) + ")";
+  }
+
+  // The print grain and the ingredients keep the same arrangement on every visit.
+  let seed = 0x5939c2e1;
+  function random() {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+  const between = (lo, hi) => lo + random() * (hi - lo);
+  const choose = array => array[Math.floor(random() * array.length)];
+  function fleck(x, y, w, h, lean = 0) {
+    const outline = [[-.50,.02],[-.28,-.44],[.14,-.53],[.52,-.18],[.36,.29],[-.14,.49]];
+    return line(outline.map(([u, v]) => [x + u * w + v * lean, y + v * h + between(-.09,.09) * h])) + "Z";
+  }
+
+  function drawSurroundings() {
+    const floor = id("table-grain");
+    const lights = [], darks = [];
+    for (let i = 0; i < 430; i++) {
+      const a = between(0, tau), r = Math.sqrt(random());
+      const x = 488 + Math.cos(a) * r * 494, y = 673 + Math.sin(a) * r * 64;
+      const width = between(1.4, 24) * (1.12 - r * .62);
+      const dy = between(-.58,.32);
+      (i % 3 ? darks : lights).push("M" + coord([x,y]) + "q" + coord([width * .43,dy-.24]) + " " + coord([width,dy]));
+    }
+    path(floor, lights.join(""), { fill: "none", stroke: "#bd8d61", "stroke-width": ".58", opacity: ".20" });
+    path(floor, darks.join(""), { fill: "none", stroke: "#140e0b", "stroke-width": ".72", opacity: ".29" });
+    const air = id("air-dust");
+    for (let i = 0; i < 42; i++) {
+      const x = between(91, 918), y = between(92, 595), r = between(.42, 1.35);
+      ellipse(air, x, y, r, r * between(.68,1.2), { fill: choose(["#c89e6b","#bfa17f","#c28c51"]), opacity: round(between(.12,.46)) });
+    }
+  }
+
+  // Project the painted arcs onto the same curved wall that defines the silhouette.
+  const tilt = 134 / 350;
+  const radius = v => 350 - 22 * v - 209 * v * v;
+  const edge = v => Math.acos(tilt * (22 + 418 * v) / 219);
+  function porcelain(angle, v) {
+    const r = radius(v);
+    return [500 + Math.sin(angle) * r, 401 + v * 219 + Math.cos(angle) * r * tilt];
+  }
+  function parallel(v, from = -edge(v), to = edge(v)) {
+    return Array.from({length: 100}, (_, i) => porcelain(from + (to - from) * i / 99, v));
+  }
+  function drawVessel() {
+    const left = [], right = [];
+    for (let i = 0; i <= 64; i++) {
+      const v = i / 64;
+      left.push(porcelain(-edge(v), v));
+      right.unshift(porcelain(edge(v), v));
+    }
+    id("vessel-form").setAttribute("d", line([[150,401], ...left, ...parallel(1), ...right, [850,401]]) + "Z");
+    const bands = id("ceramic-paint");
+    const bandStart = .17, bandEnd = .697;
+    const bandSides = Array.from({length:32}, (_,i) => bandStart + (bandEnd-bandStart)*i/31);
+    const band = line([...parallel(bandStart), ...bandSides.map(v=>porcelain(edge(v),v)),
+      ...parallel(bandEnd).reverse(), ...bandSides.reverse().map(v=>porcelain(-edge(v),v))]) + "Z";
+    id("band-boundary").setAttribute("d", band);
+    path(bands, band, {fill: "#632e2b", opacity: ".18"});
+    const waves = add("g", {"clip-path": "url(#band-clip)", fill:"none", stroke:"url(#wave-ink)"}, bands);
+    const uv = (x, y) => porcelain(x / 310, bandStart + (bandEnd - bandStart) * y / 79);
+    const fullRadius = 38, rise = .79, spacing = 19.5;
+    const arcs = [[], [], []];
+    for (let row = 0; row < 7; row++) {
+      const cy = row * spacing - 6;
+      for (let col = -8; col <= 8; col++) {
+        const cx = (col * 2 + (row % 2)) * fullRadius;
+        for (const [ring, r] of [5.3,11.9,18.5,25.1,31.6,37.7].entries()) {
+          let points = [];
+          for (let j = 0; j <= 66; j++) {
+            const angle = j / 66 * Math.PI;
+            const x = cx + r * Math.cos(angle), y = cy - r * rise * Math.sin(angle);
+            const v = bandStart + (bandEnd - bandStart) * y / 79;
+            const dx = (Math.abs(x - cx) - fullRadius) / fullRadius;
+            const dy = (y - cy - spacing) / (fullRadius * rise);
+            const visible = y >= -.5 && y <= 79.5 && Math.abs(x / 310) <= edge(clamp(v,0,1)) && dx * dx + dy * dy > 1.008;
+            if (visible) {
+              points.push(uv(x, y));
+            } else if (points.length) {
+              arcs[ring % 3].push(line(points));
+              points = [];
+            }
+          }
+          if (points.length) arcs[ring % 3].push(line(points));
+        }
+      }
+    }
+    arcs.forEach((segments, i) => path(waves, segments.join(""), {"stroke-width": [1.35,1.42,1.53][i], opacity: ".87"}));
+    for (const [v, w, opacity] of [[.050,2.6,.88],[.077,.95,.76],[.135,1.0,.67],[.158,1.9,.93],[.710,2.0,.92],[.741,1.0,.75],[.906,1.0,.49]]) {
+      path(bands, line(parallel(v)), {fill:"none", stroke:"url(#wave-ink)", "stroke-width":w, opacity});
+    }
+    const glaze = id("glaze-marks");
+    for (const [angle, width, from, to, opacity] of [[-.77,.18,.04,.94,.085],[-.98,.05,.10,.64,.10],[-.5,.13,.05,.99,.045],[.69,.30,.09,.97,.07]]) {
+      const sideA = [], sideB = [];
+      for (let j = 0; j <= 24; j++) {
+        const v = from + (to - from) * j / 24;
+        const w = width * Math.pow(Math.sin(Math.PI * j / 24), .7);
+        sideA.push(porcelain(angle - w, v));
+        sideB.unshift(porcelain(angle + w, v));
+      }
+      path(glaze, line([...sideA,...sideB]) + "Z", {fill: angle > 0 ? "#492325" : "#edb580", opacity});
+    }
+    const texture = [[],[],[],[]];
+    for (let i = 0; i < 1840; i++) {
+      const v = random(), limit = edge(v);
+      const [x,y] = porcelain(between(-limit,limit),v);
+      texture[i % 4].push(fleck(x,y,between(.45,2.1),between(.35,1.25),.24));
+    }
+    ["#efbf8e","#602d29","#f3cb8d","#53282a"].forEach((fill,i) => {
+      path(id("pot-grain"),texture[i].join(""),{fill,opacity:[.36,.39,.20,.24][i]});
+    });
+    for (let i = 0; i < 48; i++) {
+      const v = between(.8,.98), a = between(-edge(v),-.26);
+      path(id("pot-grain"), line(parallel(v,a,a+between(.01,.09))), {stroke:"#f0b180", "stroke-width":between(.35,.75), fill:"none", opacity:between(.17,.43)});
+    }
+  }
+
+  function drawNori() {
+    const corner = [[0,0],[142,-1],[151,103],[-6,106]], outline = [];
+    corner.forEach(([x,y], i) => {
+      const [ex,ey] = corner[(i+1)%4];
+      const length = Math.hypot(ex-x,ey-y), steps = Math.ceil(length/3.3);
+      for (let j = 0; j < steps; j++) {
+        const t = j/steps, wobble = between(-1.35,1.35) + Math.sin(t*17 + i)*.72;
+        outline.push([x+(ex-x)*t-(ey-y)/length*wobble, y+(ey-y)*t+(ex-x)/length*wobble]);
+      }
+    });
+    id("nori-shape").setAttribute("d",line(outline)+"Z");
+    const fibres = id("nori-fibres");
+    for(let i=0;i<24;i++) {
+      const x=between(-4,145),y=between(-9,89),w=between(3,12),h=between(17,41);
+      const ridge=[[x,y],[x+w*.2,y+h*.23],[x+w*.7,y+h*.36],[x+w*.46,y+h*.61],[x+w,y+h]];
+      path(fibres,line([...ridge,[x+w*.15,y+h*.59],[x+w*.24,y+h*.37]])+"Z",{fill:i%3?"#8b9880":"#142e26",opacity:between(.12,.24)});
+      path(fibres,line(ridge),{fill:"none",stroke:"#99a28b","stroke-width":.7,opacity:.37});
+    }
+    for (let i=0; i<44; i++) {
+      const x=between(-8,150), y=between(-3,106);
+      path(fibres,fleck(x,y,between(5,22),between(2,8),between(-5,8)),{fill:choose(["#789079","#596b52","#162c28","#243a32"]),opacity:between(.18,.43)});
+    }
+    const marks = [[],[],[],[],[]];
+    for (let i=0; i<1550; i++) {
+      const x=between(-8,153), y=between(-3,109), w=between(.2,4.0), h=between(-1.6,.7);
+      marks[i%5].push("M"+coord([x,y])+"l"+coord([w*.42,h-.28])+" "+coord([w*.58,h*.48]));
+    }
+    ["#b6b88c","#72856a","#192c25","#a8aa7e","#87947b"].forEach((stroke,i) => {
+      path(fibres, marks[i].join(""), {fill:"none", stroke, "stroke-width":i===2?1.15:.72, opacity:[.51,.66,.76,.4,.62][i]});
+    });
+    path(fibres,line(outline.slice(0,45)),{fill:"none",stroke:"#9caa83","stroke-width":2,opacity:.69});
+    const creases=[];
+    for(let i=0;i<29;i++) {
+      const x=between(0,148), y=between(1,102);
+      creases.push(curve([[x,y],[x+4,y-1.8],[x+7,y-1.2],[x+between(9,15),y-3.6]]));
+    }
+    path(fibres,creases.join(""),{fill:"none",stroke:"#9aa285", "stroke-width":.78,opacity:.59});
+  }
+
+  function drawVegetableTextures() {
+    const stipple = [[],[],[]];
+    for(let i=0;i<690;i++){
+      const x=between(-53,48), y=between(-151,3);
+      stipple[i%3].push(fleck(x,y,between(.6,2.1),between(.6,2.0),x*.026));
+    }
+    ["#c2c987","#213e2e","#b2bd72"].forEach((fill,i) => path(id("leaf-grain"),stipple[i].join(""),{fill,opacity:[.28,.36,.26][i]}));
+    const veins=[[],[]];
+    for(let row=0;row<6;row++) {
+      for(const side of [-1,1]) {
+        for(let j=0;j<5;j++){
+          const x=side*(8.5+j*5.6), y=-47-row*13.7-j*j*.53;
+          const length=between(5,11), reach=side*between(1.5,5.8);
+          veins[0].push(curve([[x,y],[x+reach*.25,y-length*.44],[x+reach,y-length]]));
+          veins[1].push(curve([[x+1,y-1],[x+reach*.25+1,y-length*.44],[x+reach+.7,y-length]]));
+        }
+      }
+    }
+    path(id("leaf-grain"),veins[0].join(""),{stroke:"#344f36","stroke-width":.85,fill:"none",opacity:.42});
+    path(id("leaf-grain"),veins[1].join(""),{stroke:"#b5c084","stroke-width":.6,fill:"none",opacity:.52});
+    const dew = id("leaf-dew");
+    [[291,289,2.6],[300,291,.95],[327,325,1.6],[263,350,2.0],[247,346,.95],[377,305,1.6],[328,347,2.1],[341,361,1.3]].forEach(([x,y,r]) => {
+      ellipse(dew,x,y+.7,r,r*.83,{fill:"#3c5939",opacity:.72});
+      ellipse(dew,x,y,r*.89,r*.68,{fill:"#a8bd7e",opacity:.89});
+      ellipse(dew,x-r*.24,y-r*.26,r*.36,r*.22,{fill:"#e3e3ab"});
+    });
+    const radish = id("radish-fibres");
+    for(let i=0;i<65;i++) {
+      const a = i/65*tau+between(-.03,.03), start=between(.17,.78), end=between(.78,.95);
+      const px = t => [Math.cos(a+.07*(1-t))*t*37, -1+Math.sin(a)*t*20.4];
+      path(radish,curve([px(start),px((start+end)*.5),px(end)]), {stroke:i%3?"#e4af9e":"#fff0cc","stroke-width":between(.42,1.15),fill:"none",opacity:between(.36,.82)});
+    }
+    const cornPile = id("corn-pile");
+    const kernels = [[-23,-15],[-7,-20],[10,-18],[28,-12],[45,-8],[-35,-6],[-17,-5],[1,-8],[19,-4],[35,0],[51,1],[-30,6],[-12,6],[6,4],[22,9],[38,12],[-21,15],[-4,15],[12,18],[27,20],[-10,26],[7,28]];
+    path(cornPile,"M389 342C398 325 421 318 449 324C482 324 498 340 490 356C481 374 450 385 421 377C402 374 388 359 389 342Z",{fill:"#926227",opacity:.68,filter:"url(#small-shadow)"});
+    kernels.forEach(([x,y]) => use(cornPile,"corn",pose(435+x,346+y,between(-50,45),between(.74,.99),between(.68,.88))));
+  }
+
+  function drawMushroomTextures() {
+    const engravings=[[],[],[],[]], chips=[[],[],[]];
+    for(let i=0;i<840;i++) {
+      const x=between(-71,71), y=between(-50,41);
+      const dx=between(.55,2.75), slope=clamp(x*.009+between(-.65,.65),-1,1);
+      engravings[i%4].push("M"+coord([x,y])+"q"+coord([dx*.5,-.45])+" "+coord([dx,dx*slope]));
+    }
+    ["#e1b681","#523526","#c99d6c","#623d2a"].forEach((stroke,i)=> {
+      path(id("cap-texture"),engravings[i].join(""),{fill:"none",stroke,"stroke-width":between(.55,.89),opacity:[.49,.56,.48,.67][i]});
+    });
+    for(let i=0;i<132;i++) {
+      const a=between(0,tau), r=between(.36,.99);
+      const x=68*r*Math.cos(a), y=-5+43*r*Math.sin(a);
+      chips[i%3].push(fleck(x,y,between(1,4.1),between(.5,2),between(-1,1.4)));
+    }
+    ["#cb9c66","#765033","#d7ad77"].forEach((fill,i)=>path(id("cap-texture"),chips[i].join(""),{fill,opacity:[.61,.70,.47][i]}));
+    const scales=[],edges=[];
+    for(let i=0;i<96;i++) {
+      const angle=between(0,tau),r=between(.58,.97),w=between(.028,.11);
+      const skin=(a,depth)=>[Math.cos(a)*68*depth,-5+Math.sin(a)*44*depth];
+      scales.push(curve([skin(angle-w,r-.018),skin(angle,r),skin(angle+w*.35,r-.017),skin(angle+w*.65,r-.046)]));
+      edges.push(curve([skin(angle-w*.86,r+.002),skin(angle,r+.015),skin(angle+w*.29,r-.002)]));
+    }
+    path(id("cap-texture"),scales.join(""),{stroke:"#5f3f2b",fill:"none","stroke-width":.94,opacity:.65});
+    path(id("cap-texture"),edges.join(""),{stroke:"#d2a272",fill:"none","stroke-width":.83,opacity:.66});
+    for(let x=-63;x<=63;x+=2.9) {
+      const y=6+41*Math.pow(1-Math.pow(x/69,2),.61);
+      path(id("cap-gills"), "M"+coord([x*.86,y-15])+"Q"+coord([x-1,y-6])+" "+coord([x,y-1]), {stroke:choose(["#94704d","#b69269","#e7cda1"]),"stroke-width":between(.7,1.6)});
+    }
+    const gills=id("slice-gills");
+    for(let i=0;i<53;i++) {
+      const a=i/53*tau, x=61*Math.cos(a), y=13+(Math.sin(a)>0?22:19)*Math.sin(a);
+      const start=between(.13,.29), cx=1+(x-1)*.53, cy=14+(y-14)*.64;
+      const d="M"+coord([2+(x-2)*start,16+(y-16)*start])+"Q"+coord([cx+(Math.sin(a)*4),cy-2.2])+" "+coord([x,y]);
+      path(gills,d,{stroke:i%4===0?"#ead1a7":"#9b7754","stroke-width":between(.7,1.55),opacity:between(.71,.92)});
+    }
+    const spots=[[],[]];
+    for(let i=0;i<420;i++) {
+      const x=between(-64,64), y=between(-43,-10);
+      if(x*x/3900+(y+3)*(y+3)/1640<.96 && y < -11 + x*x*.0015) spots[i%2].push(fleck(x,y,between(.6,2.6),between(.45,1.5),.3));
+    }
+    path(id("slice-freckles"),spots[0].join(""),{fill:"#d5aa75",opacity:.59});
+    path(id("slice-freckles"),spots[1].join(""),{fill:"#5c402d",opacity:.68});
+  }
+
+  function drawTofuTexture() {
+    const faces = id("tofu-side-grain");
+    for (const side of ["left","right"]) {
+      const face=add("g",{"clip-path":"url(#tofu-"+side+"-clip)"},faces);
+      const marks=[[],[],[]];
+      for(let i=0;i<270;i++) {
+        const x=between(side==="left"?-42:1,side==="left"?4:45),y=between(-17,36);
+        marks[i%3].push(fleck(x,y,between(.55,3.1),between(.45,1.65),between(-.6,.6)));
+      }
+      ["#865a35","#f7dca6","#b3804e"].forEach((fill,i)=>path(face,marks[i].join(""),{fill,opacity:[.57,.66,.66][i]}));
+      for(let i=0;i<16;i++){
+        const x=between(side==="left"?-39:4,side==="left"?1:42);
+        const y=between(-10,28), width=between(1,3),height=between(.7,1.6);
+        path(face,fleck(x,y+.9,width+.4,height+.15,.3),{fill:"#ecc48c",opacity:.85});
+        path(face,fleck(x,y,width,height,.4),{fill:"#987043",opacity:.91});
+      }
+    }
+    const top=id("tofu-top-grain"), browning=[[],[],[],[]];
+    for (const [cx,cy,r] of [[-27,-17,8],[-5,-27,10],[21,-8,9],[0,-12,5],[34,-15,6],[-9,-3,5],[15,-23,4]]) {
+      for(let n=0;n<43;n++) {
+        const a=between(0,tau), rr=r*Math.sqrt(random());
+        browning[n%4].push(fleck(cx+rr*Math.cos(a),cy+.47*rr*Math.sin(a),between(.65,3.2),between(.5,1.68),between(-.6,1.3)));
+      }
+    }
+    ["#ac7341","#c28e51","#d5a365","#a97440"].forEach((fill,i)=>path(top,browning[i].join(""),{fill,opacity:between(.60,.82)}));
+    const pinholes=[];
+    for(let i=0;i<75;i++) pinholes.push(fleck(between(-41,43),between(-31,6),between(.6,1.9),between(.35,1.05),.15));
+    path(top,pinholes.join(""),{fill:"#ab8558",opacity:.70});
+  }
+
+  function drawBroth() {
+    const swirls=id("broth-swirls"), oil=id("broth-oil");
+    for(let n=0;n<78;n++) {
+      const x=between(160,835), y=between(297,521), w=between(12,76);
+      const d=curve([[x,y],[x+w*.28,y+between(-3,3)],[x+w*.66,y+between(-4,4)],[x+w,y+between(-2,3)]]);
+      path(swirls,d,{fill:"none",stroke:choose(["#f3b754","#edac47","#975225","#ad5d24","#d88a31"]),"stroke-width":between(.7,4.6),opacity:between(.34,.72)});
+    }
+    const glints=add("g",{class:"glimmer"},oil);
+    for(let n=0;n<385;n++) {
+      const a=between(0,tau), r=Math.sqrt(random());
+      const x=500+333*r*Math.cos(a),y=408+113*r*Math.sin(a);
+      const size=random(),rx=size>.90?between(5,12):size>.49?between(2.2,4.7):between(.55,1.8),ry=rx*between(.34,.57);
+      ellipse(oil,x,y,rx,ry,{fill:size>.21?"url(#oil)":"#935021",opacity:between(.54,.88)});
+      if(size>.48) {
+        path(glints,"M"+coord([x-rx*.78,y-ry*.24])+"q"+coord([rx*.42,-ry*.96])+" "+coord([rx*1.04,-ry*.63]),{fill:"none",stroke:"#ffd78a","stroke-width":size>.88?1.05:.77});
+      }
+    }
+    // The oil separates into amber islands with a thin, broken line of reflected light.
+    const islands=add("g",{},oil);
+    const spark=add("g",{class:"glimmer late",fill:"none"},oil);
+    const pools=[[203,406,28,19],[245,447,42,19],[386,487,46,13],[551,491,61,15],
+      [706,457,56,23],[796,398,33,21],[571,339,37,13],[663,340,34,11]];
+    for(const [cx,cy,rx,ry] of pools) {
+      for(let i=0;i<24;i++) {
+        const a=between(0,tau), r=Math.sqrt(random());
+        const x=cx+rx*r*Math.cos(a), y=cy+ry*r*Math.sin(a);
+        const w=between(1.35,i<6?12.4:4.2), h=w*between(.36,.55), phase=between(0,tau);
+        const contour=[];
+        for(let j=0;j<=15;j++) {
+          const t=j/15*tau, uneven=1+.086*Math.sin(t*3+phase)+.058*Math.cos(t*5+phase);
+          contour.push([x+w*uneven*Math.cos(t),y+h*uneven*Math.sin(t)]);
+        }
+        path(islands,curve(contour)+"Z",{fill:choose(["#b95620","#bc5b1d","#d07620","#c16b25"]),stroke:"#de9036","stroke-width":.62,opacity:between(.65,.89)});
+        if(i%3!==0) {
+          path(spark,curve(contour.slice(8,13)),{stroke:i<6?"#f8cd79":"#ffe3a0","stroke-width":i<6?1.14:.82});
+        }
+      }
+    }
+    oil.append(glints,spark);
+    const meniscus=[];
+    for(let i=0;i<55;i++) {
+      const a=between(0,tau), span=between(.014,.125), inset=between(.955,.997);
+      const points=[];
+      for(let j=0;j<=8;j++) {
+        const angle=a+span*j/8;
+        points.push([500+332*inset*Math.cos(angle),408+112*inset*Math.sin(angle)]);
+      }
+      meniscus.push(line(points));
+    }
+    path(swirls,meniscus.join(""),{fill:"none",stroke:"#f4b955","stroke-width":1.5,opacity:.83});
+  }
+
+  // Each small bundle follows its own hand-drawn cubic. Offset strands separate and
+  // rejoin around the bends, with a darker submerged edge and broken highlights.
+  function sampleCubic(control) {
+    let [x,y]=control[0], distance=0;
+    const result=[];
+    for(let i=1;i<control.length;i++) {
+      const [ax,ay,bx,by,ex,ey]=control[i];
+      const steps=Math.ceil((Math.hypot(ax-x,ay-y)+Math.hypot(bx-ax,by-ay)+Math.hypot(ex-bx,ey-by))/3.6);
+      for(let j=i===1?0:1;j<=steps;j++) {
+        const t=j/steps,s=1-t;
+        const px=s*s*s*x+3*s*s*t*ax+3*s*t*t*bx+t*t*t*ex;
+        const py=s*s*s*y+3*s*s*t*ay+3*s*t*t*by+t*t*t*ey;
+        const dx=3*s*s*(ax-x)+6*s*t*(bx-ax)+3*t*t*(ex-bx);
+        const dy=3*s*s*(ay-y)+6*s*t*(by-ay)+3*t*t*(ey-by);
+        const length=Math.hypot(dx,dy)||1;
+        if(result.length) {
+          const previous=result[result.length-1];
+          distance+=Math.hypot(px-previous.x,py-previous.y);
+        }
+        result.push({x:px,y:py,nx:-dy/length,ny:dx/length,distance});
+      }
+      x=ex; y=ey;
+    }
+    return result;
+  }
+  const noodleCurves = [
+    [4,5.4, [[290,369],[333,342,377,373,411,352],[452,327,482,306,528,324],[564,337,574,358,608,349],[631,341,651,328,674,336]]],
+    [4,5.3, [[207,408],[221,383,244,366,277,371],[302,375,320,393,348,382],[365,376,372,360,388,353]]],
+    [4,5.9, [[388,349],[416,370,441,367,468,350],[493,335,531,331,551,349],[576,370,556,390,532,388],[509,387,507,367,486,363],[457,356,454,381,434,391],[415,401,394,392,375,399]]],
+    [3,5.4, [[550,352],[570,363,599,349,620,351],[649,353,664,366,686,363],[728,358,737,340,768,351],[786,358,781,376,802,387]]],
+    [4,5.6, [[252,376],[228,375,203,395,213,413],[222,432,255,430,275,414],[304,391,334,388,354,407],[372,427,392,436,413,424],[437,408,434,389,463,381],[491,371,507,381,534,376]]],
+    [4,5.8, [[316,390],[336,400,346,411,373,403],[401,394,423,370,449,380],[482,392,480,412,508,417],[541,423,551,392,578,384],[610,374,634,395,657,399],[676,402,695,394,712,384]]],
+    [3,5.9, [[200,417],[226,406,252,421,265,437],[287,464,321,463,345,447],[369,430,379,416,404,418],[436,420,444,440,473,438],[503,436,519,416,544,411]]],
+    [4,5.5, [[620,364],[655,358,683,370,676,389],[670,411,632,405,620,425],[606,445,628,457,651,448],[671,439,687,419,714,421],[737,422,746,438,767,433]]],
+    [4,5.7, [[266,439],[292,459,303,480,343,478],[381,476,395,448,429,447],[457,447,472,466,502,466],[538,465,546,438,572,431],[599,423,622,433,647,419]]],
+    [3,5.6, [[389,465],[422,458,446,472,465,483],[493,498,524,493,545,480],[569,467,582,448,610,446],[632,443,655,455,681,441]]],
+    [2,5.3, [[355,398],[377,403,396,403,410,394],[423,384,443,377,458,383],[477,391,470,410,452,416],[431,423,427,437,446,444],[462,450,483,443,494,429],[512,407,528,401,551,403],[566,404,579,409,593,407]]],
+    [2,5.2, [[250,425],[263,425,279,438,299,437],[322,436,330,421,353,424],[380,428,382,451,409,458],[427,463,443,459,460,451],[487,437,507,435,528,442],[549,450,557,454,578,448]]],
+    [2,4.9, [[292,402],[313,402,326,423,312,430],[298,437,282,425,294,416],[308,404,333,411,350,429],[367,450,392,451,407,435],[419,422,416,412,404,414],[389,416,393,432,412,434],[437,438,452,422,469,416]]],
+    [2,5.1, [[454,371],[476,360,503,365,515,380],[525,391,539,393,551,381],[563,369,548,354,533,360],[509,370,526,397,548,404],[575,416,588,400,606,398]]]
+  ];
+  function noodleOutline(points,widths,scale) {
+    const top=[],bottom=[];
+    for(let i=0;i<points.length;i++) {
+      const prev=points[Math.max(0,i-1)],next=points[Math.min(i+1,points.length-1)];
+      const dx=next[0]-prev[0],dy=next[1]-prev[1],len=Math.hypot(dx,dy)||1;
+      const w=widths[i]*scale/len, [x,y]=points[i];
+      top.push([x-dy*w,y+dx*w]);bottom.unshift([x+dy*w,y-dx*w]);
+    }
+    return line([...top,...bottom])+"Z";
+  }
+  function drawNoodles() {
+    const bed=id("noodle-bed");
+    const definitions=add("defs",{},bed);
+    let count=0;
+    for(const [number, strandWidth, control] of noodleCurves) {
+      const samples=sampleCubic(control), bundlePhase=between(0,tau);
+      for(let n=0;n<number;n++) {
+        const phase=between(0,tau), offset=(n-(number-1)/2)*(strandWidth+1.28);
+        const start=Math.floor(between(0,.065)*samples.length), end=samples.length-Math.floor(between(0,.07)*samples.length);
+        const points=samples.slice(start,end).map(p=>{
+          const fan=1+.18*Math.sin(p.distance/63+bundlePhase)+.12*Math.sin(p.distance/25+bundlePhase);
+          const shift=offset*fan+2.12*Math.sin(p.distance/24+phase)+.95*Math.sin(p.distance/9.2+phase);
+          return [p.x+p.nx*shift,p.y+p.ny*shift];
+        });
+        const name="strand-"+count++, width=strandWidth*between(.89,1.08);
+        const widths=points.map((p,i)=>{
+          const u=i/(points.length-1), taper=Math.min(1,.08+u*12,.08+(1-u)*13);
+          return width*.5*Math.sqrt(taper)*(.96+.085*Math.sin(u*16+phase)+.046*Math.cos(u*40+phase));
+        });
+        const first=points[0], endPoint=points[points.length-1], tone=choose(["#efca88","#edc98b","#f1cf93","#edc584"]);
+        const grad=add("linearGradient",{id:name,gradientUnits:"userSpaceOnUse",x1:first[0],y1:first[1],x2:endPoint[0],y2:endPoint[1]},definitions);
+        for(const [offset,color] of [[0,"#c58a41"],[.13,"#e0b46d"],[.32,tone],[.55,"#edc789"],[.74,tone],[.91,"#e3b370"],[1,"#c68c43"]]) {
+          add("stop",{offset,"stop-color":color},grad);
+        }
+        const outline=noodleOutline(points,widths,1);
+        path(bed,outline,{fill:"#976027",transform:"translate(.65 1.9)",stroke:"#965b26","stroke-width":1.2,opacity:.66});
+        path(bed,outline,{fill:"#bb8a48",stroke:"#b8813d","stroke-width":.55});
+        path(bed,noodleOutline(points,widths,.88),{fill:"url(#"+name+")",transform:"translate(-.18 -.42)"});
+        const lit=points.slice(Math.floor(points.length*.06),Math.ceil(points.length*.95));
+        path(bed,line(lit),{stroke:"#ffe6ad","stroke-width":round(width*.215),transform:"translate(-.24 -1.18)",opacity:between(.49,.74),
+          "stroke-dasharray":round(between(15,38))+" "+round(between(8,24))+" "+round(between(3,10))+" "+round(between(7,18)),"stroke-dashoffset":round(between(0,50))});
+      }
+    }
+  }
+
+  function drawGarnishes() {
+    const onions=id("alliums");
+    const rings=[
+      [396,372,19,.78],[409,381,-25,1.00],[428,377,8,.77],[446,385,-38,.68],[397,391,-14,.54],
+      [473,367,17,.85],[493,363,-25,.60],[477,383,-25,.49],[520,369,-32,.76],[543,376,24,.58],
+      [497,401,-23,1.03],[514,400,32,.74],[506,413,-13,.70],[486,414,7,.57],[532,397,17,.53],
+      [564,359,-14,.52],[580,368,10,.66],[654,360,-28,.69],[679,352,7,.48],
+      [277,407,-15,.65],[258,420,24,.77],[298,422,-17,.50],
+      [337,451,13,.78],[352,446,-37,.92],[345,461,-4,.49],
+      [419,464,-21,.68],[431,472,22,.46],[482,489,19,.69],[519,478,-18,.51],
+      [655,464,-27,.73],[675,459,9,.56],[695,446,-17,.63],[775,417,23,.62],
+      [206,397,-32,.55],[801,397,4,.49]
+    ];
+    const onionColors = [["#baca85","#688746"],["#8fac66","#50753d"],["#bbce8a","#648747"],["#a1bd70","#547e41"],["#ced599","#7e9851"]];
+    rings.forEach(([x,y,a,s])=>{
+      const [top,side]=choose(onionColors);
+      use(onions,"onion-ring",pose(x,y,a,s,s*between(.80,1.05)),{style:"--onion-top:"+top+";--onion-side:"+side});
+    });
+    const herbColors=["#557c47","#6d985b","#829f5b","#4e7747","#99b16b"];
+    for (const [cx,cy,r,n] of [[410,381,34,13],[519,390,27,14],[346,451,21,9],[644,365,24,8],[289,412,21,6],[673,450,22,6],[468,350,19,8]]) {
+      for(let i=0;i<n;i++) {
+        const a=between(0,tau), radial=r*Math.sqrt(random()), x=cx+radial*Math.cos(a),y=cy+.52*radial*Math.sin(a);
+        const w=between(3.2,9.5), h=between(1.7,4);
+        const chip=add("g",{transform:pose(x,y,between(-75,65),1)},onions);
+        path(chip,"M"+coord([-w/2,-h/2])+"q"+coord([w*.44,h*.30])+" "+coord([w,.11])+"l"+coord([-.6,h])+"q"+coord([-w*.63,h*.24])+" "+coord([-w+.34,-.35])+"Z",{fill:choose(herbColors),stroke:"#547344","stroke-width":.45});
+        path(chip,"M"+coord([-w*.28,-h*.3])+"l"+coord([w*.57,.22]),{stroke:"#c0cd8a","stroke-width":.64,opacity:.74});
+      }
+    }
+    [[366,416,17,.75],[527,435,-22,.71],[547,429,9,.48],[667,373,-21,.44],[284,454,19,.40],[652,477,13,.41]].forEach(([x,y,a,s])=>{
+      use(onions,"chili-ring",pose(x,y,a,s,s*.76));
+    });
+    const threads=id("chili-threads");
+    const threadLines=[
+      "M436 393C455 395 457 377 475 378C491 378 498 371 497 359",
+      "M448 397C463 391 463 373 481 370C490 368 494 363 496 357",
+      "M445 381C460 389 469 386 485 378C497 372 506 375 516 369",
+      "M452 367C465 366 465 383 480 388C491 392 506 388 520 394",
+      "M452 393C470 397 479 380 492 365C497 360 501 352 509 351",
+      "M463 402C476 395 468 380 478 367C485 359 492 360 497 350",
+      "M438 374C452 372 462 386 475 383C489 382 499 369 516 371",
+      "M456 399C467 398 483 390 491 378",
+      "M454 375C469 377 470 390 489 390C499 390 505 386 510 385"
+    ];
+    threadLines.forEach((d,i)=>{
+      path(threads,d,{stroke:"#91512e","stroke-width":i%3?1.75:2.25,transform:"translate(.6 1)",opacity:.52});
+      path(threads,d,{stroke:choose(["#a13e2c","#b34531","#be5137","#c25b3b"]),"stroke-width":i%3?1.15:1.65});
+    });
+    const seasoning=id("seasoning");
+    const seeds=[[436,390,79,30,26],[308,427,92,35,21],[526,459,91,27,18],[658,407,118,28,25],[603,312,41,22,8],[328,351,65,33,11],[461,336,52,15,9]];
+    for (const [cx,cy,rx,ry,n] of seeds) {
+      for(let i=0;i<n;i++) {
+        const a=between(0,tau),r=Math.sqrt(random()),x=cx+rx*r*Math.cos(a),y=cy+ry*r*Math.sin(a),s=between(.44,.94);
+        const toasted=random()<.24;
+        use(seasoning,"sesame",pose(x,y,between(-77,76),s,s*between(.83,1.12)),{style:"--seed:"+(toasted?choose(["#5b4832","#70573a","#9e774a"]):choose(["#f1dbaa","#e3c18b","#f3e0b1"]))});
+      }
+    }
+    const spice=[[],[],[]];
+    for(let i=0;i<250;i++){
+      const a=between(0,tau),r=Math.sqrt(random()),x=500+323*r*Math.cos(a),y=411+101*r*Math.sin(a);
+      spice[i%3].push(fleck(x,y,between(.55,2.3),between(.45,1.55),.6));
+    }
+    ["#6d5732","#a94824","#a35e30"].forEach((fill,i)=>path(seasoning,spice[i].join(""),{fill,opacity:.74}));
+  }
+
+  drawSurroundings();
+  drawVessel();
+  drawNori();
+  drawBroth();
+  drawNoodles();
+  drawVegetableTextures();
+  drawMushroomTextures();
+  drawTofuTexture();
+  drawGarnishes();
+
+  // The steam is a handful of translucent ribbons. Width, drift and the light
+  // catching each edge travel upwards at slightly different speeds.
+  const steam=id("steam");
+  const plumeData=[
+    { phase:.8, strength:.82, points:[[354,369],[352,342],[335,315],[310,290],[308,269],[321,253],[337,234],[339,213],[329,196],[309,182],[305,165],[314,149],[335,136]] },
+    { phase:3.1, strength:1, points:[[512,352],[516,325],[506,297],[487,271],[480,249],[490,231],[514,212],[535,191],[537,170],[522,153],[499,141],[482,125],[484,109],[500,98],[526,89],[552,78],[565,59]] },
+    { phase:5.3, strength:.72, points:[[641,359],[646,329],[642,297],[627,276],[620,257],[630,240],[654,230],[675,215],[682,197],[675,180],[654,167],[647,153],[650,140],[662,129]] }
+  ];
+  for (const plume of plumeData) {
+    const group=add("g",{opacity:plume.strength},steam);
+    plume.haze=path(group,"",{opacity:".25",filter:"url(#mist-diffuse)"});
+    plume.sheet=path(group,"",{opacity:".29",filter:"url(#mist-soft)"});
+    plume.fold=path(group,"",{opacity:".28",filter:"url(#mist-soft)"});
+    plume.edge=path(group,"",{opacity:".20",filter:"url(#mist-edge)"});
+    plume.filament=path(group,"",{opacity:".14",filter:"url(#mist-edge)"});
+  }
+  const reduced=window.matchMedia("(prefers-reduced-motion: reduce)");
+  const pointer={x:500,y:400,aimX:0,aimY:0,lean:0,lift:0,gust:0,active:false};
+  let time=0, last=0, frame=0, previousRipple=-1e5, lastRippleX=0, lastRippleY=0;
+  const ripples=[];
+  function ribbon(points,widths,offset,widthScale) {
+    const a=[],b=[];
+    for(let i=0;i<points.length;i++) {
+      const prev=points[Math.max(i-1,0)],next=points[Math.min(i+1,points.length-1)];
+      const dx=next[0]-prev[0],dy=next[1]-prev[1],len=Math.hypot(dx,dy)||1;
+      const nx=-dy/len,ny=dx/len,w=widths[i],left=w*(offset-widthScale),right=w*(offset+widthScale);
+      a.push([points[i][0]+nx*left,points[i][1]+ny*left]);
+      b.unshift([points[i][0]+nx*right,points[i][1]+ny*right]);
+    }
+    return curve(a)+curve(b).replace(/^M/,"L")+"Z";
+  }
+  function paintSteam(t) {
+    for(const plume of plumeData) {
+      const widths=[], points=plume.points.map(([x,y],i,list)=>{
+        const u=i/(list.length-1), envelope=Math.pow(Math.sin(u*Math.PI),.69);
+        const sway=(3.5+12*u)*Math.sin(t*.39-u*5.9+plume.phase)+(2+6*u)*Math.sin(t*.59-u*9.6+plume.phase*.6);
+        let draft=pointer.lean*(6+17*u)+pointer.gust*(3+9*u);
+        if(pointer.active) {
+          const dx=x-pointer.x,dy=y-pointer.y, influence=Math.exp(-(dx*dx+dy*dy)/14500);
+          draft+=Math.tanh(dx/39)*influence*14;
+        }
+        const twist=.46+.54*Math.pow(Math.sin(u*6.6-t*.37+plume.phase),2);
+        widths.push((1+13*envelope)*twist*(.88+.12*Math.cos(u*12.6-t*.49)));
+        return [x+(sway+draft)*Math.pow(u,.65),y+envelope*(4.4*Math.sin(t*.44-u*8+plume.phase)+pointer.lift*2.7)];
+      });
+      const fold=points.map(([x,y],i)=>{
+        const u=i/(points.length-1),spread=Math.sin(u*Math.PI);
+        const turn=u*11.4+plume.phase+.38*Math.sin(t*.31-u*4);
+        return [x+Math.sin(turn)*spread*(12+19*u),y+Math.cos(turn)*spread*10];
+      });
+      plume.haze.setAttribute("d",ribbon(points,widths,.24,2.25));
+      plume.sheet.setAttribute("d",ribbon(points,widths,0,1.16));
+      plume.fold.setAttribute("d",ribbon(fold,widths,-.05,.42));
+      plume.edge.setAttribute("d",ribbon(points,widths,-.85,.18));
+      plume.filament.setAttribute("d",ribbon(fold,widths,-.51,.10));
+    }
+  }
+
+  const art=id("still-life"), reaction=id("water-reaction");
+  function makeRipple(x,y) {
+    if(ripples.length>=3) ripples.shift().node.remove();
+    const node=add("g",{stroke:"#ffe3a1","stroke-width":1.05},reaction);
+    const outer=ellipse(node,0,0,1,1,{});
+    const inner=path(node,"",{stroke:"#f5c47b","stroke-width":.85});
+    node.setAttribute("transform","translate("+round(x)+" "+round(y)+")");
+    ripples.push({node,outer,inner,start:time});
+    previousRipple=performance.now(); lastRippleX=x; lastRippleY=y;
+  }
+  function paintRipples() {
+    for(let i=ripples.length-1;i>=0;i--) {
+      const r=ripples[i],progress=(time-r.start)/1.48;
+      if(progress>=1) { r.node.remove();ripples.splice(i,1);continue; }
+      const ease=1-(1-progress)*(1-progress),w=2+ease*31,h=w*.34;
+      r.outer.setAttribute("rx",round(w));r.outer.setAttribute("ry",round(h));
+      r.inner.setAttribute("d","M"+coord([-w*.72,0])+"a"+coord([w*.72,h*.72])+" 0 0 0 "+coord([w*.92,h*.68]));
+      r.node.setAttribute("opacity",round(.61*(1-progress)*Math.min(progress*11,1)));
+    }
+  }
+  function animate(stamp) {
+    if(reduced.matches||document.hidden) { setMotion();return; }
+    frame=requestAnimationFrame(animate);
+    if(!last) last=stamp;
+    const elapsed=(stamp-last)/1000;
+    if(elapsed<1/30) return;
+    const dt=Math.min(elapsed,.09);
+    last=stamp; time+=dt;
+    const ease=1-Math.exp(-dt*3.6);
+    pointer.lean+=(pointer.aimX-pointer.lean)*ease;
+    pointer.lift+=(pointer.aimY-pointer.lift)*ease;
+    pointer.gust*=Math.exp(-dt*2.5);
+    if(Math.abs(pointer.lean)+Math.abs(pointer.lift)>.003) {
+      const shift="translate("+round(pointer.lean*2.7)+" "+round(pointer.lift*1.25)+")";
+      if(art.getAttribute("transform")!==shift) {
+        art.setAttribute("transform",shift);steam.setAttribute("transform",shift);
+      }
+    } else if(art.hasAttribute("transform")) {
+      art.removeAttribute("transform");steam.removeAttribute("transform");
+    }
+    paintSteam(time);
+    if(ripples.length) paintRipples();
+  }
+  function setMotion() {
+    if(frame) cancelAnimationFrame(frame);
+    frame=0;last=0;
+    if(reduced.matches) {
+      Object.assign(pointer,{aimX:0,aimY:0,lean:0,lift:0,gust:0,active:false});
+      ripples.splice(0).forEach(r=>r.node.remove());
+      art.removeAttribute("transform");steam.removeAttribute("transform");time=0;paintSteam(0);
+    } else if(!document.hidden) {
+      paintSteam(time);frame=requestAnimationFrame(animate);
+    }
+  }
+  function trackPointer(event) {
+    if(reduced.matches) return;
+    const matrix=scene.getScreenCTM();
+    if(!matrix) return;
+    const point=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix.inverse());
+    if(pointer.active) pointer.gust=clamp(pointer.gust+(point.x-pointer.x)*.017,-1.4,1.4);
+    pointer.active=true;pointer.x=point.x;pointer.y=point.y;
+    pointer.aimX=clamp((point.x-500)/390,-1,1);pointer.aimY=clamp((point.y-400)/310,-1,1);
+    const inBroth=((point.x-500)/330)**2+((point.y-408)/112)**2<1;
+    if(inBroth&&performance.now()-previousRipple>490&&(event.type==="pointerdown"||Math.hypot(point.x-lastRippleX,point.y-lastRippleY)>16)) makeRipple(point.x,point.y);
+  }
+  function releasePointer() { pointer.active=false;pointer.aimX=0;pointer.aimY=0; }
+  window.addEventListener("pointermove",trackPointer,{passive:true});
+  window.addEventListener("pointerdown",trackPointer,{passive:true});
+  window.addEventListener("pointerup",event=>{if(event.pointerType!=="mouse") releasePointer();},{passive:true});
+  document.documentElement.addEventListener("pointerleave",releasePointer);
+  window.addEventListener("pointercancel",releasePointer);
+  window.addEventListener("blur",releasePointer);
+  document.addEventListener("visibilitychange",setMotion);
+  if(reduced.addEventListener) reduced.addEventListener("change",setMotion);
+  else reduced.addListener(setMotion);
+  setMotion();
+})();
+</script>
+</body>
+</html>

@@ -37,6 +37,7 @@
     "openai/gpt-6.2-sol/high/run.json",
     "openai/gpt-6.2-sol/medium/run.json",
     "openai/gpt-6.2-sol/low/run.json",
+    "openai/gpt-6.2-astra/max/run.json",
     "openai/gpt-6.2-astra/xhigh/run.json",
     "openai/gpt-6.2-astra/high/run.json",
     "openai/gpt-6.2-astra/medium/run.json",
