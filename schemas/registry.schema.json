@@ -21,6 +21,12 @@
         "type": "string",
         "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*/run\\.json$"
       }
+    },
+    "warnings": {
+      "description": "Viewer warnings by run ID; the site shows the warning and loads the bowl only after the viewer confirms.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
     }
   }
 }

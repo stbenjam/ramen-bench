@@ -780,6 +780,44 @@ select:focus-visible {
   border: 0;
 }
 
+.frame-warning {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
+  text-align: center;
+  background: var(--bg);
+}
+
+.frame-warning p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.frame-warning button {
+  padding: 8px 14px;
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.frame-warning button:hover,
+.frame-warning button:focus-visible {
+  border-color: var(--accent);
+}
+
 .frame-label {
   position: absolute;
   top: 12px;

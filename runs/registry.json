@@ -154,5 +154,8 @@
     "google/gemini-4-hydrogen": "2026-11-12T19:28:17.880212Z",
     "openai/gpt-6.2-astra": "2026-11-17T19:11:42.019836Z",
     "openai/gpt-6.2-sol": "2026-11-17T19:11:42.019914Z"
+  },
+  "warnings": {
+    "google/gemini-4-carbon/high": "This ramen has been reported to freeze or crash some browsers."
   }
 }

@@ -120,7 +120,11 @@
       if (!response.ok) throw new Error(`${path}: ${response.status}`);
       const run = await response.json();
       if (!isRun(run)) throw new Error(`${path}: invalid run manifest`);
-      return { ...normalizeRun(run, response.url, registry.modelAddedAt), check: checks[run.id] };
+      return {
+        ...normalizeRun(run, response.url, registry.modelAddedAt),
+        check: checks[run.id],
+        warning: registry.warnings?.[run.id],
+      };
     }));
 
     const failures = results.filter((result) => result.status === "rejected");
@@ -649,7 +653,8 @@
 
   async function loadFrameContent(iframe) {
     if (
-      iframe.hasAttribute("srcdoc")
+      iframe.dataset.warning
+      || iframe.hasAttribute("srcdoc")
       || iframe.hasAttribute("src")
       || frameLoads.has(iframe)
     ) {
@@ -706,6 +711,7 @@
     iframe.title = `${entry.name} ramen benchmark result`;
     iframe.loading = "lazy";
     iframe.sandbox = "allow-scripts allow-pointer-lock";
+    if (entry.warning) iframe.dataset.warning = entry.warning;
 
     const label = document.createElement("div");
     label.className = "frame-label";
@@ -747,7 +753,26 @@
     const ratingControl = createRatingControl(entry);
     label.append(heading, stats, transcript, ratingControl);
     frame.append(iframe, label);
+    if (entry.warning) frame.append(createWarning(iframe));
     return frame;
+  }
+
+  function createWarning(iframe) {
+    const warning = document.createElement("div");
+    warning.className = "frame-warning";
+    warning.setAttribute("role", "alert");
+    const message = document.createElement("p");
+    message.textContent = iframe.dataset.warning;
+    const load = document.createElement("button");
+    load.type = "button";
+    load.textContent = "Load anyway";
+    load.addEventListener("click", () => {
+      delete iframe.dataset.warning;
+      warning.remove();
+      loadFrameContent(iframe);
+    });
+    warning.append(message, load);
+    return warning;
   }
 
   function addStat(container, value, label, className = "") {
