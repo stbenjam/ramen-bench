@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vegan ramen</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#0b141b}main{height:100%;display:grid;place-items:center;isolation:isolate;background:radial-gradient(ellipse at 50% 58%,#242a2a 0%,#182228 32%,#0d171f 68%,#091119)}main:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.058;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' filter='url(%23n)' opacity='.8' d='M0 0h150v150H0z'/%3E%3C/svg%3E")}svg.scene{width:min(94vw,980px,123vh);overflow:visible}.wisp{transform-box:fill-box;transform-origin:50% 100%;animation:drift 7s ease-in-out infinite alternate}.wisp:nth-child(2n){animation-delay:-4s;animation-duration:9s}@keyframes drift{from{transform:skewX(-4deg) scaleY(.95);opacity:.52}to{transform:skewX(5deg) scaleY(1.07);opacity:.95}}@media(prefers-reduced-motion:reduce){.wisp{animation:none}}
+</style></head><body><main><svg class="scene" viewBox="0 0 900 660" role="img" aria-labelledby="dish"><title id="dish">Steaming vegan ramen with golden tofu, shiitake mushrooms, greens and scallions in a ribbed blue ceramic bowl</title><defs>
+<linearGradient id="ceramic" x2=".75" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#496879"/><stop offset=".38" stop-color="#314957"/><stop offset=".75" stop-color="#233642"/><stop offset="1" stop-color="#0e1d29"/></linearGradient>
+<radialGradient id="soup"><stop stop-color="#e79a40"/><stop offset=".7" stop-color="#ce722c"/><stop offset="1" stop-color="#994319"/></radialGradient>
+<linearGradient id="steam" x2=".12" y2="1"><stop stop-color="#d4bfa1" stop-opacity="0"/><stop offset=".45" stop-color="#cabca5" stop-opacity=".20"/><stop offset="1" stop-color="#e7c998" stop-opacity=".04"/></linearGradient>
+<linearGradient id="leaf" x2="1" y2=".6"><stop stop-color="#294c35"/><stop offset=".5" stop-color="#598148"/><stop offset="1" stop-color="#96a75d"/></linearGradient>
+<clipPath id="food"><ellipse cx="450" cy="349" rx="294" ry="99"/></clipPath>
+<clipPath id="pot"><path d="M147 348C158 437 216 517 344 548Q451 576 557 548C679 517 740 431 753 348Q455 529 147 348Z"/></clipPath>
+<filter id="blur"><feGaussianBlur stdDeviation="9"/></filter></defs>
+<ellipse cx="450" cy="564" rx="225" ry="16" fill="#04090d" opacity=".7" filter="url(#blur)"/>
+<g id="art"></g><g id="vapour" fill="url(#steam)"></g></svg></main><script>
+const ns='http://www.w3.org/2000/svg',art=document.querySelector('#art');
+function el(tag,a,parent=art){const e=document.createElementNS(ns,tag);for(const k in a)e.setAttribute(k,a[k]);parent.appendChild(e);return e}
+const path=(d,fill,parent=art,attrs={})=>el('path',{d,fill,...attrs},parent), oval=(x,y,rx,ry,fill,parent=art,a={})=>el('ellipse',{cx:x,cy:y,rx,ry,fill,...a},parent),group=(transform,parent=art)=>el('g',{transform},parent),line=(d,c,w,p)=>path(d,'none',p,{stroke:c,'stroke-width':w,'stroke-linecap':'round','stroke-linejoin':'round'});
+let seed=3241;function rand(){seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296}
+oval(451,545,104,22,'#15242d');oval(451,548,96,14,'#263943');
+path('M147 348C158 437 216 517 344 548Q451 576 557 548C679 517 740 431 753 348Z','url(#ceramic)');
+const glaze=el('g',{'clip-path':'url(#pot)'});
+for(let i=-26;i<=26;i++){let n=i/26,x=450+n*318;let d='M'+x+' 363 Q'+(450+n*298)+' 478 '+(450+n*170)+' 561';line(d,'#152833',3.2,glaze);line(d,'#60707a',1,el('g',{transform:'translate(3 0)',opacity:.62},glaze))}
+for(let i=0;i<2200;i++)oval(140+rand()*620,360+rand()*205,rand()*1.1+.2,.65,rand()<.5?'#84908c':'#091e2a',glaze,{opacity:rand()*.5});
+oval(450,349,305,109,'#162a36');oval(450,346,304,107,'#a87750');oval(450,344,302,106,'#c49d72');oval(450,344,298,102,'#384047');oval(450,349,294,98,'url(#soup)');
+const broth=el('g',{'clip-path':'url(#food)'});
+for(let i=0;i<920;i++){let x=150+rand()*600,y=249+rand()*200,r=rand()*2.3+.25;oval(x,y,r,r*.49,rand()<.5?'#f6b853':'#954724',broth,{opacity:.65})}
+function noodle(d){line(d,'#9e5529',7,broth);line(d,'#efbd65',4.8,broth);line(d,'#ffe0a0',1.15,el('g',{transform:'translate(0 -1)'},broth))}
+for(let i=0;i<14;i++){let y=313+i*6.8;noodle('M '+(183-i*2)+' '+y+' C 267 '+(y-37)+' 292 '+(y+41)+' 376 '+(y+12)+' S 454 '+(y-28)+' 501 '+(y-1)+' S 589 '+(y+27)+' 641 '+(y+5))}
+function nori(x,y,ang,s){let g=group('translate('+x+' '+y+') rotate('+ang+') scale('+s+')');let d='M-45 7l2-89 13 2 8-3 12 3 13-2 12 3 13-2 13 3-1 92Z';path(d,'#253e39',g,{stroke:'#55614a','stroke-width':2});for(let i=0;i<220;i++){let x=-40+rand()*79,y=-76+rand()*79;line('M'+x+' '+y+'l'+(rand()*6-2)+' -2',rand()<.5?'#475847':'#192f2e',1.3,g)}}
+nori(480,287,-11,.95);nori(530,283,9,1);
+function greens(x,y,ang,s){let g=group('translate('+x+' '+y+') rotate('+ang+') scale('+s+')');path('M0 0C-6-15-31-19-25-35C-42-46-31-59-30-63C-37-84-17-92-12-88C-3-106 12-95 14-89C36-91 37-74 33-69C48-56 33-41 30-39C34-23 14-17 7 0Z','url(#leaf)',g,{stroke:'#3b5b3c','stroke-width':2});for(let j=0;j<5;j++){let y=-19-j*13;line('M2 '+(y+8)+'Q-10 '+y+' -21 '+(y-12),'#829854',1.5,g);line('M3 '+(y+6)+'Q16 '+y+' 24 '+(y-10),'#849952',1.5,g)}path('M-4 4Q1-35-4-82Q8-53 8 1Z','#adc07a',g)}
+greens(311,315,-46,.95);greens(322,310,-18,1.08);greens(332,309,13,.81);
+function tofu(x,y,s,rot){let g=group('translate('+x+' '+y+') rotate('+rot+') scale('+s+')');path('M-34-12L2-30 40-13 8 8Z','#f2ca81',g);path('M-34-12L8 8 7 34-33 12Z','#bf813f',g);path('M8 8L40-13 38 12 7 34Z','#d69b51',g);for(let i=0;i<82;i++){let u=rand(),v=rand();oval(-32+36*u+38*v,-12-17*u+18*v,rand()*2+.3,rand()*.9+.4,rand()<.5?'#d3a15b':'#ab743f',g)}for(let i=0;i<48;i++){let u=rand();oval(-31+36*u,-9+17*u+rand()*18,rand()*1.4+.4,1.1,'#9e6837',g)}}
+tofu(367,287,.88,-9);tofu(431,281,.87,8);tofu(400,312,.97,-6);
+function mushroom(x,y,s,rot){let g=group('translate('+x+' '+y+') rotate('+rot+') scale('+s+')');path('M-42 2C-35 25 24 34 45 7Q50-2 43-8Z','#cc9b69',g);for(let i=-35;i<=38;i+=5)line('M'+i+' 3q3 9 '+(-i*.16)+' 13','#8a5b41',1.5,g);path('M-45 1C-46-19-26-40 1-38C27-39 46-19 46 0C44 18-32 24-45 1Z','#75472f',g,{stroke:'#553c30','stroke-width':2});for(let i=0;i<110;i++){let a=rand()*6.28,r=Math.sqrt(rand());oval(Math.cos(a)*38*r,-10+Math.sin(a)*20*r,rand()*1.4+.3,.65,'#ab7850',g)}path('M-24-22Q-11-18 0-12L19-25 8-9 24 1 1-5-16 7-8-9Z','#e9c99a',g)}
+mushroom(595,282,.91,-12);mushroom(638,307,.8,10);
+for(let i=0;i<38;i++){let a=rand()*6.28,r=Math.sqrt(rand()),x=638+Math.cos(a)*51*r,y=350+Math.sin(a)*18*r;let g=group('translate('+x+' '+y+') rotate('+(rand()*45-20)+')');path('M-6-4Q-1-8 6-5Q9 1 6 6Q0 10-6 5Z','#e7aa35',g,{stroke:'#bd802d','stroke-width':1.4});line('M-4-3q3-2 7-1','#ffda70',2,g)}
+for(let i=0;i<52;i++){let a=rand()*6.28,r=Math.sqrt(rand()),x=505+Math.cos(a)*70*r,y=338+Math.sin(a)*25*r;let g=group('translate('+x+' '+y+') rotate('+(rand()*110-55)+')');oval(0,0,8,4.1,'none',g,{stroke:'#466742','stroke-width':4});oval(0,-1.4,8,4.1,'none',g,{stroke:rand()<.5?'#a5ba6e':'#85a557','stroke-width':3.1})}
+for(let i=0;i<105;i++){let a=rand()*6.28,r=Math.sqrt(rand()),x=443+245*r*Math.cos(a),y=364+65*r*Math.sin(a);oval(x,y,2.4,.95,rand()<.45?'#f9dcaa':'#813e24',art,{transform:'rotate('+(rand()*140-70)+' '+x+' '+y+')'})}
+const steam=document.querySelector('#vapour');for(const [x,y,s] of [[320,248,.82],[416,241,1.04],[510,211,.73],[581,247,.89]]){let g=group('translate('+x+' '+y+') scale('+s+')',steam);path('M0 0C24-34-34-49-15-83C-6-102 23-112 7-149C34-116 13-101 1-81C-16-55 36-32 0 0Z','url(#steam)',g,{class:'wisp'})}
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');let tx=0,ty=0,x=0,y=0,frame=0;
+function tick(){x+=(tx-x)*.075;y+=(ty-y)*.075;art.setAttribute('transform','translate('+x+' '+y+')');steam.setAttribute('transform','translate('+x*2.6+' '+y*1.5+')');if(Math.abs(x-tx)+Math.abs(y-ty)>.015)frame=requestAnimationFrame(tick);else frame=0}
+function aim(a,b){tx=a;ty=b;if(!frame)frame=requestAnimationFrame(tick)}
+window.addEventListener('pointermove',e=>{if(!reduced.matches)aim((e.clientX/innerWidth-.5)*10,(e.clientY/innerHeight-.5)*6)});document.addEventListener('pointerleave',()=>aim(0,0));reduced.addEventListener('change',()=>{if(reduced.matches){cancelAnimationFrame(frame);frame=x=y=tx=ty=0;art.removeAttribute('transform');steam.removeAttribute('transform')}})
+</script></body></html>

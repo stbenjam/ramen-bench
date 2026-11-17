@@ -32,6 +32,15 @@
     "anthropic/opus-5/high/run.json",
     "anthropic/opus-5/medium/run.json",
     "anthropic/opus-5/low/run.json",
+    "openai/gpt-6.2-sol/max/run.json",
+    "openai/gpt-6.2-sol/xhigh/run.json",
+    "openai/gpt-6.2-sol/high/run.json",
+    "openai/gpt-6.2-sol/medium/run.json",
+    "openai/gpt-6.2-sol/low/run.json",
+    "openai/gpt-6.2-astra/xhigh/run.json",
+    "openai/gpt-6.2-astra/high/run.json",
+    "openai/gpt-6.2-astra/medium/run.json",
+    "openai/gpt-6.2-astra/low/run.json",
     "openai/gpt-6.1-sol/ultra/run.json",
     "openai/gpt-6.1-sol/max/run.json",
     "openai/gpt-6.1-sol/xhigh/run.json",
@@ -142,6 +151,8 @@
     "google/gemini-4-argon": "2026-10-15T23:32:48.380332Z",
     "anthropic/fable-5.2": "2026-11-11T00:55:46.154639Z",
     "google/gemini-4-carbon": "2026-11-11T18:59:08.981273Z",
-    "google/gemini-4-hydrogen": "2026-11-12T19:28:17.880212Z"
+    "google/gemini-4-hydrogen": "2026-11-12T19:28:17.880212Z",
+    "openai/gpt-6.2-astra": "2026-11-17T19:11:42.019836Z",
+    "openai/gpt-6.2-sol": "2026-11-17T19:11:42.019914Z"
   }
 }

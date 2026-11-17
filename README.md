@@ -14,13 +14,12 @@ The [`stbenjam/ramen-bench`](https://hub.harborframework.com/datasets/stbenjam/r
 ## Import a run
 
 ```sh
-python3 scripts/import_claude_code.py --harbor-job .harbor/jobs/<job>
-python3 scripts/censor_transcripts.py --write
+python3 scripts/import_harbor.py .harbor/jobs/<job>
 python3 scripts/static_checks.py --write
 python3 scripts/validate_registry.py
 ```
 
-Each run lives at `runs/<vendor>/<model>/<variation>/` with the model's unmodified `index.html`, a `run.json` manifest, and a public `transcript.json`. Other harnesses have their own `scripts/import_*.py`; install their dependencies from `requirements-backfill.txt`.
+Each run lives at `runs/<vendor>/<model>/<variation>/` with the model's unmodified `index.html`, a `run.json` manifest, and a public `transcript.json`. The importer works from each trial's ATIF trajectory and collected `index.html` for any Harbor agent, and prices runs the harness left unpriced at the pinned rates in `scripts/list_prices.py`. Install its dependencies from `requirements-backfill.txt`.
 
 ## Run the site locally
 

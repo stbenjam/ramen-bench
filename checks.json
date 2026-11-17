@@ -122,6 +122,42 @@
       "reward": 1,
       "violations": []
     },
+    "openai/gpt-6.2-sol/max": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-sol/xhigh": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-sol/high": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-sol/medium": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-sol/low": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-astra/xhigh": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-astra/high": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-astra/medium": {
+      "reward": 1,
+      "violations": []
+    },
+    "openai/gpt-6.2-astra/low": {
+      "reward": 1,
+      "violations": []
+    },
     "openai/gpt-6.1-sol/ultra": {
       "reward": 1,
       "violations": []

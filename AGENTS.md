@@ -12,7 +12,7 @@
 
 - Treat each model's `index.html` as an immutable benchmark artifact. Verify it against the harness's final recorded write; do not clean up, reformat, or otherwise edit the model output.
 - Generate `run.json` and `transcript.json` with the repository importer for that harness. Do not write or fill transcript events, token counts, timing, costs, or provenance by hand.
-- Use the harness entry points in `scripts/`: `import_claude_code.py`, `import_codex.py`, `import_antigravity.py`, or `import_muse.py`. Extend the appropriate importer when adding another run so the result is reproducible.
+- Import Harbor runs with `scripts/import_harbor.py <job-dir>...`, which works from Harbor's ATIF trajectory and collected artifact for every agent. Extend it rather than adding a harness-specific importer, and add list rates for new models to `scripts/list_prices.py`.
 - Prefer provider-recorded costs. Otherwise calculate costs with the pinned LiteLLM catalog, or pinned official list rates in `scripts/claude_list_prices.py`, only when the recorded token categories are sufficient. Keep cost unknown when calculating it would require guessing.
 - Add the run manifest to `runs/registry.json` under Vendor → Model → Effort. Order models newest to oldest and efforts highest to lowest: Ultra, Max, XHigh, High, Medium, Low.
 

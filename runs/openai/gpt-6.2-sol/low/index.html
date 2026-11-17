@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vegan ramen</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#100e0d}
+main{position:relative;isolation:isolate;width:100%;height:100%;background:radial-gradient(ellipse at 49% 53%,#362920 0%,#211915 33%,#141110 65%,#0b0a0a 100%)}
+.scene{position:absolute;left:50%;top:49%;width:min(1080px,99vw,142svh);aspect-ratio:1000/760;transform:translate(-50%,-50%)}
+svg,canvas{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+canvas{pointer-events:none}
+@media(max-aspect-ratio:3/4){.scene{width:min(145vw,1080px,142svh)}}
+</style>
+</head>
+<body>
+<main>
+<div class="scene">
+<svg viewBox="0 0 1000 760" role="img" aria-label="A dark ceramic bowl of steaming vegan ramen with noodles, shiitake, tofu, greens and chili oil">
+<defs>
+ <linearGradient id="ceramic" x1="0" x2="0.9" y1="0" y2="1" gradientUnits="objectBoundingBox">
+  <stop stop-color="#4a3933"/><stop offset=".32" stop-color="#302624"/><stop offset=".70" stop-color="#171415"/><stop offset="1" stop-color="#09090b"/>
+ </linearGradient>
+ <linearGradient id="rim" x1="0" x2=".25" y1="0" y2="1"><stop stop-color="#bb9372"/><stop offset=".38" stop-color="#574337"/><stop offset=".67" stop-color="#302520"/><stop offset="1" stop-color="#8c6954"/></linearGradient>
+ <radialGradient id="broth" cx=".44" cy=".64" r=".62"><stop stop-color="#ba6b30"/><stop offset=".56" stop-color="#8b421e"/><stop offset=".87" stop-color="#502615"/><stop offset="1" stop-color="#2e1913"/></radialGradient>
+ <radialGradient id="shadow"><stop stop-color="#060506"/><stop offset=".54" stop-color="#080607" stop-opacity=".88"/><stop offset="1" stop-color="#100c0d" stop-opacity="0"/></radialGradient>
+ <linearGradient id="leaf" x1=".16" x2=".82" y1=".16" y2=".87"><stop stop-color="#29391b"/><stop offset=".42" stop-color="#56813b"/><stop offset=".68" stop-color="#2b5227"/><stop offset="1" stop-color="#172b1a"/></linearGradient>
+ <linearGradient id="stem" x1="0" x2="1" y1="1" y2="0"><stop stop-color="#e0d999"/><stop offset=".55" stop-color="#a7bd68"/><stop offset="1" stop-color="#426b32"/></linearGradient>
+ <linearGradient id="cap" x1=".18" x2=".65" y1="0" y2="1"><stop stop-color="#bb8a59"/><stop offset=".39" stop-color="#835136"/><stop offset="1" stop-color="#44261d"/></linearGradient>
+ <linearGradient id="tofu" x1="0" x2=".8" y1="0" y2="1"><stop stop-color="#f2be70"/><stop offset=".55" stop-color="#d09147"/><stop offset="1" stop-color="#945024"/></linearGradient>
+ <linearGradient id="seaweed" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#404831"/><stop offset=".52" stop-color="#212c22"/><stop offset="1" stop-color="#121916"/></linearGradient>
+ <pattern id="grit" width="71" height="67" patternUnits="userSpaceOnUse"></pattern>
+ <clipPath id="soupClip"><ellipse cx="500" cy="448" rx="290" ry="91"/></clipPath>
+ <clipPath id="bowlClip"><path d="M194 443C204 522 258 599 330 630C424 673 576 672 668 630C745 595 795 519 806 443Z"/></clipPath>
+ <clipPath id="noriClip"><path d="M526 426L497 328 500 317 494 299 509 292 523 293 537 285 555 285 572 277 587 280 609 273 620 275 630 297 649 405Z"/></clipPath>
+ <filter id="soft"><feGaussianBlur stdDeviation="13"/></filter>
+ <filter id="foodShadow" x="-.3" width="1.6" y="-.5" height="2"><feDropShadow dx="1" dy="6" stdDeviation="4" flood-color="#29130e" flood-opacity=".8"/></filter>
+ <g id="mushroom">
+  <path d="M-49 5Q-54-8-44-26Q-25-56 6-53Q35-52 54-18Q62-4 48 8Q6 34-49 5Z" fill="url(#cap)" stroke="#48291f" stroke-width="2"/>
+  <path d="M-44 4Q-17-13 5-11Q25-11 48 5Q32 28 1 26Q-29 24-44 4Z" fill="#c49a68"/>
+  <path d="M-41 4Q-11 25 3 11Q18 25 45 5M-36 1Q-17 19 1 11M-30-2Q-14 12 0 10M-22-5Q-12 6 1 10M-13-8L2 9M-4-10L4 9M6-10L6 10M15-8L8 10M25-5Q21 7 9 11M34-2Q27 15 11 13M41 2Q28 22 12 15" fill="none" stroke="#6f462e" stroke-width="1.5" opacity=".8"/>
+  <path d="M-12 18Q-7 14-3 6Q3 1 10 7L14 20Q9 27-3 26Z" fill="#ead0a0"/>
+  <path d="M-43-22Q-25-48 4-47Q25-47 39-30" fill="none" stroke="#f3bf85" stroke-width="2" opacity=".55"/>
+  <path d="M-32-24q10-10 20-10m4-5q9-2 15 1m9 4q10 3 13 9m-54 6 7-3m38 0 8 7" fill="none" stroke="#d5a16a" stroke-linecap="round" opacity=".5"/>
+ </g>
+ <g id="cube">
+  <path d="M-35-11 4-27 36-9 34 16-5 33-34 15Z" fill="#aa6936" stroke="#78411f" stroke-width="2"/>
+  <path d="M-35-11 4-27 36-9-4 8Z" fill="url(#tofu)"/>
+  <path d="M-35-11-4 8-5 33-34 15Z" fill="#d5a264"/>
+  <path d="M-4 8 36-9 34 16-5 33Z" fill="#83502e"/>
+  <path d="M-33-10-4 7 32-8" fill="none" stroke="#ffe0a0" stroke-opacity=".68" stroke-width="1.5"/>
+  <path d="m-22-11 4-2m6-3 3 2m9-6 5 1m3 4 5 1m-26 6 5 2m5 4 4-2m13-2 7-3m-45 9 4 3m4 4 3 2m7 4 2 2m15-1 4-3m6-5 6-2m6-1 2-2" fill="none" stroke="#653519" stroke-linecap="round" stroke-width="1.7" opacity=".66"/>
+  <path d="M-34-11 4-27 36-9 34 16-5 33-34 15Z" fill="url(#grit)" opacity=".5"/>
+ </g>
+</defs>
+<ellipse cx="500" cy="636" rx="414" ry="82" fill="url(#shadow)"/>
+<ellipse cx="495" cy="652" rx="229" ry="34" fill="url(#shadow)"/>
+<path d="M355 626Q500 666 645 626L632 651Q609 675 500 677Q391 675 368 651Z" fill="#141113" stroke="#43302a" stroke-width="2"/>
+<path d="M194 443C204 522 258 599 330 630C424 673 576 672 668 630C745 595 795 519 806 443Z" fill="url(#ceramic)" stroke="#47332a" stroke-width="2"/>
+<g clip-path="url(#bowlClip)">
+ <ellipse cx="474" cy="444" rx="316" ry="120" fill="none" stroke="#d3976a" opacity=".15" stroke-width="12" filter="url(#soft)"/>
+ <g id="throwLines"></g>
+ <path d="M191 445H809V674H191Z" fill="url(#grit)" opacity=".65"/>
+ <path d="M229 530Q270 602 365 636M255 547Q301 615 414 645M688 608Q751 572 774 519" fill="none" stroke="#ab8066" opacity=".20" stroke-width="1.4"/>
+</g>
+<ellipse cx="500" cy="443" rx="307" ry="110" fill="#201715" stroke="#5e463a" stroke-width="2"/>
+<ellipse cx="500" cy="441" rx="302" ry="105" fill="url(#rim)"/>
+<ellipse cx="500" cy="442" rx="292" ry="96" fill="#342017" stroke="#2b1c17" stroke-width="2"/>
+<ellipse cx="500" cy="448" rx="290" ry="91" fill="url(#broth)"/>
+<path d="M205 416C244 365 371 337 500 337C637 337 764 366 795 416" fill="none" stroke="#e9b18a" opacity=".32" stroke-width="1.5"/>
+<g clip-path="url(#soupClip)">
+ <ellipse cx="500" cy="448" rx="291" ry="91" fill="url(#grit)" opacity=".55"/>
+ <g id="oil"></g>
+ <g id="noodles"></g>
+</g>
+<path d="M526 426L497 328 500 317 494 299 509 292 523 293 537 285 555 285 572 277 587 280 609 273 620 275 630 297 649 405Z" fill="url(#seaweed)" stroke="#424936" stroke-width="2" filter="url(#foodShadow)"/>
+<g id="nori" clip-path="url(#noriClip)"></g>
+<g filter="url(#foodShadow)">
+ <g transform="translate(333 445) rotate(-21)">
+  <path d="M2 16C-31 0-42-11-61-26C-76-38-84-60-73-71C-67-77-56-70-53-77C-41-91-32-71-22-76C-9-74-5-54-2-44C3-24 8-8 13 9Z" fill="url(#leaf)" stroke="#557044" stroke-width="1.5"/>
+  <path d="M-2 13C-15-17-50-39-61-63C-40-45-12-29 11 5Q12 13 6 16Z" fill="url(#stem)"/>
+  <path d="M-24-26Q-32-49-33-68M-34-35Q-49-39-64-47M-13-18Q-14-36-21-48" fill="none" stroke="#9aaf67" opacity=".5"/>
+ </g>
+ <g transform="translate(365 444) rotate(19) scale(1.13)">
+  <path d="M0 13C-19-6-53-15-62-38C-69-55-56-53-58-65C-57-79-41-76-33-71C-25-80-15-73-14-62C-4-68 6-58 5-42C3-21 13-6 14 8Z" fill="url(#leaf)" stroke="#62854a" stroke-width="1.2"/>
+  <path d="M-4 10C-15-9-34-26-44-53C-24-29-8-25 11 2Q19 14 7 18Z" fill="url(#stem)"/>
+  <path d="M-27-30Q-19-48-26-68M-24-25Q-42-29-54-40M-13-16Q-8-32-10-47M-17-20Q-35-19-46-27" fill="none" stroke="#b9c884" opacity=".54"/>
+ </g>
+ <g transform="translate(389 426) rotate(48) scale(.83)">
+  <path d="M0 15C-12-4-49-16-51-45C-56-61-47-66-38-61C-36-75-20-77-15-61C-5-67 6-59 6-46C9-23 8-12 14 8Z" fill="url(#leaf)" stroke="#668d4c" stroke-width="1.6"/>
+  <path d="M0 14C-9-14-31-28-32-55C-20-34-4-22 12 6Q16 17 7 18Z" fill="url(#stem)"/>
+  <path d="M-15-27Q-10-37-12-57M-19-32Q-35-34-42-46" fill="none" stroke="#adc57a" opacity=".66"/>
+ </g>
+ <use href="#mushroom" transform="translate(631 407) rotate(-22) scale(.83)"/>
+ <use href="#mushroom" transform="translate(691 426) rotate(19) scale(.87)"/>
+ <use href="#mushroom" transform="translate(643 453) rotate(-8) scale(1.04)"/>
+ <use href="#cube" transform="translate(565 462) rotate(-11) scale(.73)"/>
+ <use href="#cube" transform="translate(683 484) rotate(10) scale(.79)"/>
+ <use href="#cube" transform="translate(608 497) rotate(-6) scale(.92)"/>
+</g>
+<g id="garnish"></g>
+<path d="M195 447C208 508 343 550 500 550C654 550 788 512 805 447C793 502 653 540 500 540C345 540 210 503 195 447Z" fill="url(#rim)"/>
+<path d="M199 459C227 511 357 548 496 548C647 549 777 511 801 462" fill="none" stroke="#e3ac80" opacity=".32" stroke-width="1.5"/>
+</svg>
+<canvas aria-hidden="true"></canvas>
+</div>
+</main>
+<script>
+const ns = 'http://www.w3.org/2000/svg';
+let seed = 41724;
+function random() {
+  seed = (1664525 * seed + 1013904223) >>> 0;
+  return seed / 4294967296;
+}
+function shape(parent, tag, attributes) {
+  const node = document.createElementNS(ns, tag);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+  parent.append(node);
+  return node;
+}
+const group = id => document.getElementById(id);
+for (let i = 0; i < 430; i++) {
+  shape(group('grit'), 'circle', {cx:random()*71,cy:random()*67,r:.15+random()*.65,
+    fill:random()<.52?'#ffc899':'#090807',opacity:.08+random()*.28});
+}
+for (let i = 0; i < 39; i++) {
+  const y = 469 + i * 4.8;
+  shape(group('throwLines'), 'path', {d:`M192 ${y}Q500 ${y+135-i*1.22} 808 ${y-5}`,
+    fill:'none',stroke:i%3?'#b78a73':'#09080a','stroke-width':.45+random()*1.75,opacity:.035+random()*.10});
+}
+for (let i = 0; i < 410; i++) {
+  const angle = random()*Math.PI*2, distance = Math.sqrt(random());
+  const x = 500+284*Math.cos(angle)*distance, y = 448+87*Math.sin(angle)*distance;
+  const radius = .5+random()**3*6.6;
+  shape(group('oil'),'ellipse',{cx:x,cy:y,rx:radius,ry:radius*.39,fill:i%5?'#e69b4b':'#f6c982',
+    'fill-opacity':.09+random()*.39,stroke:i%4?'#be5925':'#ffc277','stroke-width':.55,opacity:.45+random()*.5});
+}
+for (let i = 0; i < 98; i++) {
+  const x = 342+random()*204, y = 390+random()*122;
+  const length = 19+random()*95, height = 5+random()*13;
+  const d = `M${x} ${y}c${length*.30} ${-height*1.7} ${length*.58} ${height*1.3} ${length*.27} ${height*1.02}s${-length*.18} ${-height*1.55} ${length*.24} ${-height*.67}s${length*.23} ${height*.78} ${length*.49} ${-height*.43}`;
+  const noodle = shape(group('noodles'),'g',{fill:'none','stroke-linecap':'round',opacity:.55+random()*.45});
+  shape(noodle,'path',{d,stroke:'#632c16','stroke-width':5.8,transform:'translate(0 1.3)'});
+  shape(noodle,'path',{d,stroke:['#e7aa56','#eabc72','#ca873e','#f0c67e','#d39a50'][i%5],'stroke-width':3.7});
+  shape(noodle,'path',{d,stroke:'#ffe1a1','stroke-width':.85,opacity:.72,transform:'translate(0 -.75)'});
+}
+for (let i = 0; i < 660; i++) {
+  const x = 493+random()*160, y = 270+random()*157;
+  shape(group('nori'),'path',{d:`M${x} ${y}l${random()*5} ${-random()*3} ${random()*3} ${random()*3}`,
+    fill:'none',stroke:i%3?'#a4ab6c':'#0b0f0b',opacity:.07+random()*.28,'stroke-width':.3+random()*1.4});
+}
+for (let i = 0; i < 145; i++) {
+  const x = 300+random()*426, y = 393+random()*132;
+  if (((x-500)/239)**2+((y-453)/77)**2>1) continue;
+  const scale = .55+random()*.95;
+  const topping = shape(group('garnish'),'g',{transform:`translate(${x} ${y}) rotate(${random()*180}) scale(${scale})`});
+  if (i%5===0) {
+    shape(topping,'ellipse',{rx:5,ry:2.7,fill:'#263e20',stroke:'#7ead48','stroke-width':1.8});
+    shape(topping,'path',{d:'M-4 1Q0 4 4 1',fill:'none',stroke:'#b1c971','stroke-width':.7});
+  } else if(i%5===1) {
+    shape(topping,'path',{d:'M-4 1Q-1-3 4-1Q2 3-4 1Z',fill:'#af422b',stroke:'#d67047','stroke-width':.6});
+  } else {
+    shape(topping,'ellipse',{rx:2.05,ry:.85,fill:i%3?'#eed398':'#382921',opacity:.9});
+  }
+}
+const canvas = document.querySelector('canvas');
+const context = canvas.getContext('2d');
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+let pointer = 0, breeze = 0, frame = 0;
+function steam(time) {
+  const t = motion.matches ? 1.8 : time / 1000;
+  if (!motion.matches) breeze += (pointer - breeze) * .037;
+  context.setTransform(canvas.width/1000,0,0,canvas.height/760,0,0);
+  context.clearRect(0,0,1000,760);
+  context.globalCompositeOperation = 'screen';
+  context.lineCap = 'round';
+  for (let plume = 0; plume < 5; plume++) {
+    const origin = [361,438,504,564,665][plume];
+    const foot = [442,466,431,432,447][plume];
+    const rise = [194,267,308,232,202][plume];
+    for (let strand = 0; strand < 26; strand++) {
+      const offset = (strand-12.5)/12.5;
+      const gradient = context.createLinearGradient(0,foot,0,foot-rise);
+      const strength = (1 - Math.abs(offset)*.65) * (.82+.18*Math.sin(t*.42+plume));
+      gradient.addColorStop(0,'rgba(235,190,144,0)');
+      gradient.addColorStop(.19,`rgba(225,192,159,${.032*strength})`);
+      gradient.addColorStop(.42,`rgba(212,189,170,${.055*strength})`);
+      gradient.addColorStop(.7,`rgba(197,183,172,${.025*strength})`);
+      gradient.addColorStop(1,'rgba(185,175,169,0)');
+      context.strokeStyle = gradient;
+      context.lineWidth = 3+Math.abs(offset)*4;
+      context.beginPath();
+      for (let step = 0; step <= 44; step++) {
+        const u = step/44;
+        const phase = plume * 1.83 + t*.54;
+        const x = origin + u*(24*Math.sin(u*8-phase)+29*Math.sin(u*4+phase*.7))
+          + offset*(8+34*u) + (motion.matches ? 0 : breeze)*u*u
+          + 8*u*Math.sin(u*10+offset*3+phase);
+        const y = foot - u*rise + 10*u*Math.sin(phase+offset*2);
+        if (step === 0) context.moveTo(x,y);
+        else context.lineTo(x,y);
+      }
+      context.stroke();
+    }
+  }
+}
+function animate(time) {
+  steam(time);
+  frame = requestAnimationFrame(animate);
+}
+function updateMotion() {
+  cancelAnimationFrame(frame);
+  if (motion.matches) steam(0);
+  else frame = requestAnimationFrame(animate);
+}
+function resize() {
+  const bounds = canvas.getBoundingClientRect();
+  const density = Math.min(devicePixelRatio || 1,2);
+  canvas.width = Math.max(1,Math.round(bounds.width*density));
+  canvas.height = Math.max(1,Math.round(bounds.height*density));
+  if (motion.matches) steam(0);
+}
+window.addEventListener('resize',resize);
+motion.addEventListener('change',updateMotion);
+window.addEventListener('pointermove',event => {
+  if (event.pointerType !== 'mouse' || motion.matches) return;
+  pointer = (event.clientX / innerWidth - .5) * 184;
+},{passive:true});
+document.documentElement.addEventListener('pointerleave',() => {pointer = 0;});
+window.addEventListener('blur',() => {pointer = 0;});
+resize();
+updateMotion();
+</script>
+</body>
+</html>

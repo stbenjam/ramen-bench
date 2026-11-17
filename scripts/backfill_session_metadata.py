@@ -48,6 +48,8 @@ CURRENT_PROMPT = (ROOT / "PROMPT.md").read_text().strip()
 BENCHMARK_PROMPTS = (CURRENT_PROMPT, PROMPT)
 
 DISPLAY_NAMES = {
+    "gpt-6.2-sol": "GPT 6.2 Sol",
+    "gpt-6.2-astra": "GPT 6.2 Astra",
     "gpt-6.1-sol": "GPT 6.1 Sol",
     "gpt-6-sol": "GPT 6 Sol",
     "gpt-6-luna": "GPT 6 Luna",

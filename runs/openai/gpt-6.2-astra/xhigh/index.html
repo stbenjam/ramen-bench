@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#151311">
+<title>Vegan ramen</title>
+<style>
+  * { box-sizing: border-box }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #151311 }
+  main {
+    width: 100%; height: 100%; height: 100svh; position: relative; isolation: isolate;
+    overflow: hidden; display: grid; place-items: center; grid-template: minmax(0,1fr) / minmax(0,1fr);
+    background: radial-gradient(ellipse at 49% 48%, #33291f 0%, #26221d 30%, #1b1916 58%, #121211 100%);
+  }
+  #scene { display: block; width: min(1070px, 105vw, 134svh); height: auto; overflow: visible; }
+  #paper { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .105; mix-blend-mode: soft-light }
+  #dish, #air { will-change: transform }
+  .steam { transform-box: fill-box; transform-origin: 50% 100%; animation: breathe var(--period) ease-in-out var(--delay) infinite alternate }
+  .mote { animation: rise var(--period) linear var(--delay) infinite; opacity: 0 }
+  .glint { animation: simmer var(--period) ease-in-out var(--delay) infinite alternate }
+  @keyframes breathe {
+    from { transform: translate(-3px, 2px) skewX(-2deg) scaleY(.97); opacity: .74 }
+    to { transform: translate(4px,-3px) skewX(2deg) scaleY(1.06); opacity: 1 }
+  }
+  @keyframes rise {
+    0% { transform: translate(0,0); opacity: 0 }
+    22% { opacity: .45 }
+    68% { opacity: .21 }
+    100% { transform: translate(var(--drift),-43px); opacity: 0 }
+  }
+  @keyframes simmer { from { opacity: .32 } to { opacity: .94 } }
+  @media (max-aspect-ratio: 4/5) { #scene { width: min(132vw, 139svh); } }
+  @media (prefers-reduced-motion: reduce) {
+    .steam, .mote, .glint { animation: none }
+    .mote { opacity: .22 }
+    #air, #dish { will-change: auto }
+  }
+</style>
+</head>
+<body>
+<main>
+<svg id="scene" viewBox="0 0 1000 760" role="img" aria-labelledby="scene-title scene-description" xmlns="http://www.w3.org/2000/svg">
+  <title id="scene-title">A steaming bowl of vegan ramen</title>
+  <desc id="scene-description">Golden noodles in amber broth with scored shiitake mushrooms, bok choy, roasted tofu, nori, and scallions. Wisps of steam curl above a red ceramic bowl painted with golden waves.</desc>
+  <defs>
+    <radialGradient id="warmth"><stop stop-color="#b0743e" stop-opacity=".19"/><stop offset=".53" stop-color="#a16d3f" stop-opacity=".075"/><stop offset="1" stop-color="#96633a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="tableLight"><stop stop-color="#96704c" stop-opacity=".32"/><stop offset=".55" stop-color="#7b6249" stop-opacity=".13"/><stop offset="1" stop-color="#73614c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="shade"><stop stop-color="#0a0907" stop-opacity=".98"/><stop offset=".6" stop-color="#0e0c0a" stop-opacity=".81"/><stop offset="1" stop-color="#110e0b" stop-opacity="0"/></radialGradient>
+    <linearGradient id="clay" x1="0" y1=".24" x2="1" y2=".68" gradientUnits="objectBoundingBox">
+      <stop stop-color="#8d3b28"/><stop offset=".13" stop-color="#ba6140"/><stop offset=".32" stop-color="#bf6240"/><stop offset=".57" stop-color="#a64b32"/><stop offset=".82" stop-color="#773423"/><stop offset="1" stop-color="#3f251f"/>
+    </linearGradient>
+    <linearGradient id="kiln" x1="0" x2=".1" y1="0" y2="1"><stop stop-color="#f49955" stop-opacity=".12"/><stop offset=".52" stop-color="#561c1b" stop-opacity="0"/><stop offset=".84" stop-color="#3a201c" stop-opacity=".22"/><stop offset="1" stop-color="#291e19" stop-opacity=".62"/></linearGradient>
+    <linearGradient id="lip" x1="0" y1=".1" x2=".91" y2="1"><stop stop-color="#f2cb92"/><stop offset=".25" stop-color="#d79761"/><stop offset=".48" stop-color="#ae6844"/><stop offset=".66" stop-color="#edb47b"/><stop offset="1" stop-color="#78462f"/></linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#4a291e"/><stop offset=".27" stop-color="#965e3b"/><stop offset=".6" stop-color="#c58f59"/><stop offset="1" stop-color="#805239"/></linearGradient>
+    <linearGradient id="footPaint"><stop stop-color="#553325"/><stop offset=".17" stop-color="#926047"/><stop offset=".47" stop-color="#744632"/><stop offset="1" stop-color="#372921"/></linearGradient>
+    <radialGradient id="broth" cx=".43" cy=".42" r=".72"><stop stop-color="#e5a044"/><stop offset=".38" stop-color="#d28b36"/><stop offset=".71" stop-color="#b26326"/><stop offset=".9" stop-color="#95431f"/><stop offset="1" stop-color="#743b20"/></radialGradient>
+    <linearGradient id="seaweed" x1=".1" y1="0" x2=".8" y2="1"><stop stop-color="#536044"/><stop offset=".19" stop-color="#394b37"/><stop offset=".44" stop-color="#2d3f31"/><stop offset=".76" stop-color="#27372c"/><stop offset="1" stop-color="#1d3027"/></linearGradient>
+    <radialGradient id="cap" cx=".36" cy=".25" r=".79"><stop stop-color="#cb8d52"/><stop offset=".26" stop-color="#b87842"/><stop offset=".63" stop-color="#98542f"/><stop offset=".86" stop-color="#743d26"/><stop offset="1" stop-color="#4b3023"/></radialGradient>
+    <linearGradient id="flesh" x1="0" y1="0" x2=".25" y2="1"><stop stop-color="#b98146"/><stop offset=".5" stop-color="#f6d295"/><stop offset="1" stop-color="#dba96f"/></linearGradient>
+    <linearGradient id="leaf" x1=".05" y1="0" x2=".95" y2=".65"><stop stop-color="#344c2e"/><stop offset=".32" stop-color="#597a3c"/><stop offset=".51" stop-color="#7f974b"/><stop offset=".69" stop-color="#4c6835"/><stop offset="1" stop-color="#264b2d"/></linearGradient>
+    <linearGradient id="stalk" x1=".1" y1=".9" x2=".82" y2=".05"><stop stop-color="#ead392"/><stop offset=".27" stop-color="#c4c57b"/><stop offset=".58" stop-color="#91a359"/><stop offset="1" stop-color="#607f40"/></linearGradient>
+    <linearGradient id="tofuTop" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#f9d69a"/><stop offset=".52" stop-color="#e5b770"/><stop offset="1" stop-color="#c68f4e"/></linearGradient>
+    <linearGradient id="tofuFront" x1=".12" y1="0" x2=".8" y2="1"><stop stop-color="#eac083"/><stop offset=".5" stop-color="#c58e51"/><stop offset="1" stop-color="#ba763d"/></linearGradient>
+    <linearGradient id="tofuSide" x1="0" y1="0" x2="1" y2=".4"><stop stop-color="#b27b40"/><stop offset="1" stop-color="#936033"/></linearGradient>
+    <linearGradient id="vapor" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#eee0b7" stop-opacity=".04"/><stop offset=".25" stop-color="#ead8b2" stop-opacity=".31"/><stop offset=".57" stop-color="#e2d4b7" stop-opacity=".26"/><stop offset=".83" stop-color="#d8c7a9" stop-opacity=".13"/><stop offset="1" stop-color="#d8c7a9" stop-opacity="0"/></linearGradient>
+    <filter id="haze" x="-.45" y="-.2" width="1.9" height="1.4"><feGaussianBlur stdDeviation="3.6"/></filter>
+    <filter id="mist" x="-.45" y="-.2" width="1.9" height="1.4"><feGaussianBlur stdDeviation="1.25"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".76" numOctaves="3" stitchTiles="stitch"/></filter>
+    <pattern id="tooth" width="147" height="147" patternUnits="userSpaceOnUse"><rect width="147" height="147" filter="url(#grain)" opacity=".52"/></pattern>
+    <clipPath id="soupClip"><ellipse cx="500" cy="398" rx="334" ry="94"/></clipPath>
+    <clipPath id="capClip"><path d="M-63 6C-64-9-44-32-19-39C7-47 37-38 54-19C66-6 69 7 62 16C49 30 17 35-13 32C-39 29-61 20-63 6Z"/></clipPath>
+  </defs>
+  <ellipse cx="493" cy="347" rx="417" ry="318" fill="url(#warmth)"/>
+  <g id="floor">
+    <ellipse cx="492" cy="659" rx="445" ry="92" fill="url(#tableLight)"/>
+    <ellipse cx="504" cy="669" rx="341" ry="53" fill="url(#shade)" opacity=".86"/>
+    <ellipse cx="506" cy="670" rx="181" ry="23" fill="url(#shade)"/>
+  </g>
+  <g id="air"></g>
+  <g id="dish"></g>
+</svg>
+<svg id="paper" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="url(#tooth)"/></svg>
+</main>
+<script>
+(() => {
+  'use strict';
+  const svg = document.querySelector('#scene');
+  const defs = svg.querySelector('defs');
+  const dish = document.querySelector('#dish');
+  const air = document.querySelector('#air');
+  let seed = 971216;
+  function random(min = 0, max = 1) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return min + seed / 4294967296 * (max - min);
+  }
+  const pick = values => values[Math.floor(random(0, values.length))];
+  const f = value => +value.toFixed(2);
+  const pair = (x,y) => f(x)+' '+f(y);
+  const points = list => list.map(p => pair(...p)).join(' ');
+  const path = (d,fill,extra='') => '<path d="'+d+'" fill="'+fill+'" '+extra+'/>';
+  const line = (d,color,width,opacity=1,extra='') => path(d,'none','stroke="'+color+'" stroke-width="'+f(width)+'" stroke-opacity="'+f(opacity)+'" stroke-linecap="round" stroke-linejoin="round" '+extra);
+  const ellipse = (x,y,rx,ry,fill,extra='') => '<ellipse cx="'+f(x)+'" cy="'+f(y)+'" rx="'+f(rx)+'" ry="'+f(ry)+'" fill="'+fill+'" '+extra+'/>';
+  const group = (content,attrs='') => '<g '+attrs+'>'+content+'</g>';
+  const alpha = v => 'opacity="'+f(v)+'"';
+  // Batch the tiny flecks of matching pigment into a small set of vector paths.
+  function pigment(palette,d,color,opacity) {
+    const key=color+' '+(Math.round(opacity*16)/16);
+    if(!palette.has(key)) palette.set(key,[]);
+    palette.get(key).push(d);
+  }
+  function paint(palette) {
+    return Array.from(palette,([key,shapes])=>{
+      const [color,opacity]=key.split(' ');
+      return path(shapes.join(''),color,alpha(Number(opacity)));
+    }).join('');
+  }
+  const outline = (color,width) => 'stroke="'+color+'" stroke-width="'+width+'" stroke-linejoin="round"';
+  const tex = (d,opacity) => path(d,'url(#tooth)',alpha(opacity)+' style="mix-blend-mode:soft-light"');
+  const poly = pts => 'M'+points(pts)+'Z';
+  function curve(pts) { return 'M'+points(pts); }
+  function clip(id,d) {
+    defs.insertAdjacentHTML('beforeend','<clipPath id="'+id+'">'+path(d,'white')+'</clipPath>');
+    return 'clip-path="url(#'+id+')"';
+  }
+
+  // Project the painted decoration onto the curved face of the pottery.
+  function surface(angle,t) {
+    const radius = 349-211*(.18*t+.82*t*t);
+    return [500+radius*Math.sin(angle),393+244*t+(103-70*t)*Math.cos(angle)];
+  }
+  function row(t, start=-Math.PI/2, end=Math.PI/2, n=84) {
+    return Array.from({length:n+1},(_,i)=>surface(start+(end-start)*i/n,t));
+  }
+  const profile=[];
+  for(let y=393;y<=670;y+=.8) {
+    let widest=0;
+    for(let t=0;t<=1.0001;t+=.002) {
+      const z=(y-393-244*t)/(103-70*t);
+      if(z>=0 && z<=1) widest=Math.max(widest,(349-211*(.18*t+.82*t*t))*Math.sqrt(1-z*z));
+    }
+    profile.push([500+widest,y]);
+  }
+  const bowlShape=poly([...row(0),...profile,...profile.slice().reverse().map(([x,y])=>[1000-x,y])]);
+  const bodyClip = clip('bodyClip',bowlShape);
+  const bandClip = clip('bandClip',poly([...row(.103),...row(.365).reverse()]));
+  let art = '';
+  const foot='M367 631Q371 650 374 660C409 687 565 694 623 665L634 635Z';
+  art += path(foot,'url(#footPaint)',outline('#39291f',2));
+  art += line('M377 659C424 682 570 685 622 661','#bb8861',2.7,.63);
+  art += tex(foot,.6);
+  art += path(bowlShape,'url(#clay)',outline('#533526',2.8));
+  art += path(bowlShape,'url(#kiln)');
+  let glaze='';
+  for(let i=0;i<320;i++) {
+    const t=random(.015,.985), a=random(-1.57,1.57);
+    glaze+=line(curve(row(t,a,Math.min(1.57,a+random(.011,.32)),10)),pick(['#edb080','#ee9768','#552e25','#613323']),random(.45,1.65),random(.06,.24));
+  }
+  for(let i=0;i<850;i++) {
+    const p=surface(random(-1.56,1.56),random(.015,.99));
+    glaze+=ellipse(...p,random(.3,1.2),random(.25,.72),pick(['#643925','#edba8d']),alpha(random(.16,.44)));
+  }
+  art+=group(glaze,bodyClip);
+  let pattern='';
+  const spacing=.224;
+  // Overlapping fans, applied in rows as on a hand-painted seigaiha bowl.
+  for(let r=0;r<4;r++) {
+    const base=.157+r*.105;
+    for(let j=-8;j<9;j++) {
+      const a=j*spacing+(r%2)*spacing/2;
+      for(let ring=1;ring<=4;ring++) {
+        const arc=[];
+        for(let k=0;k<=22;k++) {
+          const phase=Math.PI*k/22, angle=a+Math.cos(phase)*spacing*.5*ring/4;
+          arc.push(surface(Math.min(1.572,Math.max(-1.572,angle)),base-Math.sin(phase)*.142*ring/4));
+        }
+        if(a>-1.72 && a<1.72) pattern+=line(curve(arc),'#ebc588',ring===4?2.05:1.45,random(.69,.91));
+      }
+    }
+  }
+    // A broad wash of glaze darkens the gilding as the bowl turns from the light.
+  defs.insertAdjacentHTML('beforeend','<linearGradient id="glazeShade" x1="0" y1="0" x2="1" y2=".12"><stop stop-color="#5b2a21" stop-opacity=".12"/><stop offset=".24" stop-color="#fbc987" stop-opacity=".09"/><stop offset=".58" stop-color="#6a3025" stop-opacity="0"/><stop offset="1" stop-color="#3b251f" stop-opacity=".31"/></linearGradient>');
+  art+=group(pattern,bandClip);
+  art+=path(bowlShape,'url(#glazeShade)');
+  for(const [t,c,w,o] of [[.065,'#653521',3,.8],[.082,'#edba81',2.3,.92],[.102,'#e4b179',1.1,.9],[.368,'#eec28b',2.3,.95],[.396,'#dda570',1.5,.9],[.845,'#d18253',1.2,.38],[.926,'#602f22',2,.56],[.957,'#cc895c',1.4,.52]]) {
+    art+=line(curve(row(t)),c,w,o);
+  }
+  art+=tex(bowlShape,.58);
+  art+=ellipse(500,393,349,103,'url(#lip)',outline('#563828',1.8));
+  art+=ellipse(500,392,340.5,96.4,'url(#inner)',outline('#f3c690',1.3));
+  art+=ellipse(500,398,334,94,'url(#broth)');
+
+  // Small slicks of oil and interrupted reflections break up the surface of the broth.
+  let soup='';
+  for(let i=0;i<380;i++) {
+    const a=random(0,Math.PI*2),r=Math.sqrt(random());
+    const x=500+Math.cos(a)*r*333,y=398+Math.sin(a)*r*94;
+    const size=random(.55,4.5);
+    soup+=ellipse(x,y,size,size*random(.25,.56),pick(['#f5c565','#f4b852','#e4a044','#8d4624','#ad5724']),alpha(random(.28,.79)));
+  }
+  for(let i=0;i<105;i++) {
+    const x=random(162,820), y=random(310,493), w=random(4,37);
+    soup+=line('M'+pair(x,y)+'q'+pair(w*.42,random(-4,2))+' '+pair(w,random(-2,4)),pick(['#fbd28a','#f6b655','#93471e','#ec9e39']),random(.8,2.7),random(.34,.79));
+  }
+  function ripple(x,y,rx,ry,a,b) {
+    return 'M'+pair(x+rx*Math.cos(a),y+ry*Math.sin(a))+'A'+pair(rx,ry)+' 0 '+(b-a>Math.PI?1:0)+' 1 '+pair(x+rx*Math.cos(b),y+ry*Math.sin(b));
+  }
+  for(let i=0;i<37;i++){
+    const x=random(190,814),y=random(328,490),a=random(0,3.2),b=a+random(1,3.2);
+    soup+=line(ripple(x,y,random(3,16),random(1.6,4.3),a,b),'#ffcf78',random(.75,1.8),.68);
+  }
+  // Fine, broken currents of chili oil follow the outside of the noodle nest.
+  for(let i=0;i<24;i++) {
+    const x=random(536,800),y=random(405,486),w=random(14,68),h=random(2,5);
+    const d='M'+pair(x,y)+'c'+points([[w*.41,-h],[w*.61,h*1.6],[w,h*.3]])+'q'+points([[-w*.3,h*1.7],[-w*.61,h*.2]])+'t'+pair(-w*.39,-h*.5)+'Z';
+    soup+=path(d,pick(['#9e4924','#e8a445','#f2b757']),alpha(random(.2,.58)));
+  }
+  art+=group(soup+'<g id="ripples"></g>','clip-path="url(#soupClip)"');
+
+  function nori(id,corners) {
+    const border=[];
+    for(let e=0;e<4;e++) {
+      const a=corners[e],b=corners[(e+1)%4],pieces=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/4);
+      for(let n=0;n<pieces;n++) border.push([a[0]+(b[0]-a[0])*n/pieces+random(-1.7,1.7),a[1]+(b[1]-a[1])*n/pieces+random(-1.5,1.5)]);
+    }
+    const d=poly(border), c=clip(id,d);
+    const xs=corners.map(p=>p[0]),ys=corners.map(p=>p[1]);
+    const pigments=new Map();
+    for(let i=0;i<1800;i++) {
+      const x=random(Math.min(...xs),Math.max(...xs)),y=random(Math.min(...ys),Math.max(...ys)),w=random(.5,4.7),h=random(.4,2.2);
+      pigment(pigments,'M'+pair(x,y)+'l'+pair(w*.44,-h)+' '+pair(w*.56,h*.35)+' '+pair(-w*.24,h)+'Z',pick(['#8e9770','#536548','#758361','#172c25','#bbc19a']),random(.16,.61));
+    }
+    let flecks=paint(pigments);
+    for(let i=0;i<48;i++) {
+      const x=random(Math.min(...xs),Math.max(...xs)), y=random(Math.min(...ys),Math.max(...ys));
+      flecks+=line('M'+pair(x,y)+'q-2 -4 0 -8t-1 -10',pick(['#95a07c','#1b3028']),random(.5,1.5),.37);
+    }
+    return path(d,'url(#seaweed)',outline('#263226',1.7))+group(flecks,c)+line(curve(border.slice(0,Math.ceil(Math.hypot(corners[1][0]-corners[0][0],corners[1][1]-corners[0][1])/4))),'#a4a77a',1.7,.72)+tex(d,.65);
+  }
+  art+=nori('noriRear',[[297,222],[391,207],[416,332],[320,352]]);
+  art+=nori('noriFront',[[211,260],[325,232],[360,343],[248,369]]);
+
+  function leaf(id,x,y,rotation,sx,sy) {
+    const d='M-9 0C-16-17-18-39-23-54C-30-66-37-74-32-85C-32-90-41-95-35-105C-42-118-34-124-37-132C-38-144-30-148-25-148C-25-158-17-166-8-162Q-1-174 7-165C17-169 22-158 23-152C35-154 39-144 34-135C43-128 37-119 40-114C45-105 34-100 34-94C38-84 27-77 26-70C24-56 15-45 14-31C12-13 16-4 9 1Q0 6-9 0Z';
+    const c=clip(id,d);
+    let greens=path(d,'url(#leaf)',outline('#344b2c',1.6));
+    let veins='';
+    for(let i=0;i<62;i++) {
+      const px=random(-36,34),py=random(-155,-63),span=random(3,13);
+      const fold='M'+pair(px,py)+'q'+points([[-4,-span*.4],[2,-span]])+'q'+points([[1,span*.32],[6,span*.26]])+'q'+points([[-7,span*.27],[-8,span*.74]])+'Z';
+      veins+=path(fold,pick(['#213f2b','#b4ae61','#9da456']),alpha(random(.12,.3)));
+    }
+    for(let s of [-1,1]) {
+      for(let i=0;i<9;i++) {
+        const y0=-46-i*12.1+random(-3,3), size=18+16*Math.sin(i*.32), end=y0-random(14,29);
+        const x0=Math.sin(y0/31)*3;
+        const v='M'+pair(x0,y0)+'Q'+pair(s*size*.54,y0-4)+' '+pair(s*size*.73,end+4)+'T'+pair(s*(size+3),end-3);
+        veins+=line(v,'#253f2c',2.7,.43);
+        veins+=line(v,'#a3ad69',1.25,.73,'transform="translate(-.5 -1)"');
+        for(let j=0;j<3;j++){
+          const px=s*size*(.38+j*.19),py=y0-3-j*3.8;
+          veins+=line('M'+pair(px,py)+'q'+pair(s*2,-3)+' '+pair(s*random(4,9),-8),'#bbbd76',.75,.52);
+        }
+      }
+    }
+    for(let i=0;i<220;i++){
+      const px=random(-37,39),py=random(-165,-43);
+      veins+=line('M'+pair(px,py)+'l'+pair(random(-2,2),random(-2.5,-.5)),pick(['#d7cb87','#2b4d31']),random(.5,1.05),random(.15,.49));
+    }
+    greens+=group(veins,c);
+    greens+=path('M-9 1C-19-12-18-29-16-44C-13-59-8-68-6-79C-1-96 2-117 1-146C6-121 4-102 4-83C6-66 10-57 12-43C16-24 19-8 10 1Q0 7-9 1Z','url(#stalk)',outline('#6c844a',1));
+    for(let j=0;j<7;j++) {
+      const xx=-12+j*4;
+      greens+=line('M'+pair(xx*.6,-2)+'Q'+pair(xx*1.26,-22)+' '+pair(xx*.83,-45)+'T'+pair(xx*.16+1,-88-Math.abs(3-j)*-7),pick(['#e6d89a','#708d4c','#b2bd74']),random(.7,1.35),.78);
+    }
+    return group(greens+tex(d,.6),'transform="translate('+pair(x,y)+') rotate('+rotation+') scale('+pair(sx,sy)+')"');
+  }
+  art+=leaf('greens1',554,372,-6,.77,.68);
+  art+=leaf('greens2',553,378,16,.94,.95);
+  art+=leaf('greens3',557,384,39,1.0,1.09);
+  art+=leaf('greens4',563,386,61,.87,1);
+  art+=leaf('greens5',566,388,79,.68,.77);
+
+  function mushroom(x,y,rotation,scale,crossCut=false) {
+    const cap='M-63 6C-64-9-44-32-19-39C7-47 37-38 54-19C66-6 69 7 62 16C49 30 17 35-13 32C-39 29-61 20-63 6Z';
+    let m=path('M-63 4C-58 38-10 49 33 36Q63 30 65 12Q9 23-63 4Z','url(#flesh)',outline('#643c26',1.6));
+    for(let i=0;i<34;i++){
+      const a=i/33*Math.PI;
+      const px=63*Math.cos(a),py=13+25*Math.sin(a);
+      m+=line('M'+pair(px,py)+'q'+pair(-px*.1,-1)+' '+pair(-px*.16,-5.8),'#996b3e',1.4,.74);
+    }
+    m+=path(cap,'url(#cap)',outline('#643a25',2));
+    let skin='';
+    for(let i=0;i<550;i++){
+      const px=random(-64,66),py=random(-42,33);
+      const d='M'+pair(px,py)+'q'+pair(random(.2,1.7),-.8)+' '+pair(random(1.4,3.4),random(-1,1.2));
+      skin+=line(d,pick(['#5a3526','#e6af72','#f2c88b','#a46337']),random(.5,1.5),random(.17,.58));
+    }
+    m+=group(skin,'clip-path="url(#capClip)"');
+    m+=line('M-54-6Q-40-29-16-33M-8-35Q1-37 10-35','#e8af72',1.6,.8);
+    // A shallow flower cut exposes the pale flesh under the browned skin.
+    if(crossCut) {
+      m+=path('M-38-22Q-22-14-7-10Q5-20 28-27Q18-16 3-6Q22 1 37 12Q16 7-8-2Q-20 9-34 15Q-30 6-17-7Q-31-14-38-22Z','#754427');
+      m+=path('M-38-22Q-20-13-6-9Q10-21 28-27Q18-15 0-6Q22 2 37 12Q18 7-8-4Q-21 9-34 15Q-28 5-14-8Q-29-15-38-22Z','url(#flesh)');
+      m+=line('M-30 12L-6-7 24-24','#ffdd9d',1.2,.8);
+    } else {
+      m+=path('M-39-21Q-20-18-5-12Q-4-22-9-32Q2-26 6-14Q19-22 36-22Q25-14 15-7Q29-3 42 9Q23 4 7 1Q5 12-3 22Q-6 10-6-2Q-22 5-40 6Q-28-3-16-8Q-32-14-39-21Z','#704128');
+      m+=path('M-38-20Q-20-16-3-11Q-4-23-9-32Q2-25 6-12Q22-21 36-22Q24-12 11-6Q29-1 42 9Q23 2 4-1Q4 12-3 22Q-4 9-4-4Q-23 4-40 6Q-27-1-12-8Q-28-13-38-20Z','url(#flesh)');
+      m+=line('M-35-19Q-18-11-8-9M-2 18L0-6 31-20','#f6d49a',1.3,.89);
+    }
+    return group(m+tex(cap,.56),'transform="translate('+pair(x,y)+') rotate('+rotation+') scale('+scale+')"');
+  }
+  art+=mushroom(452,308,14,.91,true);
+  art+=mushroom(346,343,-17,1.02);
+
+  // Each strand follows its own cubic spline through a loosely folded bundle.
+  let bundleId=0;
+  const noodleColors=['#edbd66','#ebbb63','#f0c773','#e3ae56','#e9ba69','#f1c776'];
+  function noodleBundle(control,count,space,width) {
+    let strands='';
+    const bundle=bundleId++;
+    for(let i=0;i<count;i++) {
+      const phase=random(0,6.28),offset=(i-(count-1)/2)*space;
+      const pts=control.map(([x,y],j)=>[x+offset*(.32+Math.sin(j*1.3)*.43)+Math.sin(j*.67+phase)*3.5+random(-1,1),y+offset*(.77+.23*Math.sin(j*1.2))+Math.sin(j+phase)*2.75]);
+      const id='strand'+bundle+'x'+i, color=pick(noodleColors);
+      defs.insertAdjacentHTML('beforeend','<linearGradient id="'+id+'"><stop stop-color="#ac692f"/><stop offset=".09" stop-color="'+color+'"/><stop offset=".45" stop-color="'+color+'"/><stop offset=".72" stop-color="#edc779"/><stop offset=".94" stop-color="#d5a153"/><stop offset="1" stop-color="#af6a31"/></linearGradient>');
+      // Offset each side along the normal so the ends slip gradually below the broth.
+      const sample=[];
+      for(let k=1;k<pts.length;k+=3) {
+        for(let n=0;n<=15;n++) {
+          if(k>1 && !n) continue;
+          const t=n/15,u=1-t;
+          sample.push([0,1].map(axis=>u*u*u*pts[k-1][axis]+3*u*u*t*pts[k][axis]+3*u*t*t*pts[k+1][axis]+t*t*t*pts[k+2][axis]));
+        }
+      }
+      const left=[],right=[],shine=[];
+      const w=width*random(.91,1.11);
+      for(let k=0;k<sample.length;k++) {
+        const [x,y]=sample[k],next=sample[Math.min(k+1,sample.length-1)],prev=sample[Math.max(k-1,0)];
+        const dx=next[0]-prev[0],dy=next[1]-prev[1],len=Math.hypot(dx,dy)||1;
+        const t=k/(sample.length-1), taper=Math.min(1,.09+Math.min(t,1-t)*15);
+        const half=w*.5*taper*(1+.1*Math.sin(k*.10+phase));
+        left.push([x-dy/len*half,y+dx/len*half]);
+        right.push([x+dy/len*half,y-dx/len*half]);
+        if(t>.055 && t<.94) shine.push([x+dy/len*half*.41,y-dx/len*half*.41]);
+      }
+      const shape=poly([...left,...right.reverse()]);
+      strands+=path(shape,'url(#'+id+')',outline('#a36c35',1));
+      strands+=line(curve(shine),'#ffe0a0',w*.21,.77);
+    }
+    return strands;
+  }
+  let noodles='';
+  noodles+=noodleBundle([[187,405],[216,418],[194,372],[237,369],[277,359],[279,387],[321,386],[361,387],[345,350],[389,349],[420,349],[439,364],[475,343]],4,4.4,5.5);
+  noodles+=noodleBundle([[198,405],[207,377],[246,366],[268,375],[294,389],[279,416],[309,417],[352,419],[350,366],[392,365],[426,360],[451,388],[487,366],[509,358],[506,344],[536,343]],5,4.9,5.75);
+  noodles+=noodleBundle([[213,420],[266,438],[246,381],[296,380],[343,379],[336,428],[374,421],[421,419],[396,371],[447,361],[482,351],[503,378],[546,360]],5,4.85,5.7);
+  noodles+=noodleBundle([[249,432],[297,463],[292,405],[318,397],[353,384],[363,433],[402,420],[447,406],[427,383],[473,380],[512,377],[518,407],[550,393],[569,383],[564,374],[586,375]],5,4.8,5.8);
+  noodles+=noodleBundle([[296,446],[314,453],[328,449],[347,426],[371,395],[394,424],[419,433],[458,449],[460,407],[494,405],[532,402],[525,433],[566,420],[581,416],[581,405],[591,405]],4,4.95,5.6);
+  noodles+=noodleBundle([[228,410],[254,391],[263,412],[275,417],[306,434],[308,389],[340,389],[368,390],[376,414],[404,404],[433,395],[433,376],[464,377]],2,4.8,5.3);
+  noodles+=noodleBundle([[329,454],[354,466],[360,435],[379,431],[402,424],[422,454],[450,451],[480,446],[474,418],[504,416],[529,412],[548,439],[573,429],[594,421],[593,409],[615,412]],3,4.7,5.6);
+  noodles+=noodleBundle([[401,460],[428,467],[452,468],[468,451],[483,435],[483,432],[509,433],[534,435],[547,451],[572,443]],2,5.2,5);
+  art+=group(noodles,'clip-path="url(#soupClip)"');
+
+  // Slender cuts of carrot, tucked between the mushrooms and greens.
+  let carrots='';
+  for(let i=0;i<19;i++) {
+    const x=random(446,494),y=random(362,384),dx=random(34,74),dy=random(-45,-20);
+    const d='M'+pair(x,y)+'q'+pair(dx*.6,dy*.7-6)+' '+pair(dx,dy);
+    carrots+=line(d,'#a34727',random(3.8,6.4),1);
+    carrots+=line(d,pick(['#e8873d','#e99446','#d97833','#ef9c50']),random(2.8,4.3),1,'transform="translate(0 -.8)"');
+    carrots+=line(d,'#ffbf68',.82,.76,'transform="translate(0 -1.9)"');
+  }
+  art+=carrots;
+
+  function tofu(id,x,y,angle,s) {
+    const top='M-35-10Q-36-13-32-15L-8-30Q-6-31-3-30L35-18Q38-17 37-14L9 3Q7 4 4 3Z';
+    const front='M-35-12L7 2L9 31Q9 33 5 32L-32 19Q-34 18-34 15Z';
+    const side='M7 2L37-16L35 13Q34 16 31 18L9 32Z';
+    let block=path(front,'url(#tofuFront)',outline('#9f693a',1.5))+path(side,'url(#tofuSide)',outline('#895a32',1.5))+path(top,'url(#tofuTop)',outline('#ac7c44',1.25));
+    const cuts=[top,front,side];
+    for(let j=0;j<cuts.length;j++) {
+      const pigments=new Map();
+      for(let i=0;i<(j===0?390:300);i++){
+        const px=random(-37,38),py=random(j===0?-31:-16,j===0?4:33),w=random(.5,2.3),h=w*random(.35,.85);
+        pigment(pigments,'M'+pair(px-w,py)+'q'+pair(w*.9,-h*1.7)+' '+pair(w*1.7,-h*.38)+'l'+pair(-w*.29,h)+'Z',pick(['#b87e43','#905b32','#ffdda1','#d29f60','#fff0bb']),random(.36,.86));
+      }
+      let marks=paint(pigments);
+      if(j===0) {
+        for(let n=0;n<19;n++) {
+          const cx=random(-32,35),cy=random(-28,-1),rx=random(1,5.1),ry=random(.7,2.4),edge=[];
+          for(let k=0;k<16;k++){
+            const theta=2*Math.PI*k/16,r=random(.45,1.13);
+            edge.push([cx+rx*r*Math.cos(theta),cy+ry*r*Math.sin(theta)]);
+          }
+          marks+=path(poly(edge),pick(['#aa6c32','#b7803d','#bf8846']),alpha(random(.43,.88)));
+        }
+      }
+      block+=group(marks,clip(id+j,cuts[j]));
+    }
+    block+=line('M-31-13L-7-28 32-17M-31-11L6 1 34-14','#ffe2a6',1.7,.84);
+    block+=path('M-33 13Q-23 19-16 21T8 27Q23 23 35 11L34 15Q25 24 9 32Q-12 25-32 19Z','#ab642c',alpha(.46));
+    block+=line('M-29 17Q-24 17-22 18M13 28Q19 27 23 23','#f0b764',1.1,.83);
+    block+=line('M6 5L7 27','#f4cc8a',1.45,.73);
+    return group(block+tex(poly([[-35,-12],[-7,-31],[38,-17],[35,16],[8,33],[-34,18]]),.48),'transform="translate('+pair(x,y)+') rotate('+angle+') scale('+s+')"');
+  }
+  art+=ellipse(669,382,35,7,'#985b28',alpha(.48))+tofu('tofuA',664,360,7,.89);
+  art+=ellipse(722,413,35,7,'#995625',alpha(.44))+tofu('tofuB',726,390,-10,.96);
+  art+=ellipse(635,435,43,9,'#9b5425',alpha(.49))+tofu('tofuC',637,405,8,1.18);
+
+  function onion(x,y,a,s) {
+    // Two irregular concentric contours leave the soup visible through each slice.
+    const ring='M-10-1C-9-6-1-7 6-5C13-3 12 2 8 5C2 9-7 7-10 3Q-11 2-10-1ZM-5 .2C-6 3 1 4 5 2Q9-.3 5-2Q-1-4-5 .2Z';
+    let o=path(ring,'#476038','fill-rule="evenodd" transform="translate(0 2.1)"');
+    o+=path(ring,pick(['#98ac60','#a8b967','#8ca454','#b6bf78']),'fill-rule="evenodd" '+outline('#677f40',.8));
+    o+=line('M-8-1Q-4-7 5-4','#d5d899',1.4,.94);
+    o+=line('M-4 2Q1 4 5 1','#e0dba0',1.1,.77);
+    return group(o,'transform="translate('+pair(x,y)+') rotate('+f(a)+') scale('+f(s)+')"');
+  }
+  const clusters=[[512,387,43,17,12],[578,422,30,26,9],[271,360,24,12,5],[451,466,54,5,5],[756,363,21,8,4],[360,405,37,13,4],[725,436,15,5,3]];
+  for(const [x,y,w,h,n] of clusters) {
+    for(let i=0;i<n;i++) art+=onion(x+random(-w,w),y+random(-h,h),random(-42,36),random(.53,1));
+  }
+  // Toasted sesame, crushed chili, and a few chive tips finish the surface.
+  let seasoning='';
+  for(let i=0;i<136;i++){
+    const a=random(0,Math.PI*2),r=Math.sqrt(random()),x=504+Math.cos(a)*r*306,y=397+Math.sin(a)*r*78;
+    const ang=random(-80,80);
+    if(i%4===0) {
+      seasoning+=path(poly([[x-2,y],[x-.6,y-1.8],[x+2.7,y-1],[x+1.9,y+.9],[x-.7,y+1.6]]),pick(['#903e21','#b94e25','#b5572d']));
+    } else {
+      const s=random(.62,1.16);
+      seasoning+=group(path('M-2.8.1Q-2-1.7.5-1.3Q3.4-.9 3.3.3Q1.6 1.8-.8 1.3Q-2.8 1.1-2.8.1Z',pick(['#f5dfad','#ead09a','#d4b480','#f8dfab']),outline('#b58c58',.55)),'transform="translate('+pair(x,y)+') rotate('+f(ang)+') scale('+f(s)+')"');
+    }
+  }
+  art+=seasoning;
+  art+=ellipse(500,397,332,93,'url(#tooth)','clip-path="url(#soupClip)" opacity=".22" style="mix-blend-mode:soft-light"');
+  let reflections='';
+  for(let i=0;i<20;i++){
+    const a=random(.12,3),x=500+Math.cos(a)*random(294,326),y=396+Math.sin(a)*random(85,94);
+    reflections+=line('M'+pair(x,y)+'q4 1 9 -.3','#ffda90',random(.8,1.8),.76,'class="glint" style="--period:'+f(random(2.2,4.1))+'s;--delay:-'+f(random(0,5))+'s"');
+  }
+  art+=group(reflections,'clip-path="url(#soupClip)"');
+  art+=line(curve(row(0,-1.55,1.55)),'#e9b27d',2.65,.91);
+  art+=line(curve(row(-.012,-1.18,.62)),'#ffdb9b',1.45,.89);
+  dish.innerHTML=art;
+
+  const wisps=[
+    ['M397 309C376 281 419 271 418 248C417 228 379 223 383 197C387 171 426 166 427 142C432 170 400 181 398 201C396 219 431 230 429 249C427 276 388 283 397 309Z',10,-5],
+    ['M481 276C509 246 461 239 460 211C458 183 507 169 507 140C507 111 464 109 478 74C481 65 496 49 500 34C504 60 480 76 487 93C496 111 523 116 522 139C520 176 471 190 473 210C476 231 524 245 481 276Z',12,-7],
+    ['M549 306C570 277 527 264 540 235C553 208 584 206 579 179C575 157 549 151 555 125C562 151 588 152 591 179C595 212 553 222 551 242C547 263 580 283 549 306Z',9.5,-3],
+    ['M628 276C617 250 647 233 648 216C647 203 627 192 635 177C637 171 645 163 655 156C641 172 635 179 641 190C647 201 661 206 657 221C649 241 624 249 628 276Z',11,-8]
+  ];
+  let atmosphere='';
+  // Let a bend travel up each ribbon while its root stays near the hot food.
+  function movingVapor(d,time,delay) {
+    const rootY=Number(d.match(/^M[\d.]+ ([\d.]+)/)[1]);
+    const frames=Array.from({length:7},(_,step)=>d.replace(/([MCQ])([^MCQZ]+)/g,(_,command,coords)=>{
+      const values=coords.trim().split(/\s+/).map(Number),positions=[];
+      for(let i=0;i<values.length;i+=2) {
+        const y=values[i+1],height=Math.max(0,rootY-y),phase=step*Math.PI/3+delay;
+        const strength=Math.min(1,height/130);
+        positions.push(pair(values[i]+strength*(7*Math.sin(phase+height*.021)+2.3*Math.sin(phase*2+height*.036)),y+strength*2.5*Math.cos(phase+height*.03)));
+      }
+      return command+positions.join(' ');
+    }));
+    const anim='<animate attributeName="d" dur="'+time+'s" values="'+frames.join(';')+'" begin="'+delay+'s" repeatCount="indefinite"/>';
+    return '<path d="'+d+'" fill="url(#vapor)" filter="url(#haze)">'+anim+'</path><path d="'+d+'" fill="url(#vapor)" filter="url(#mist)" opacity=".46">'+anim+'</path>';
+  }
+  for(const [d,time,delay] of wisps) {
+    atmosphere+=group(movingVapor(d,time,delay),'class="steam" style="--period:'+time+'s;--delay:'+delay+'s"');
+  }
+  atmosphere+=group(path('M482 274C503 246 478 241 472 219C463 187 501 173 499 148C496 124 465 117 457 102C441 76 472 50 483 40C464 66 455 82 464 99C472 113 508 126 508 147C510 178 472 193 478 217C485 239 506 249 482 274Z','url(#vapor)','opacity=".43" filter="url(#haze)"')+path('M554 281C567 254 541 247 551 226C559 212 584 198 573 185C564 174 541 177 536 160C544 177 566 169 582 185C596 201 571 217 561 229C546 246 573 259 554 281Z','url(#vapor)','opacity=".46" filter="url(#haze)"'),'class="steam" style="--period:8s;--delay:-5s"');
+  for(let i=0;i<36;i++){
+    const x=random(151,847),y=random(131,436),r=random(.6,1.65);
+    atmosphere+=ellipse(x,y,r,r*.86,pick(['#bc8953','#d7ab6b','#d4be8f']),'class="mote" style="--period:'+f(random(7,17))+'s;--delay:-'+f(random(0,14))+'s;--drift:'+f(random(-15,17))+'px"');
+  }
+  air.innerHTML=atmosphere;
+
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+  if(reduced.matches) svg.pauseAnimations();
+  let tx=0,ty=0,px=0,py=0,frame=0;
+  function respond() {
+    px+=(tx-px)*.075; py+=(ty-py)*.075;
+    dish.setAttribute('transform','translate('+pair(px*3.5,py*1.8)+') rotate('+f(px*.28)+' 500 580)');
+    air.setAttribute('transform','translate('+pair(px*11,py*3.5)+') rotate('+f(px*2.4)+' 500 307)');
+    if(Math.abs(px-tx)+Math.abs(py-ty)>.002) frame=requestAnimationFrame(respond);
+    else frame=0;
+  }
+  function aim(x,y) {
+    if(reduced.matches) return;
+    tx=x;ty=y;
+    if(!frame) frame=requestAnimationFrame(respond);
+  }
+  let lastWake=-1000;
+  const liquid=document.querySelector('#ripples');
+  function stir(e) {
+    if(reduced.matches || e.timeStamp-lastWake<340) return;
+    const matrix=dish.getScreenCTM();
+    if(!matrix) return;
+    const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(matrix.inverse());
+    if(((p.x-500)/332)**2+((p.y-398)/93)**2>1) return;
+    lastWake=e.timeStamp;
+    const wave=document.createElementNS('http://www.w3.org/2000/svg','g');
+    wave.setAttribute('transform','translate('+pair(p.x,p.y)+')');
+    wave.innerHTML=ellipse(0,0,15,4.6,'none',outline('#f8c97c',1.1))+
+      line(ripple(0,0,10,3,.21,3.5),'#fada92',.75);
+    liquid.appendChild(wave);
+    const rings=wave.animate([{opacity:.5,scale:'.3'},{opacity:0,scale:'2.3'}],{duration:1550,easing:'ease-out'});
+    wave.style.transformBox='fill-box';
+    wave.style.transformOrigin='center';
+    rings.onfinish=()=>wave.remove();
+  }
+  window.addEventListener('pointermove',e=>{
+    aim(2*e.clientX/innerWidth-1,2*e.clientY/innerHeight-1);
+    stir(e);
+  },{passive:true});
+  window.addEventListener('pointerdown',stir,{passive:true});
+  document.documentElement.addEventListener('pointerleave',()=>aim(0,0));
+  window.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse') aim(0,0)});
+  window.addEventListener('blur',()=>aim(0,0));
+  reduced.addEventListener('change',()=>{
+    if(reduced.matches) svg.pauseAnimations();
+    else svg.unpauseAnimations();
+    if(frame) cancelAnimationFrame(frame);
+    liquid.replaceChildren();
+    frame=0; tx=ty=px=py=0;
+    dish.removeAttribute('transform');air.removeAttribute('transform');
+  });
+})();
+</script>
+</body>
+</html>

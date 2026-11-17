@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Vegan ramen</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #100e0e; }
+  body { height: 100dvh; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="scene" role="img" aria-label="Steam rises from a dark ceramic bowl of golden ramen with seared tofu, shiitake, bok choy, and nori."></canvas>
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('scene');
+  const screen = canvas.getContext('2d', { alpha: false });
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const tau = Math.PI * 2;
+  const mix = (a, b, t) => a + (b - a) * t;
+  const clamp = (x, low = 0, high = 1) => Math.max(low, Math.min(high, x));
+  const smooth = x => {
+    const t = clamp(x);
+    return t * t * (3 - 2 * t);
+  };
+
+  let seed = 72436;
+  function random() {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+  const between = (a, b) => mix(a, b, random());
+  const choose = values => values[Math.floor(random() * values.length)];
+
+  function layer(width, height) {
+    const surface = document.createElement('canvas');
+    surface.width = width;
+    surface.height = height;
+    return surface;
+  }
+
+  function linear(ctx, x, y, x1, y1, stops) {
+    const gradient = ctx.createLinearGradient(x, y, x1, y1);
+    stops.forEach(([at, color]) => gradient.addColorStop(at, color));
+    return gradient;
+  }
+
+  function oval(ctx, x, y, rx, ry, fill, rotation = 0) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, rotation, 0, tau);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  function glow(ctx, x, y, rx, ry, stops) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(rx, ry);
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    stops.forEach(([at, color]) => gradient.addColorStop(at, color));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-1, -1, 2, 2);
+    ctx.restore();
+  }
+
+  function curve(ctx, data, color, width) {
+    ctx.beginPath();
+    ctx.moveTo(data[0], data[1]);
+    ctx.bezierCurveTo(...data.slice(2));
+    ctx.lineWidth = width;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+  }
+
+  function trace(ctx, points, closed = false) {
+    ctx.beginPath();
+    ctx.moveTo(...points[0]);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(...points[i]);
+    if (closed) ctx.closePath();
+  }
+
+  // Generate a fine, repeatable grain for the table and the ceramic glaze.
+  const grain = layer(256, 256);
+  const grainCtx = grain.getContext('2d');
+  const grainPixels = grainCtx.createImageData(grain.width, grain.height);
+  for (let i = 0; i < grainPixels.data.length; i += 4) {
+    const light = random() < .49;
+    const value = light ? 239 : 2;
+    grainPixels.data[i] = value;
+    grainPixels.data[i + 1] = value;
+    grainPixels.data[i + 2] = light ? 229 : 5;
+    grainPixels.data[i + 3] = between(4, 69);
+  }
+  grainCtx.putImageData(grainPixels, 0, 0);
+
+  const backdrop = layer(1, 1);
+  let width, height, dpr, scale, originX, originY;
+  function paintBackdrop() {
+    backdrop.width = canvas.width;
+    backdrop.height = canvas.height;
+    const ctx = backdrop.getContext('2d', { alpha: false });
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = linear(ctx, 0, 0, 0, height, [
+      [0, '#09090b'], [.51, '#100e10'], [.74, '#151211'], [1, '#0b0c0e']
+    ]);
+    ctx.fillRect(0, 0, width, height);
+    ctx.translate(originX, originY);
+    ctx.scale(scale, scale);
+
+    glow(ctx, -175, -149, 655, 487, [
+      [0, 'rgba(110,62,38,.65)'], [.38, 'rgba(90,46,30,.50)'],
+      [.72, 'rgba(55,29,24,.32)'], [1, 'rgba(34,17,17,0)']
+    ]);
+    glow(ctx, 326, -130, 495, 377, [
+      [0, 'rgba(26,45,43,.32)'], [.62, 'rgba(20,32,34,.13)'], [1, 'rgba(15,22,24,0)']
+    ]);
+
+    // A very soft falloff gives the counter depth without a hard horizon.
+    ctx.fillStyle = linear(ctx, 0, 38, 0, 355, [
+      [0, 'rgba(11,11,13,0)'], [.28, 'rgba(14,13,14,.13)'],
+      [.75, 'rgba(17,17,19,.59)'], [1, 'rgba(13,13,15,.83)']
+    ]);
+    const bounds = [width / (2 * scale) + 4, height / scale];
+    ctx.fillRect(-bounds[0], 38, bounds[0] * 2, bounds[1]);
+    glow(ctx, -128, 217, 570, 227, [
+      [0, 'rgba(137,84,48,.27)'], [.46, 'rgba(94,54,35,.22)'],
+      [.75, 'rgba(57,38,29,.12)'], [1, 'rgba(39,25,23,0)']
+    ]);
+    glow(ctx, 290, 215, 492, 205, [
+      [0, 'rgba(55,71,65,.15)'], [.55, 'rgba(33,50,51,.1)'], [1, 'rgba(22,32,37,0)']
+    ]);
+
+    seed = 23092;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3100; i++) {
+      const y = between(73, Math.min(bounds[1], 570));
+      const x = between(-bounds[0], bounds[0]);
+      const distance = Math.hypot((x + 120) / 650, (y - 238) / 310);
+      const opacity = clamp(1 - distance) * between(.025, .12);
+      const length = between(3, 84) * (.55 + (y - 73) / 330);
+      const tilt = between(-1.8, 2.4) + x * .009;
+      const color = random() < .46 ? '188,139,98' : '4,6,8';
+      curve(ctx, [x, y, x + length * .2, y + tilt * .7, x + length * .7, y + tilt * .3, x + length, y + tilt],
+        'rgba(' + color + ',' + opacity + ')', between(.25, 1.35));
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = .125;
+    ctx.fillStyle = ctx.createPattern(grain, 'repeat');
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalAlpha = 1;
+  }
+
+  const bowl = layer(1640, 1020);
+  const art = bowl.getContext('2d');
+  art.scale(2, 2);
+  art.translate(410, 235);
+  art.lineJoin = 'round';
+  art.lineCap = 'round';
+
+  function paintCeramic(ctx) {
+    const body = new Path2D('M -368 -2 C -364 66 -331 150 -267 196 C -228 225 -186 239 -137 245 C -63 257 63 257 137 245 C 186 239 228 225 267 196 C 331 150 364 66 368 -2 Z');
+
+    oval(ctx, 1, 230, 158, 28, '#161815');
+    oval(ctx, 1, 235, 153, 24, linear(ctx, 0, 217, 0, 259, [
+      [0, '#212924'], [.55, '#161d1b'], [.83, '#17201d'], [.94, '#4e3a28'], [1, '#1b140f']
+    ]));
+    ctx.save();
+    ctx.clip(body);
+    ctx.fillStyle = linear(ctx, -365, -12, 365, 124, [
+      [0, '#171b18'], [.12, '#30382c'], [.25, '#4b5949'], [.42, '#354b43'],
+      [.6, '#223a38'], [.78, '#172c30'], [.89, '#16252a'], [1, '#10191d']
+    ]);
+    ctx.fillRect(-370, -5, 740, 269);
+    ctx.fillStyle = linear(ctx, 0, 14, 0, 256, [
+      [0, 'rgba(1,6,9,.28)'], [.44, 'rgba(7,15,16,0)'], [.64, 'rgba(10,18,18,.08)'],
+      [.82, 'rgba(6,10,12,.53)'], [1, 'rgba(5,8,9,.86)']
+    ]);
+    ctx.fillRect(-370, -5, 740, 269);
+    glow(ctx, -258, 106, 257, 134, [
+      [0, 'rgba(214,162,92,.27)'], [.48, 'rgba(174,128,78,.12)'], [1, 'rgba(123,78,42,0)']
+    ]);
+    glow(ctx, -73, 158, 292, 91, [
+      [0, 'rgba(88,135,120,.15)'], [.75, 'rgba(83,130,110,.07)'], [1, 'rgba(94,115,102,0)']
+    ]);
+    glow(ctx, 263, 97, 149, 128, [
+      [0, 'rgba(77,119,139,.1)'], [1, 'rgba(77,119,139,0)']
+    ]);
+    glow(ctx, -289, 82, 55, 91, [
+      [0, '#eac58929'], [.36, '#b89a6824'], [1, '#b89a6800']
+    ]);
+    glow(ctx, -212, 169, 98, 74, [
+      [0, '#adab7825'], [.47, '#a4a77918'], [1, '#bda67900']
+    ]);
+
+    function cubic(a, b, c, d, t) {
+      const q = 1 - t;
+      return q * q * q * a + 3 * q * q * t * b + 3 * q * t * t * c + t * t * t * d;
+    }
+
+    function shell(angle, depth) {
+      const t = depth < .73 ? depth / .73 : (depth - .73) / .27;
+      const radius = depth < .73 ? cubic(368, 364, 331, 267, t) : cubic(267, 228, 186, 137, t);
+      const edge = depth < .73 ? cubic(-2, 66, 150, 196, t) : cubic(196, 225, 239, 245, t);
+      const arch = Math.max(3, 147 + 102 * depth - edge);
+      return [Math.cos(angle) * radius, edge + Math.sin(angle) * arch];
+    }
+
+    for (let i = 0; i < 96; i++) {
+      const angle = (i + between(-.37, .37)) * Math.PI / 96;
+      const start = between(.04, .23);
+      const end = between(.42, .81);
+      const points = [];
+      const bend = between(-.033, .033);
+      for (let v = 0; v <= 16; v++) {
+        const t = mix(start, end, v / 16);
+        points.push(shell(angle + bend * Math.sin(t * 4), t));
+      }
+      trace(ctx, points);
+      ctx.lineWidth = between(.31, 1.9);
+      ctx.strokeStyle = random() < .55 ? 'rgba(3,9,12,.12)' : 'rgba(187,176,132,.055)';
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 65; i++) {
+      const depth = i / 68;
+      const start = between(.0, .6);
+      const end = Math.PI - between(.0, .6);
+      const points = [];
+      const wobble = between(.0015, .0070);
+      for (let v = 0; v <= 70; v++) {
+        const angle = mix(start, end, v / 70);
+        points.push(shell(angle, depth + wobble * Math.sin(angle * 11 + i)));
+      }
+      trace(ctx, points);
+      ctx.strokeStyle = random() < .51 ? 'rgba(3,9,10,.19)' : 'rgba(176,164,129,.12)';
+      ctx.lineWidth = between(.32, 1.4);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 12900; i++) {
+      const x = between(-367, 367);
+      const y = between(30, 248);
+      const opacity = between(.025, .25) * (1 - y / 379);
+      const color = choose(['13,13,12', '11,21,21', '4,10,12', '138,145,119', '175,144,101']);
+      oval(ctx, x, y, between(.17, 1.69), between(.15, .89), 'rgba(' + color + ',' + opacity + ')', between(-.5, .5));
+    }
+
+    ctx.globalAlpha = .23;
+    ctx.fillStyle = ctx.createPattern(grain, 'repeat');
+    ctx.fillRect(-370, 0, 740, 261);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    oval(ctx, 0, 0, 369.5, 149.5, '#191916');
+    oval(ctx, 0, -2, 367, 148.4, linear(ctx, -245, -115, 259, 129, [
+      [0, '#b48150'], [.18, '#8d603d'], [.33, '#755238'], [.52, '#544436'],
+      [.69, '#8d6948'], [.86, '#654738'], [1, '#3d3430']
+    ]));
+    oval(ctx, 0, -1, 361.5, 142.6, linear(ctx, 0, -138, 0, 144, [
+      [0, '#23251d'], [.26, '#28261d'], [.5, '#533c24'],
+      [.77, '#8e592f'], [.94, '#594029'], [1, '#242725']
+    ]));
+    oval(ctx, 0, 4, 348, 132, '#492613');
+
+    for (let i = 0; i < 4200; i++) {
+      const a = between(0, tau);
+      const inset = between(0, 1);
+      const x = Math.cos(a) * mix(365.7, 355, inset);
+      const y = Math.sin(a) * mix(146.5, 139, inset) - 2;
+      oval(ctx, x, y, between(.18, 1.45), between(.16, .68),
+        choose(['#492d2452', '#e4a56b58', '#1c201b81', '#ddaf8d52', '#44352b84']));
+    }
+
+    const glazeArcs = [
+      [3.24, 4.12, 365, 147, '#e4b17c88', 1.65],
+      [3.44, 3.87, 366, 148, '#f8c994aa', .85],
+      [2.34, 3.19, 367, 147, '#d49d6e8e', 1.8],
+      [2.59, 3.06, 367, 147.5, '#ffd39b93', .8],
+      [.33, 1.2, 365, 147, '#b2aa924a', 1.2],
+      [.91, 2.47, 368.5, 149.2, '#c585595c', 1.05]
+    ];
+    for (const [start, end, rx, ry, color, size] of glazeArcs) {
+      ctx.beginPath();
+      ctx.ellipse(0, -1.5, rx, ry, 0, start, end);
+      ctx.lineWidth = size;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+    }
+  }
+
+  function brothMask(ctx) {
+    ctx.beginPath();
+    ctx.ellipse(0, 3.5, 348, 132, 0, 0, tau);
+    ctx.clip();
+  }
+
+  function paintBroth(ctx) {
+    ctx.save();
+    brothMask(ctx);
+    ctx.fillStyle = linear(ctx, -154, -127, 141, 134, [
+      [0, '#744420'], [.23, '#ad692e'], [.4, '#be7c38'],
+      [.66, '#965122'], [.87, '#7e3e1b'], [1, '#54321b']
+    ]);
+    ctx.fillRect(-350, -132, 700, 273);
+    glow(ctx, -115, -20, 254, 133, [
+      [0, 'rgba(255,188,96,.51)'], [.48, 'rgba(235,149,56,.32)'], [1, 'rgba(226,135,32,0)']
+    ]);
+    glow(ctx, 210, 42, 182, 101, [
+      [0, 'rgba(159,51,13,.32)'], [.63, 'rgba(148,40,16,.2)'], [1, 'rgba(95,25,14,0)']
+    ]);
+    glow(ctx, 0, 132, 288, 36, [
+      [0, 'rgba(64,24,9,.4)'], [1, 'rgba(59,26,12,0)']
+    ]);
+    for (let i = 0; i < 6600; i++) {
+      const x = between(-349, 349);
+      const y = between(-130, 135);
+      const size = between(.22, 2.1);
+      oval(ctx, x, y, size, size * between(.17, .48),
+        choose(['#f5c17b25', '#fead412d', '#50250e43', '#68300c56', '#ffda9330', '#ac3a1840']));
+    }
+
+    // Chili oil lenses, bright along the edge that catches the light.
+    for (let i = 0; i < 700; i++) {
+      const x = between(-345, 345);
+      const y = between(-127, 135);
+      const size = .42 + Math.pow(random(), 3.1) * 7.9;
+      const vertical = size * between(.29, .56);
+      const spin = between(-.27, .27);
+      oval(ctx, x + .4, y + .38, size * 1.1, vertical * 1.14, '#f7b85c48', spin);
+      oval(ctx, x, y, size, vertical, choose(['#9239199f', '#ad4a1bb7', '#65300e90', '#d87724c7', '#b85b229b']), spin);
+      if (size > 2.0) {
+        ctx.beginPath();
+        ctx.ellipse(x - .13, y - .07, size * .85, vertical * .91, spin, 3.3, 4.72);
+        ctx.strokeStyle = choose(['#ffcf8687', '#ffc46389', '#fca64770']);
+        ctx.lineWidth = between(.34, .78);
+        ctx.stroke();
+      }
+    }
+
+    for (let i = 0; i < 95; i++) {
+      const x = between(-349, 349);
+      const y = between(-124, 128);
+      const length = between(3, 38);
+      curve(ctx, [x, y, x + length * .28, y - 1.4, x + length * .78, y + 1.9, x + length, y + .4],
+        choose(['#ffd3842b', '#fac38538', '#6d2f183e', '#e9943b47']), between(.34, 1));
+    }
+
+    ctx.beginPath();
+    ctx.ellipse(0, 2, 345, 130, 0, Math.PI + .16, tau - .16);
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#48270f50';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, 3, 346, 131, 0, .22, Math.PI - .18);
+    ctx.strokeStyle = '#47240f63';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    for (const [rx, ry, start, end, color, lineWidth] of [
+      [339, 128, 2.65, 3.26, '#f3aa5880', 1.15],
+      [340, 127, 3.35, 3.51, '#ffc77165', 1.1],
+      [346, 129, 3.58, 3.86, '#d480445e', 1.47],
+      [343, 127, .36, .73, '#e48a4959', .92],
+      [340, 126, .84, 1.13, '#f1a35e3c', .70]
+    ]) {
+      ctx.beginPath();
+      ctx.ellipse(0, 3.5, rx, ry, 0, start, end);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function noodleNest(ctx, x, y, rx, ry, count) {
+    ctx.save();
+    const stack = [];
+    for (let i = 0; i < count; i++) {
+      const size = between(.23, .93);
+      const a = between(0, tau);
+      const offset = between(.12, .84) * (1 - size * .63);
+      const centerX = x + Math.cos(a) * rx * offset;
+      const centerY = y + Math.sin(a) * ry * offset;
+      const start = between(-Math.PI, Math.PI);
+      const length = between(1.6, 5.2);
+      const lean = between(-.32, .32);
+      const waves = between(3.2, 7.7);
+      const phase = between(0, tau);
+      const stride = between(.08, .37);
+      const points = [];
+      for (let step = 0; step <= 66; step++) {
+        const t = step / 66;
+        const angle = start + length * t;
+        const amp = 1 + stride * Math.sin(angle * waves + phase) +
+          .15 * Math.sin(angle * 3 + phase);
+        const dx = Math.cos(angle) * rx * size * amp;
+        const dy = Math.sin(angle) * ry * size * amp;
+        points.push([centerX + dx, centerY + dy + dx * lean * .35]);
+      }
+      stack.push({ points, size: between(2.6, 5.3), light: random() });
+    }
+
+    for (const { points, size, light } of stack) {
+      trace(ctx, points.map(([px, py]) => [px + .48, py + 1.6]));
+      ctx.lineWidth = size + 2.6;
+      ctx.strokeStyle = light < .34 ? '#4e210e9a' : '#6b2c12b4';
+      ctx.stroke();
+      trace(ctx, points);
+      ctx.lineWidth = size + .5;
+      ctx.strokeStyle = light < .34 ? '#9d5121' : '#b57030';
+      ctx.stroke();
+      trace(ctx, points.map(([px, py]) => [px - .36, py - .52]));
+      ctx.lineWidth = size * .73;
+      ctx.strokeStyle = light < .20 ? '#b97937' : light < .58 ? '#dc9949' : '#edb763';
+      ctx.stroke();
+      const start = Math.floor(between(1, 20));
+      const end = Math.floor(between(42, 65));
+      trace(ctx, points.slice(start, end).map(([px, py]) => [px - .48, py - size * .27]));
+      ctx.lineWidth = size * .21;
+      ctx.strokeStyle = light < .31 ? '#ffd081a6' : '#ffe6a6ce';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function nori(ctx, corners, tone) {
+    const [bottomLeft, topLeft, topRight, bottomRight] = corners;
+    const locate = (u, v) => [
+      mix(mix(topLeft[0], topRight[0], u), mix(bottomLeft[0], bottomRight[0], u), v),
+      mix(mix(topLeft[1], topRight[1], u), mix(bottomLeft[1], bottomRight[1], u), v)
+    ];
+    const edge = [];
+    for (let p = 0; p < 4; p++) {
+      for (let i = 0; i < 30; i++) {
+        const t = i / 30;
+        const shake = between(-.026, .028) * Math.sin(t * Math.PI);
+        edge.push(p === 0 ? locate(t, shake) : p === 1 ? locate(1 + shake, t) :
+          p === 2 ? locate(1 - t, 1 + shake) : locate(shake, 1 - t));
+      }
+    }
+    trace(ctx, edge, true);
+    ctx.strokeStyle = '#0f140edc';
+    ctx.lineWidth = 2.15;
+    ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = linear(ctx, topLeft[0], topLeft[1], bottomRight[0], bottomRight[1], [
+      [0, tone], [.42, '#343b25'], [.66, '#222e1e'], [1, '#131d16']
+    ]);
+    ctx.fillRect(-365, -243, 282, 232);
+    for (let i = 0; i < 54; i++) {
+      const [x, y] = locate(random(), random());
+      glow(ctx, x, y, between(3, 20), between(3, 14), [
+        [0, choose(['#95874e38', '#1b271db8', '#5d6f3e70', '#10181085'])], [1, '#3f442900']
+      ]);
+    }
+    for (let i = 0; i < 2050; i++) {
+      const [x, y] = locate(random(), random());
+      const size = between(.32, 2.85);
+      oval(ctx, x, y, size, size * between(.21, .7),
+        choose(['#a5a26642', '#6e7b404e', '#121a129a', '#161d1392', '#50623b86', '#b4aa7338']),
+        between(-1.2, .8));
+    }
+    for (let i = 0; i < 35; i++) {
+      const u = random();
+      const v = random();
+      const [x, y] = locate(u, v);
+      const [x1, y1] = locate(u + between(-.14, .12), v + between(.08, .32));
+      curve(ctx, [x, y, mix(x, x1, .25) - 4, mix(y, y1, .25), mix(x, x1, .7) + 4, mix(y, y1, .7), x1, y1],
+        choose(['#c0a97130', '#0a140eb4', '#77804a5a']), between(.35, 2.0));
+    }
+    ctx.restore();
+    trace(ctx, edge.slice(0, 31));
+    ctx.strokeStyle = '#a0955f64';
+    ctx.lineWidth = .96;
+    ctx.stroke();
+  }
+
+  function bokChoy(ctx, axis, spread, angle, palette) {
+    ctx.save();
+    ctx.translate(axis[0], axis[1]);
+    ctx.rotate(angle);
+    const length = axis[2];
+    const drift = axis[3];
+
+    function surface(t, side) {
+      const blade = .19 + 1.02 * Math.pow(Math.sin(Math.PI * t), .83);
+      const taper = t < .88 ? 1 : Math.pow((1 - t) / .12, .71);
+      const bump = 1 + .088 * Math.sin(t * 22 + side * 1.5) + .035 * Math.sin(t * 42);
+      const width = spread * blade * taper * (.41 + .64 * smooth((t - .06) / .61));
+      return [
+        drift * t * t + (side + .18 * Math.sin(t * 4)) * width * bump,
+        -t * length + side * (9 * Math.sin(t * 4.8) + 7 * t) * taper
+      ];
+    }
+
+    const outline = [];
+    for (let i = 0; i <= 58; i++) outline.push(surface(i / 58, -1));
+    for (let i = 58; i >= 0; i--) outline.push(surface(i / 58, 1));
+    trace(ctx, outline, true);
+    ctx.lineWidth = 1.7;
+    ctx.strokeStyle = '#162619c9';
+    ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = linear(ctx, 0, 0, drift, -length, [
+      [0, '#6b7d39'], [.14, '#9eb270'], [.34, palette[0]], [.55, palette[1]],
+      [.79, palette[2]], [1, palette[3]]
+    ]);
+    ctx.fillRect(-spread * 2 + Math.min(0, drift), -length - 18, 4 * spread + Math.abs(drift), length + 37);
+    glow(ctx, drift * .58 - 14, -length * .69, spread * .88, length * .31, [
+      [0, '#c2d47134'], [.68, '#bccd6218'], [1, '#bccd6200']
+    ]);
+
+    const right = [];
+    for (let i = 0; i <= 55; i++) right.push(surface(i / 55, .08));
+    for (let i = 55; i >= 0; i--) right.push(surface(i / 55, 1.16));
+    trace(ctx, right, true);
+    ctx.fillStyle = linear(ctx, -10, -length * .25, drift + spread, -length * .69, [
+      [0, '#0c33220d'], [.31, '#0b322644'], [.65, '#092b248a'], [1, '#10191e61']
+    ]);
+    ctx.fill();
+
+    for (let i = 0; i < 46; i++) {
+      const t = between(.23, .97);
+      const side = between(-1, 1);
+      const points = [];
+      for (let v = 0; v < 15; v++) {
+        const amount = v / 14;
+        points.push(surface(t + amount * Math.min(.095, (1 - t) * .81), side * amount));
+      }
+      trace(ctx, points);
+      ctx.strokeStyle = choose(['#d7e78625', '#193b2392', '#c5d27d3f', '#152f2470']);
+      ctx.lineWidth = between(.5, 2.6);
+      ctx.stroke();
+    }
+
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 8; i++) {
+        const t = .23 + i * .083;
+        const points = [];
+        for (let v = 0; v <= 22; v++) {
+          const amount = v / 22;
+          points.push(surface(t + .165 * amount - .074 * Math.sin(Math.PI * amount), side * amount * .91));
+        }
+        trace(ctx, points);
+        ctx.strokeStyle = side === -1 ? '#d5e38a55' : '#88ae684a';
+        ctx.lineWidth = mix(1.53, .49, i / 8);
+        ctx.stroke();
+      }
+    }
+
+    for (let i = 0; i < 1520; i++) {
+      const [x, y] = surface(random(), between(-1, 1));
+      oval(ctx, x, y, between(.22, 1.34), between(.26, 1.9),
+        choose(['#132e244f', '#ecdc863b', '#cee4ac28', '#0b24183b']), between(-.73, .73));
+    }
+
+    const stem = [];
+    for (let i = 0; i <= 45; i++) {
+      const t = i / 45 * .96;
+      stem.push(surface(t, -.42 * Math.pow(1 - t, 1.55)));
+    }
+    for (let i = 45; i >= 0; i--) {
+      const t = i / 45 * .96;
+      stem.push(surface(t, .56 * Math.pow(1 - t, 2.05)));
+    }
+    trace(ctx, stem, true);
+    ctx.fillStyle = linear(ctx, 0, 4, drift, -length * .95, [
+      [0, '#788442'], [.18, '#d6dba1'], [.34, '#d7df9d'],
+      [.56, '#a9c26f'], [.79, '#799a54'], [1, '#668d4c20']
+    ]);
+    ctx.fill();
+    const shine = [];
+    for (let i = 0; i <= 38; i++) shine.push(surface(i / 38 * .75, -.14));
+    trace(ctx, shine);
+    ctx.strokeStyle = linear(ctx, 0, 0, drift / 2, -length * .74, [
+      [0, '#f1e7ac4b'], [.31, '#fff1b5b4'], [.73, '#e3e9a367'], [1, '#e3e9a300']
+    ]);
+    ctx.lineWidth = 1.45;
+    ctx.stroke();
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function tofu(ctx, x, y, size, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(size / 80, size / 80);
+    glow(ctx, 4, 14, 66, 32, [
+      [0, '#3d1c0cb3'], [.62, '#4b1e0b8c'], [1, '#612b1100']
+    ]);
+
+    const top = [[-48, -27], [-20, -51], [30, -50], [49, -30], [13, -8], [-28, -11]];
+    const left = [[-48, -27], [-28, -11], [13, -8], [11, 20], [-29, 15], [-47, 2]];
+    const right = [[13, -8], [49, -30], [45, 0], [16, 20], [11, 20]];
+    const faces = [
+      [right, [7, -24, 57, 16], [[0, '#ac631f'], [.36, '#9a4a18'], [1, '#52250f']]],
+      [left, [-47, -20, 15, 24], [[0, '#e3ae60'], [.34, '#ca8640'], [.78, '#ad6227'], [1, '#713d18']]],
+      [top, [-35, -53, 37, -12], [[0, '#f3bd6b'], [.28, '#db943d'], [.6, '#bf7025'], [1, '#9b4819']]]
+    ];
+
+    for (const [points, direction, shades] of faces) {
+      trace(ctx, points, true);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#82481fbb';
+      ctx.stroke();
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = linear(ctx, ...direction, shades);
+      ctx.fillRect(-55, -58, 110, 84);
+
+      for (let i = 0; i < 27; i++) {
+        glow(ctx, between(-50, 50), between(-54, 19), between(2, 15), between(2, 10),
+          [[0, choose(['#8b350f88', '#76340c7b', '#ffdd8d53', '#a443187a'])], [1, '#99401400']]);
+      }
+      for (let i = 0; i < 1100; i++) {
+        const px = between(-50, 51);
+        const py = between(-52, 22);
+        const pore = between(.18, 1.35);
+        oval(ctx, px, py + .42, pore * 1.08, pore * .69, '#efb26859', -.37);
+        oval(ctx, px, py, pore, pore * between(.24, .81),
+          choose(['#60300e89', '#934519a6', '#a352207a', '#ffd48870', '#6931193d']), -.37);
+      }
+      ctx.restore();
+    }
+
+    curve(ctx, [-46, -27, -41, -21, -26, -10, 11, -8], '#ffcf828e', 1.46);
+    curve(ctx, [-46, -27, -44, -32, -33, -42, -22, -49], '#ffd991b1', 1.57);
+    curve(ctx, [15, -8, 29, -19, 42, -24, 47, -29], '#f2a85390', 1.1);
+    curve(ctx, [10, -5, 12, 4, 9, 13, 11, 18], '#d3904680', 1.3);
+    ctx.restore();
+  }
+
+  function shiitake(ctx, x, y, size, angle, tilt) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(size, size);
+    glow(ctx, -4, 20, 75, 31, [[0, '#351b0baa'], [.6, '#4c241076'], [1, '#48241200']]);
+
+    const stem = new Path2D('M -12 1 C -11 15 -15 26 -20 32 C -18 39 -4 42 4 37 C 9 24 10 17 14 9 Z');
+    ctx.fillStyle = linear(ctx, -20, 29, 10, 30, [
+      [0, '#a26d42'], [.23, '#d7aa69'], [.47, '#e2bb82'], [.8, '#af7449'], [1, '#6e4025']
+    ]);
+    ctx.fill(stem);
+    ctx.save();
+    ctx.clip(stem);
+    for (let i = 0; i < 30; i++) {
+      const sx = between(-22, 13);
+      curve(ctx, [sx + 7, 1, sx + 8, 14, sx + 2, 29, sx, 39],
+        choose(['#fcc98558', '#6a3d226d', '#764a3160']), between(.27, 1.05));
+    }
+    ctx.restore();
+
+    const gills = new Path2D('M -61 -3 C -58 -13 -30 -27 -3 -27 C 24 -28 54 -15 62 -5 C 70 6 47 23 25 27 C -7 34 -41 28 -55 15 C -63 9 -64 4 -61 -3 Z');
+    ctx.fillStyle = linear(ctx, -29, -25, 34, 33, [
+      [0, '#754424'], [.37, '#9a673d'], [.64, '#c38d57'], [.87, '#dbac70'], [1, '#946136']
+    ]);
+    ctx.fill(gills);
+    ctx.save();
+    ctx.clip(gills);
+    glow(ctx, -21, 15, 63, 22, [[0, '#ffcd8f46'], [1, '#ffc37c00']]);
+    for (let i = 0; i <= 118; i++) {
+      const a = mix(-.28, Math.PI + .35, i / 118);
+      const dx = Math.cos(a);
+      const dy = Math.sin(a);
+      const px = dx * between(59, 70);
+      const py = dy * between(27, 31);
+      const startX = -2 + dx * between(5, 16);
+      const startY = 8 + dy * between(0, 8);
+      curve(ctx, [startX, startY, px * .30, mix(6, py, .52), px * .72, py * .90, px, py],
+        choose(['#643817b8', '#6f4227a9', '#8a4925aa', '#542d1c86']), between(.39, 1.07));
+      if (i % 2 === 0) {
+        curve(ctx, [startX + 1, startY + 1, px * .30 + 1, mix(6, py, .52) + 1, px * .72 + 1, py * .90 + 1, px + 1, py],
+          '#f9cf8f7c', between(.32, .78));
+      }
+    }
+    glow(ctx, 16, 12, 66, 13, [[0, '#361d1495'], [.44, '#562b1d53'], [1, '#50231800']]);
+    ctx.restore();
+
+    const edgeY = 8 - tilt * 12;
+    const cap = new Path2D();
+    cap.moveTo(-62, 0);
+    cap.bezierCurveTo(-63, -12, -51, -28, -34, -39);
+    cap.bezierCurveTo(-16, -50, 14, -51, 36, -40);
+    cap.bezierCurveTo(54, -32, 63, -16, 63, -3);
+    cap.bezierCurveTo(63, 3, 52, 7, 45, 7);
+    cap.bezierCurveTo(36, 7, 32, edgeY + 4, 23, edgeY + 4);
+    cap.bezierCurveTo(9, edgeY + 3, 0, edgeY + 7, -14, edgeY + 4);
+    cap.bezierCurveTo(-31, edgeY + 5, -40, 10, -51, 8);
+    cap.bezierCurveTo(-57, 7, -62, 4, -62, 0);
+    ctx.fillStyle = linear(ctx, -29, -48, 26, 22, [
+      [0, '#ce925b'], [.32, '#996039'], [.53, '#754324'],
+      [.77, '#56301c'], [.91, '#804925'], [1, '#382315']
+    ]);
+    ctx.fill(cap);
+    ctx.save();
+    ctx.clip(cap);
+    glow(ctx, -26, -30, 56, 29, [[0, '#f3bf795f'], [.57, '#ed9d5030'], [1, '#d3824400']]);
+    glow(ctx, 37, 0, 39, 34, [[0, '#291c1389'], [1, '#2b1a1300']]);
+    for (let i = 0; i < 1800; i++) {
+      oval(ctx, between(-63, 63), between(-49, 20), between(.16, 1.65), between(.15, .97),
+        choose(['#2e1a1378', '#3d231959', '#d6a3714d', '#e1b27856', '#7f4c2c80']), between(-.9, .9));
+    }
+    for (let i = 0; i < 66; i++) {
+      const a = between(0, Math.PI);
+      const dx = Math.cos(a);
+      const dy = Math.sin(a);
+      const length = between(.42, 1.05);
+      curve(ctx, [dx * 10, -dy * 8 - 8, dx * 21, -dy * 23 - 12, dx * 38, -dy * 28 - 10, dx * 64 * length, -dy * 42 * length - 5],
+        choose(['#3e241a53', '#c9905b3f', '#461f1252', '#e2aa6748']), between(.3, 1.15));
+    }
+    ctx.restore();
+    curve(ctx, [-58, -8, -50, -29, -34, -41, -10, -46], '#e6ae768f', 1.52);
+    curve(ctx, [-61, 1, -54, 11, -38, 8, -28, edgeY + 3], '#e8b47890', 1.24);
+    curve(ctx, [11, edgeY + 4, 23, edgeY + 3, 34, 9, 43, 8], '#d7a26f90', .92);
+    ctx.restore();
+  }
+
+  function scallion(ctx, x, y, size, spin) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(spin);
+    const aspect = between(.41, .77);
+    const stroke = between(.18, .38) * size;
+    for (const [dy, color, lineWidth] of [
+      [2, '#3b361baa', stroke + 2.9],
+      [.7, choose(['#31591c', '#416426', '#577f32']), stroke + 1],
+      [-.45, choose(['#8bae4d', '#b7c966', '#779f47', '#a0b85c']), stroke]
+    ]) {
+      ctx.beginPath();
+      ctx.ellipse(0, dy, size, size * aspect, 0, 0, tau);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(-.36, -.72, size, size * aspect, 0, 2.5, 5.57);
+    ctx.strokeStyle = '#e3e5a885';
+    ctx.lineWidth = .8 + size * .025;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function scallionCurl(ctx, x, y, length, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    const bend = between(8, 21);
+    const lift = between(5, 17);
+    const shape = [0, 0, length * .22, bend, length * .92, -lift, length, 3];
+    curve(ctx, shape.map((value, index) => index % 2 ? value + 1.9 : value + .5), '#452f1097', 5.3);
+    curve(ctx, shape, choose(['#65892e', '#426f2c', '#729943', '#9ba94c']), between(3.2, 6.5));
+    curve(ctx, shape.map((value, index) => index % 2 ? value - 1.1 : value), '#d2e38c86', 1.2);
+    ctx.restore();
+  }
+
+  function chili(ctx, x, y, size, rotation) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    const points = [];
+    const phase = between(0, tau);
+    for (let i = 0; i <= 44; i++) {
+      const angle = i / 44 * tau;
+      const radius = size * (1 + Math.sin(angle * 3 + phase) * .10 + Math.sin(angle * 5) * .05);
+      points.push([Math.cos(angle) * radius, Math.sin(angle) * radius * .55]);
+    }
+    trace(ctx, points.map(([px, py]) => [px, py + 1.78]), true);
+    ctx.strokeStyle = '#692312bd';
+    ctx.lineWidth = .27 * size + 2.7;
+    ctx.stroke();
+    trace(ctx, points, true);
+    ctx.lineWidth = .27 * size + .3;
+    ctx.strokeStyle = linear(ctx, -size, -size / 2, size, size / 2, [
+      [0, '#ffa45c'], [.27, '#ec6d38'], [.55, '#c14627'], [1, '#8f2c1e']
+    ]);
+    ctx.stroke();
+    trace(ctx, points.slice(19, 38).map(([px, py]) => [px - .23, py - .58]));
+    ctx.lineWidth = .66;
+    ctx.strokeStyle = '#ffb473b2';
+    ctx.stroke();
+    if (size > 9) {
+      oval(ctx, -size * .62, .6, 2.25, 1.05, '#e9b672', .1);
+      oval(ctx, size * .22, size * .59, 2.23, 1.12, '#e9bd81', -.44);
+    }
+    ctx.restore();
+  }
+
+  function sesame(ctx, x, y, size, angle) {
+    oval(ctx, x + .55, y + .98, size * 1.07, size * .50, '#42220f9a', angle);
+    oval(ctx, x, y, size, size * .39, choose(['#f0ca8b', '#e7ad64', '#f6dba2', '#c99854']), angle);
+    oval(ctx, x - .45, y - .29, size * .59, size * .17, '#fff0c679', angle);
+  }
+
+  function paintBowl() {
+    seed = 763453;
+    paintCeramic(art);
+    paintBroth(art);
+
+    art.save();
+    brothMask(art);
+    noodleNest(art, -36, -66, 136, 34, 45);
+    noodleNest(art, 167, -27, 132, 39, 38);
+    noodleNest(art, -112, 26, 167, 59, 55);
+    noodleNest(art, 28, 67, 178, 52, 55);
+    noodleNest(art, -21, 62, 97, 50, 24);
+
+    for (let i = 0; i < 130; i++) {
+      const x = between(-318, 319);
+      const y = between(-120, 126);
+      if (random() < .70) sesame(art, x, y, between(.72, 2.55), between(-1.5, 1.5));
+      else oval(art, x, y, between(.75, 2.36), between(.5, 1.2), choose(['#9e4023', '#b74924', '#6a431f', '#577137']), between(-1, 1));
+    }
+    art.restore();
+
+    // Toppings sit in overlapping groups, with the greens and nori rising at the back.
+    glow(art, -217, -72, 111, 34, [[0, '#392516b9'], [.55, '#48291288'], [1, '#3e281300']]);
+    nori(art, [[-237, -60], [-294, -178], [-188, -203], [-142, -86]], '#44472d');
+    nori(art, [[-252, -54], [-321, -147], [-231, -173], [-162, -61]], '#4c4c2e');
+    nori(art, [[-209, -54], [-231, -157], [-134, -164], [-114, -69]], '#55583b');
+
+    glow(art, 113, -32, 154, 51, [[0, '#4f250cbf'], [.52, '#5530167e'], [1, '#56280900']]);
+    bokChoy(art, [128, -37, 142, -31], 34, -.31, ['#9aab51', '#607c41', '#344e32', '#304938']);
+    bokChoy(art, [155, -41, 151, 32], 32, .16, ['#8ba453', '#577e4a', '#36583d', '#254837']);
+    bokChoy(art, [150, -19, 120, 33], 30, .56, ['#a1af60', '#537a46', '#305740', '#244c3f']);
+    bokChoy(art, [141, -14, 128, -49], 40, -.44, ['#a1ad55', '#6d914c', '#466940', '#477045']);
+    bokChoy(art, [192, -2, 113, 23], 31, .90, ['#b3b768', '#659852', '#356c4a', '#2a553e']);
+
+    chili(art, -45, -67, 11, -.46);
+    chili(art, -7, -54, 10, .19);
+    tofu(art, -105, -18, 65, -.12);
+    tofu(art, -234, 11, 74, .24);
+    shiitake(art, 251, 15, .77, -.31, .42);
+    shiitake(art, 191, 30, .97, .35, .57);
+    shiitake(art, 246, 64, .79, -.26, .78);
+    tofu(art, -165, 44, 101, -.25);
+    tofu(art, -221, 61, 52, .24);
+
+    const onionRings = [
+      [-112, -36, 8], [-85, -51, 9], [-66, -28, 11], [-44, -10, 7], [-24, -31, 9],
+      [4, -10, 11], [15, -33, 6], [42, -17, 11], [68, 1, 9], [89, -16, 7], [138, -14, 8],
+      [-83, 12, 8], [-39, 29, 11], [5, 19, 11], [32, 26, 8], [61, 48, 6],
+      [-94, 78, 8], [-73, 99, 8], [-281, 28, 8], [-260, 55, 6], [-247, 73, 9],
+      [110, 74, 8], [121, 91, 8], [176, 89, 7], [267, 45, 7], [286, 32, 9],
+      [281, -26, 7], [211, -51, 5], [20, 83, 6], [-16, 108, 8], [73, 113, 6]
+    ];
+    for (const [x, y, size] of onionRings) scallion(art, x, y, size, between(-1.17, 1.17));
+    for (let i = 0; i < 31; i++) {
+      const x = i < 22 ? between(-97, 79) : between(-236, 208);
+      const y = i < 22 ? between(-53, 44) : between(38, 92);
+      scallionCurl(art, x, y, between(8, 33), between(-Math.PI, Math.PI));
+    }
+    for (const [x, y, size] of [
+      [-119, 98, 10], [-96, 92, 7], [57, 34, 12], [79, 40, 8], [130, 88, 10],
+      [151, 83, 7], [286, 19, 8], [-256, -5, 8], [117, -27, 7]
+    ]) chili(art, x, y, size, between(-.7, .7));
+
+    const garnish = [[-171, 14, 34, 15], [-230, 40, 19, 9], [201, 18, 38, 20], [231, 48, 28, 18], [-20, 31, 100, 58], [95, -87, 32, 19]];
+    for (const [x, y, rx, ry] of garnish) {
+      for (let i = 0; i < 13; i++) {
+        const a = between(0, tau);
+        const r = Math.sqrt(random());
+        sesame(art, x + Math.cos(a) * r * rx, y + Math.sin(a) * r * ry, between(.9, 2.9), between(-1.5, 1.5));
+      }
+    }
+
+    art.save();
+    art.globalCompositeOperation = 'source-atop';
+    glow(art, 310, -15, 409, 272, [
+      [0, '#18121b50'], [.61, '#20131724'], [1, '#22121b00']
+    ]);
+    glow(art, -199, -49, 271, 155, [
+      [0, '#f7aa5231'], [.65, '#efa14417'], [1, '#efa14400']
+    ]);
+    art.restore();
+  }
+
+  const vaporWidth = 304;
+  const vaporHeight = 182;
+  const vapor = layer(vaporWidth, vaporHeight);
+  const vaporCtx = vapor.getContext('2d');
+  const vaporPixels = vaporCtx.createImageData(vaporWidth, vaporHeight);
+  const noiseSize = 128;
+  const noise = new Float32Array(noiseSize * noiseSize);
+  seed = 159643;
+  for (let i = 0; i < noise.length; i++) noise[i] = random();
+
+  function valueNoise(x, y) {
+    const row = Math.floor(y);
+    const col = Math.floor(x);
+    const fy = y - row;
+    const fx = x - col;
+    const u = fx * fx * (3 - 2 * fx);
+    const v = fy * fy * (3 - 2 * fy);
+    const mask = noiseSize - 1;
+    const a = (row & mask) * noiseSize;
+    const b = ((row + 1) & mask) * noiseSize;
+    const left = col & mask;
+    const right = (col + 1) & mask;
+    return mix(mix(noise[a + left], noise[a + right], u), mix(noise[b + left], noise[b + right], u), v);
+  }
+
+  const plumes = [
+    { x: -148, y: -11, height: 351, width: 57, lean: -69, phase: .4, strength: .66 },
+    { x: -53, y: 20, height: 511, width: 83, lean: -35, phase: 2.2, strength: .90 },
+    { x: 41, y: 8, height: 456, width: 80, lean: -47, phase: 4.1, strength: .74 },
+    { x: 145, y: -20, height: 365, width: 53, lean: 15, phase: 6.0, strength: .51 }
+  ];
+  const vaporArea = { x: -452, y: -501, width: 904, height: 535 };
+
+  function paintVapor(time, windX, windY) {
+    const pixels = vaporPixels.data;
+    pixels.fill(0);
+
+    for (let row = 0; row < vaporHeight; row++) {
+      const y = vaporArea.y + (row + .5) * vaporArea.height / vaporHeight;
+      const bands = [];
+      for (const plume of plumes) {
+        const rise = plume.y - y;
+        const t = rise / plume.height;
+        if (t <= 0 || t >= 1) continue;
+        const lift = t * t;
+        const cycle = time * (.38 + plume.phase * .019) - t * 6.9 + plume.phase;
+        const curl = (10 + t * 82) * Math.sin(cycle) + 27 * t * Math.sin(1.77 * cycle - t * 3.7);
+        const wander = 63 * lift * Math.sin(time * .21 + plume.phase * 2);
+        const center = plume.x + plume.lean * t + curl * t + wander + windX * (t * 49 + lift * 41);
+        const spread = 9 + plume.width * (.77 * t + .45 * lift);
+        const fade = smooth(t / .16) * (1 - smooth((t - .47 + windY * .029) / .53));
+        const noiseY = rise * .015 - time * .61;
+        bands.push({ center, spread, fade: fade * plume.strength, noiseY, phase: plume.phase, t });
+      }
+
+      for (const { center, spread, fade, noiseY, phase, t } of bands) {
+        const stride = vaporArea.width / vaporWidth;
+        const low = Math.max(0, Math.floor((center - 2.1 * spread - vaporArea.x) / stride));
+        const high = Math.min(vaporWidth - 1, Math.ceil((center + 2.1 * spread - vaporArea.x) / stride));
+        for (let col = low; col <= high; col++) {
+          const x = vaporArea.x + (col + .5) * stride;
+          const offset = (x - center) / spread;
+          const u = x * .012 + phase * 11.3;
+          const drift = valueNoise(u * .75 + 13, noiseY * .71) - .5;
+          const fold = valueNoise(u * 1.42 + drift * 1.55, noiseY * 1.28 + phase) - .5;
+          const detail = valueNoise(u * 3.8 + fold * 2.0, noiseY * 3.6 + 9) - .5;
+          const cross = offset + drift * (.8 + t * .5) + fold * .35;
+          const edge = clamp(1 - cross * cross * .28);
+          const ribbon = clamp(1 - Math.abs(cross - .30 * Math.sin(noiseY * 1.38 + phase)) * 1.78);
+          const filament = clamp(1 - Math.abs(cross + .42 + fold * .68) * 3.22);
+          const texture = clamp(.56 + fold * 1.19 + detail * .30);
+          const alpha = edge * edge * fade * (15 + 102 * ribbon * ribbon + 43 * filament) * texture;
+
+          if (alpha < .64) continue;
+          const i = (row * vaporWidth + col) * 4;
+          const light = clamp(.69 - x / 750);
+          pixels[i] = mix(176, 242, light);
+          pixels[i + 1] = mix(171, 218, light);
+          pixels[i + 2] = mix(165, 195, light);
+          pixels[i + 3] = 255 - (255 - pixels[i + 3]) * (1 - alpha / 255);
+        }
+      }
+    }
+    vaporCtx.putImageData(vaporPixels, 0, 0);
+  }
+
+  const pointer = { x: 0, y: 0, strength: 0, targetX: 0, targetY: 0, targetStrength: 0 };
+  const reflections = [
+    [-301, 25, 26, .4], [-282, 50, 17, 1.5], [-188, 97, 25, 2.1],
+    [123, 114, 22, 2.8], [289, 47, 21, 1.8], [295, -49, 22, 3.5]
+  ];
+
+  function drawReflections(time) {
+    screen.lineCap = 'round';
+    for (const [x, y, length, phase] of reflections) {
+      const light = .12 + .10 * Math.sin(time * 1.7 + phase) + .12 * pointer.strength *
+        clamp(1 - Math.abs(pointer.x - x / 335) * .75);
+      const shift = 2.2 * Math.sin(time * 1.12 + phase);
+      curve(screen, [x - length / 2, y, x - length * .18, y + shift, x + length * .21, y - shift * .35, x + length / 2, y + .5],
+        'rgba(255,211,139,' + light + ')', .85);
+    }
+  }
+
+  let lastVapor = -Infinity;
+  function render(time, refreshVapor = false) {
+    screen.setTransform(1, 0, 0, 1, 0, 0);
+    screen.drawImage(backdrop, 0, 0);
+    screen.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * originX, dpr * originY);
+
+    if (pointer.strength > .005) {
+      const brightness = pointer.strength * .19;
+      glow(screen, -159 + pointer.x * 140, -108 + pointer.y * 64, 446, 328, [
+        [0, 'rgba(163,94,53,' + brightness + ')'], [.46, 'rgba(131,72,43,' + brightness * .42 + ')'],
+        [1, 'rgba(130,67,32,0)']
+      ]);
+    }
+    glow(screen, 17, 242, 406, 68, [
+      [0, '#030305cf'], [.46, '#030305b9'], [.72, '#0504055e'], [1, '#06050600']
+    ]);
+    glow(screen, -5, 248, 251, 30, [
+      [0, '#030405ed'], [.67, '#050606a1'], [1, '#07070800']
+    ]);
+    screen.drawImage(bowl, -410, -235, 820, 510);
+    drawReflections(time);
+
+    if (refreshVapor || time - lastVapor >= 1 / 32) {
+      paintVapor(time, pointer.x * pointer.strength, pointer.y * pointer.strength);
+      lastVapor = time;
+    }
+    screen.drawImage(vapor, vaporArea.x, vaporArea.y, vaporArea.width, vaporArea.height);
+  }
+
+  let animation = 0;
+  let previous = 0;
+  let elapsed = 0;
+  function frame(now) {
+    const dt = previous ? Math.min(.05, (now - previous) / 1000) : 0;
+    const ease = 1 - Math.exp(-4 * dt);
+    previous = now;
+    elapsed += dt;
+    pointer.x = mix(pointer.x, pointer.targetX, ease);
+    pointer.y = mix(pointer.y, pointer.targetY, ease);
+    pointer.strength = mix(pointer.strength, pointer.targetStrength, ease);
+    render(elapsed + 1.7);
+    animation = requestAnimationFrame(frame);
+  }
+
+  function resize() {
+    width = Math.max(1, canvas.clientWidth);
+    height = Math.max(1, canvas.clientHeight);
+    dpr = Math.min(devicePixelRatio || 1, 2, Math.sqrt(4600000 / (width * height)));
+    canvas.width = Math.max(1, Math.round(width * dpr));
+    canvas.height = Math.max(1, Math.round(height * dpr));
+    const aspect = width / height;
+    scale = Math.min(width / mix(814, 936, smooth((aspect - .72) / .75)), height / 748);
+    originX = width / 2;
+    originY = height * mix(.535, .549, smooth((aspect - .68) / .65));
+    paintBackdrop();
+    render(reducedMotion.matches ? 1.7 : elapsed + 1.7, true);
+  }
+
+  function syncMotion() {
+    cancelAnimationFrame(animation);
+    previous = 0;
+    if (reducedMotion.matches) {
+      Object.assign(pointer, { x: 0, y: 0, strength: 0, targetX: 0, targetY: 0, targetStrength: 0 });
+      render(1.7, true);
+    } else if (!document.hidden) {
+      animation = requestAnimationFrame(frame);
+    }
+  }
+
+  function steer(event) {
+    if (reducedMotion.matches || event.pointerType === 'touch') return;
+    pointer.targetX = clamp((event.clientX - originX) / (width * .39), -1, 1);
+    pointer.targetY = clamp((event.clientY - (originY - scale * 100)) / (height * .54), -1, 1);
+    pointer.targetStrength = .80;
+  }
+
+  function releasePointer() {
+    pointer.targetX = 0;
+    pointer.targetY = 0;
+    pointer.targetStrength = 0;
+  }
+
+  paintBowl();
+  resize();
+  syncMotion();
+  addEventListener('resize', resize, { passive: true });
+  canvas.addEventListener('pointermove', steer, { passive: true });
+  canvas.addEventListener('pointerleave', releasePointer);
+  addEventListener('blur', releasePointer);
+  reducedMotion.addEventListener('change', syncMotion);
+  document.addEventListener('visibilitychange', syncMotion);
+})();
+</script>
+</body>
+</html>
