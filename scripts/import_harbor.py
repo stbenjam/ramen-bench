@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -31,9 +32,12 @@ MODEL_SLUGS = {
     "claude-fable-5-2": "fable-5.2",
     "claude-haiku-5-5": "haiku-5.5",
 }
+# Harbor provider names that differ from the site vendor slug.
+PROVIDER_VENDORS = {"gemini": "google"}
 HARNESS_NAMES = {
     "claude-code": "Claude Code",
     "codex": "Codex",
+    "antigravity-cli": "Antigravity CLI",
 }
 
 
@@ -52,6 +56,16 @@ def collected_artifact(trial: Path) -> Path:
     return artifact
 
 
+# Antigravity wraps the user's prompt and appends harness metadata blocks.
+USER_REQUEST = re.compile(r"<USER_REQUEST>\n?(.*?)\n*</USER_REQUEST>", re.DOTALL)
+
+
+def user_text(message: Any) -> str:
+    text = message if isinstance(message, str) else content_text(message)
+    match = USER_REQUEST.search(text)
+    return match.group(1) if match else text
+
+
 def transcript_events(steps: list[dict]) -> tuple[list[dict], int]:
     """Public messages and tool activity; system prompts and reasoning are dropped."""
     events: list[dict] = []
@@ -62,7 +76,7 @@ def transcript_events(steps: list[dict]) -> tuple[list[dict], int]:
         message = step.get("message")
         text = message if isinstance(message, str) else content_text(message)
         if step["source"] == "user":
-            text = public_user_text(text, preserve_task=True)
+            text = public_user_text(user_text(message), preserve_task=True)
             if text:
                 events.append(
                     {"type": "message", "role": "user", "content": text, **stamp}
@@ -128,7 +142,7 @@ def usage(trajectory: dict, model: str, tool_calls: int) -> tuple[dict, str]:
     if recorded is not None:
         cost = {"currency": "USD", "total": recorded, "estimated": True}
         source = "Harbor ATIF final_metrics.total_cost_usd"
-    elif priced := list_cost(model, trajectory.get("steps", [])):
+    elif priced := list_cost(model, trajectory):
         cost, raw["listPriceCalculation"] = priced
         source = f"{priced[1]['source']} (pinned {priced[1]['asOf']})"
     else:
@@ -149,8 +163,7 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
     steps = trajectory["steps"]
     if not any(
         step["source"] == "user"
-        and isinstance(step.get("message"), str)
-        and step["message"].strip() == INSTRUCTION
+        and user_text(step.get("message")).strip() == INSTRUCTION
         for step in steps
     ):
         raise ValueError(
@@ -159,9 +172,15 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
 
     agent = result["agent_info"]
     model_id = agent["model_info"]["name"]
-    vendor = agent["model_info"]["provider"]
+    provider = agent["model_info"]["provider"]
+    # A gateway such as OpenRouter names the model "<vendor>/<model>".
+    vendor, model = (
+        model_id.split("/", 1)
+        if "/" in model_id
+        else (PROVIDER_VENDORS.get(provider, provider), model_id)
+    )
     effort = result["config"]["agent"]["kwargs"]["reasoning_effort"]
-    run_id = f"{vendor}/{MODEL_SLUGS.get(model_id, model_id)}/{effort}"
+    run_id = f"{vendor}/{MODEL_SLUGS.get(model, model)}/{effort}"
     if run_id.split("/")[1] not in DISPLAY_NAMES or effort not in EFFORT_NAMES:
         raise ValueError(f"{run_id}: add the model or effort display name first")
 
@@ -171,7 +190,9 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
     started = datetime.fromisoformat(execution["started_at"])
     finished = datetime.fromisoformat(execution["finished_at"])
     run_usage, pricing_source = usage(
-        trajectory, model_id, sum(e["type"] == "tool_call" for e in events)
+        trajectory,
+        f"{provider}/{model_id}",
+        sum(e["type"] == "tool_call" for e in events),
     )
     run_usage["raw"]["harborTrial"] = trial.name
     harness = HARNESS_NAMES.get(agent["name"], agent["name"])
@@ -182,7 +203,8 @@ def build_trial(trial: Path) -> tuple[dict, dict, Path]:
             "name": harness,
             "version": agent["version"],
             "runtime": "Harbor",
-            "invocation": f"Harbor {agent['name']} agent; {model_id} @ {effort}",
+            "invocation": f"Harbor {agent['name']} agent; {model_id} @ {effort}"
+            + (f" via {provider}" if provider != vendor else ""),
         },
         {
             "startedAt": execution["started_at"],

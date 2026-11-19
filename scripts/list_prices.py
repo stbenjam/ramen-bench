@@ -1,34 +1,70 @@
-"""Price ATIF trajectories at pinned published list rates, request by request."""
+"""Price ATIF trajectories at pinned published list rates."""
 
 from __future__ import annotations
 
 from decimal import Decimal
 
 OPENAI_SOURCE = "https://developers.openai.com/api/docs/pricing"
-OPENAI_AS_OF = "2026-11-17"
-# Standard tier, USD per million tokens, as (short context, long context).
-# Long-context rates apply to requests above the threshold of prompt tokens.
+# USD per million tokens, keyed by "<Harbor provider>/<provider model ID>". A tiered
+# model gives (short, long) context rates and the prompt size above which a request
+# is long; a flat model gives one rate per category and is priced from run totals.
 RATES = {
-    "gpt-6.2-sol": {
+    "openai/gpt-6.2-sol": {
         "source": OPENAI_SOURCE,
-        "asOf": OPENAI_AS_OF,
+        "asOf": "2026-11-17",
+        "tier": "Standard",
         "longContextAbove": 272_000,
         "input": ("2", "4"),
         "cachedInput": ("0.10", "0.20"),
         "output": ("10", "15"),
     },
-    "gpt-6.2-astra": {
+    "openai/gpt-6.2-astra": {
         "source": OPENAI_SOURCE,
-        "asOf": OPENAI_AS_OF,
+        "asOf": "2026-11-17",
+        "tier": "Standard",
         "longContextAbove": 272_000,
         "input": ("8", "16"),
         "cachedInput": ("0.40", "0.80"),
         "output": ("40", "60"),
     },
+    "openrouter/google/gemini-4-neon": {
+        "source": "https://openrouter.ai/google/gemini-4-neon",
+        "asOf": "2026-11-18",
+        "tier": "OpenRouter",
+        "input": "3",
+        "cachedInput": "0.15",
+        "output": "15",
+    },
 }
+# Google publishes no API rate for Neon, so native Antigravity runs use OpenRouter's.
+RATES["gemini/gemini-4-neon"] = RATES["openrouter/google/gemini-4-neon"]
+CATEGORIES = ("input", "cachedInput", "output")
+MILLION = Decimal(1_000_000)
 
 
-def list_cost(model: str, steps: list[dict]) -> tuple[dict, dict] | None:
+def requests(trajectory: dict, tiered: bool) -> list[dict] | None:
+    """Per-request metrics for tiered rates; run totals suffice for flat rates."""
+    steps = [
+        step["metrics"] for step in trajectory.get("steps", []) if step.get("metrics")
+    ]
+    if tiered:
+        return steps or None
+    final = trajectory["final_metrics"]
+    return [
+        {
+            "prompt_tokens": final["total_prompt_tokens"],
+            "cached_tokens": final.get("total_cached_tokens") or 0,
+            "completion_tokens": final["total_completion_tokens"],
+            "extra": {
+                "cache_write_input_tokens": (final.get("extra") or {}).get(
+                    "total_cache_write_input_tokens"
+                )
+            },
+        }
+    ]
+
+
+def list_cost(model: str, trajectory: dict) -> tuple[dict, dict] | None:
     """Return (cost, evidence), or None when the model or a token category is unpriced.
 
     ATIF prompt tokens include cached input, and completion tokens include reasoning.
@@ -37,24 +73,27 @@ def list_cost(model: str, steps: list[dict]) -> tuple[dict, dict] | None:
     rates = RATES.get(model)
     if rates is None:
         return None
-    million = Decimal(1_000_000)
-    amounts = {"input": Decimal(0), "cachedInput": Decimal(0), "output": Decimal(0)}
+    tiered = "longContextAbove" in rates
+    metrics = requests(trajectory, tiered)
+    if metrics is None:
+        return None
+    amounts = dict.fromkeys(CATEGORIES, Decimal(0))
     long_requests = 0
-    for step in steps:
-        metrics = step.get("metrics")
-        if not metrics:
-            continue
-        if (metrics.get("extra") or {}).get("cache_write_input_tokens"):
+    for request in metrics:
+        if (request.get("extra") or {}).get("cache_write_input_tokens"):
             return None
-        prompt = metrics["prompt_tokens"]
-        cached = metrics.get("cached_tokens") or 0
-        tier = int(prompt > rates["longContextAbove"])
+        prompt = request["prompt_tokens"]
+        cached = request.get("cached_tokens") or 0
+        tier = int(tiered and prompt > rates["longContextAbove"])
         long_requests += tier
-        amounts["input"] += (prompt - cached) * Decimal(rates["input"][tier]) / million
-        amounts["cachedInput"] += cached * Decimal(rates["cachedInput"][tier]) / million
-        amounts["output"] += (
-            metrics["completion_tokens"] * Decimal(rates["output"][tier]) / million
-        )
+        counts = {
+            "input": prompt - cached,
+            "cachedInput": cached,
+            "output": request["completion_tokens"],
+        }
+        for key, count in counts.items():
+            rate = rates[key][tier] if tiered else rates[key]
+            amounts[key] += count * Decimal(rate) / MILLION
     cost = {
         "currency": "USD",
         **{key: float(value) for key, value in amounts.items()},
@@ -62,13 +101,18 @@ def list_cost(model: str, steps: list[dict]) -> tuple[dict, dict] | None:
         "estimated": True,
     }
     evidence = {
-        **{key: rates[key] for key in ("source", "asOf", "longContextAbove")},
+        "source": rates["source"],
+        "asOf": rates["asOf"],
+        "tier": rates["tier"],
         "usdPerMillionTokens": {
             key: dict(zip(("short", "long"), rates[key], strict=True))
-            for key in ("input", "cachedInput", "output")
+            if tiered
+            else rates[key]
+            for key in CATEGORIES
         },
-        "tier": "Standard",
-        "longContextRequests": long_requests,
-        "basis": "API-equivalent published list prices; not a subscription charge",
+        "basis": "API-equivalent published list prices; not a recorded charge",
     }
+    if tiered:
+        evidence["longContextAbove"] = rates["longContextAbove"]
+        evidence["longContextRequests"] = long_requests
     return cost, evidence

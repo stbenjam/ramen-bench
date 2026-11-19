@@ -340,6 +340,22 @@
       "reward": 1,
       "violations": []
     },
+    "google/gemini-4-neon/xhigh": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-neon/high": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-neon/medium": {
+      "reward": 1,
+      "violations": []
+    },
+    "google/gemini-4-neon/low": {
+      "reward": 1,
+      "violations": []
+    },
     "google/gemini-4-hydrogen/high": {
       "reward": 1,
       "violations": []

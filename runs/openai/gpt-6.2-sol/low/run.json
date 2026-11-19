@@ -74,7 +74,7 @@
       "listPriceCalculation": {
         "source": "https://developers.openai.com/api/docs/pricing",
         "asOf": "2026-11-17",
-        "longContextAbove": 272000,
+        "tier": "Standard",
         "usdPerMillionTokens": {
           "input": {
             "short": "2",
@@ -89,9 +89,9 @@
             "long": "15"
           }
         },
-        "tier": "Standard",
-        "longContextRequests": 0,
-        "basis": "API-equivalent published list prices; not a subscription charge"
+        "basis": "API-equivalent published list prices; not a recorded charge",
+        "longContextAbove": 272000,
+        "longContextRequests": 0
       },
       "harborTrial": "ramen__ekJxGqP"
     }

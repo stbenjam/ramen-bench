@@ -48,6 +48,7 @@ CURRENT_PROMPT = (ROOT / "PROMPT.md").read_text().strip()
 BENCHMARK_PROMPTS = (CURRENT_PROMPT, PROMPT)
 
 DISPLAY_NAMES = {
+    "gemini-4-neon": "Gemini 4 Neon",
     "gpt-6.2-sol": "GPT 6.2 Sol",
     "gpt-6.2-astra": "GPT 6.2 Astra",
     "gpt-6.1-sol": "GPT 6.1 Sol",
@@ -70,6 +71,7 @@ VENDOR_DISPLAY_NAMES = {
     "anthropic": "Anthropic",
     "openai": "OpenAI",
     "z.ai": "Z.ai",
+    "google": "Google",
 }
 EFFORT_NAMES = {
     "low": "Low",

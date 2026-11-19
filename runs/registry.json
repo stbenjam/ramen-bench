@@ -86,6 +86,10 @@
     "openai/gpt-5.5/high/run.json",
     "openai/gpt-5.5/medium/run.json",
     "openai/gpt-5.5/low/run.json",
+    "google/gemini-4-neon/xhigh/run.json",
+    "google/gemini-4-neon/high/run.json",
+    "google/gemini-4-neon/medium/run.json",
+    "google/gemini-4-neon/low/run.json",
     "google/gemini-4-hydrogen/high/run.json",
     "google/gemini-4-hydrogen/medium/run.json",
     "google/gemini-4-hydrogen/low/run.json",
@@ -154,7 +158,8 @@
     "google/gemini-4-carbon": "2026-11-11T18:59:08.981273Z",
     "google/gemini-4-hydrogen": "2026-11-12T19:28:17.880212Z",
     "openai/gpt-6.2-astra": "2026-11-17T19:11:42.019836Z",
-    "openai/gpt-6.2-sol": "2026-11-17T19:11:42.019914Z"
+    "openai/gpt-6.2-sol": "2026-11-17T19:11:42.019914Z",
+    "google/gemini-4-neon": "2026-11-18T23:53:48.776817Z"
   },
   "warnings": {
     "google/gemini-4-carbon/high": "This ramen has been reported to freeze or crash some browsers."

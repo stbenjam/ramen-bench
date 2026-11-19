@@ -11,7 +11,9 @@ from pydantic import Field
 
 
 class SubscriptionAgyOptions(AntigravityCliOptions):
-    reasoning_effort: Literal["low", "medium", "high"] | None = Field(default=None)
+    reasoning_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = Field(
+        default=None
+    )
     binary_path: Path = Field(description="Pinned native agy executable.")
     auth_path: Path = Field(description="Existing agy consumer OAuth login file.")
 
@@ -20,11 +22,19 @@ class SubscriptionAgy(AntigravityCli):
     options_model = SubscriptionAgyOptions
 
     @staticmethod
-    def _validate_reasoning_effort(reasoning_effort, model_name):
-        if reasoning_effort not in ("low", "medium", "high") or model_name != (
-            f"google/gemini-4-argon-{reasoning_effort}"
+    def _validate_reasoning_effort(reasoning_effort, model_name, *, gateway=False):
+        if not (
+            reasoning_effort
+            and model_name
+            and model_name.startswith("google/gemini-4-")
         ):
-            raise ValueError("Use an exact catalog Argon model and its matching effort")
+            raise ValueError(
+                "Use a Gemini 4 model, e.g. google/gemini-4-neon, with an effort"
+            )
+
+    def _parse_model_name(self, model_name):
+        # agy's catalog takes the bare model name plus --effort.
+        return "google", model_name.removeprefix("google/")
 
     def _use_adc_auth(self):
         return False
