@@ -686,14 +686,13 @@
   function unloadFrameContent(iframe) {
     frameLoads.get(iframe)?.abort();
     frameLoads.delete(iframe);
-    if (iframe.hasAttribute("srcdoc")) {
-      iframe.srcdoc = "";
-      iframe.removeAttribute("srcdoc");
-    }
-    if (iframe.hasAttribute("src")) {
-      iframe.src = "";
-      iframe.removeAttribute("src");
-    }
+    if (!iframe.hasAttribute("srcdoc") && !iframe.hasAttribute("src")) return;
+    // Navigating a used iframe again adds an entry to the tab's history, which
+    // breaks back and forward. A fresh iframe's first load replaces its entry.
+    const fresh = iframe.cloneNode(false);
+    fresh.removeAttribute("srcdoc");
+    fresh.removeAttribute("src");
+    iframe.replaceWith(fresh);
   }
 
   function buildFrames() {
