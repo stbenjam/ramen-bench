@@ -154,6 +154,11 @@
     return entries.find((entry) => entry.id === id);
   }
 
+  function recordActiveEntry() {
+    const hash = `#${encodeURIComponent(state.activeId)}`;
+    if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+  }
+
   function modelKey(entry) {
     return `${entry.vendor}\u0000${entry.name}`;
   }
@@ -534,7 +539,7 @@
   function chooseSingleEntry(entry) {
     state.activeId = entry.id;
     expandEntryModel(entry);
-    window.history.replaceState(null, "", `#${encodeURIComponent(entry.id)}`);
+    recordActiveEntry();
     if (state.mode !== "single") setMode("single");
     else render();
     revealEntryInSidebar(entry.id);
@@ -891,7 +896,7 @@
       : (currentIndex + direction + navigationEntries.length) % navigationEntries.length;
     state.activeId = navigationEntries[nextIndex].id;
     expandEntryModel(navigationEntries[nextIndex]);
-    window.history.replaceState(null, "", `#${encodeURIComponent(state.activeId)}`);
+    recordActiveEntry();
     render();
     revealEntryInSidebar(state.activeId);
   }
@@ -1156,7 +1161,7 @@
       }
     });
 
-    window.addEventListener("hashchange", () => {
+    window.addEventListener("popstate", () => {
       const entry = entryFromHash();
       if (!entry) return;
       state.activeId = entry.id;
@@ -1179,6 +1184,7 @@
       const hashEntry = entryFromHash();
       const initialEntry = hashEntry || entriesInSidebarOrder(entries)[0] || null;
       state.activeId = initialEntry?.id || null;
+      if (initialEntry && !hashEntry) window.history.replaceState(null, "", `#${encodeURIComponent(initialEntry.id)}`);
       expandEntryModel(initialEntry);
       state.selectedIds = new Set(entriesInSidebarOrder(entries).slice(0, 4).map((entry) => entry.id));
       populateSelect(elements.vendorFilter, uniqueValues("vendor"));
