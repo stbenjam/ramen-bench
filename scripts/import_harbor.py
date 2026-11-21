@@ -38,6 +38,7 @@ HARNESS_NAMES = {
     "claude-code": "Claude Code",
     "codex": "Codex",
     "antigravity-cli": "Antigravity CLI",
+    "pi": "Pi",
 }
 
 
@@ -133,7 +134,9 @@ def usage(trajectory: dict, model: str, tool_calls: int) -> tuple[dict, str]:
         "cacheCreationInput": extra.get("total_cache_creation_input_tokens")
         or extra.get("total_cache_write_input_tokens")
         or 0,
-        "reasoning": extra.get("reasoning_output_tokens") or 0,
+        "reasoning": extra.get("reasoning_output_tokens")
+        or extra.get("reasoning_tokens")
+        or 0,
         "output": completion,
         "total": prompt + completion,
     }

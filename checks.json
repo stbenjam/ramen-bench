@@ -511,6 +511,30 @@
     "mistralai/mistral-large-4-0/default": {
       "reward": 1,
       "violations": []
+    },
+    "thinkingmachines/inkling-2-mini/max": {
+      "reward": 1,
+      "violations": []
+    },
+    "thinkingmachines/inkling-2-mini/xhigh": {
+      "reward": 1,
+      "violations": []
+    },
+    "thinkingmachines/inkling-2-mini/high": {
+      "reward": 1,
+      "violations": []
+    },
+    "thinkingmachines/inkling-2-mini/medium": {
+      "reward": 1,
+      "violations": []
+    },
+    "thinkingmachines/inkling-2-mini/low": {
+      "reward": 1,
+      "violations": []
+    },
+    "thinkingmachines/inkling-2-mini/minimal": {
+      "reward": 1,
+      "violations": []
     }
   }
 }

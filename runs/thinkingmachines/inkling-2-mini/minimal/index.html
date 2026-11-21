@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Midnight Ramen</title>
+<style>
+  :root{
+    --bg-deep:#0b0708;
+    --bg-mid:#171014;
+    --warm:#ff9a3c;
+    --ember:#ff5a2a;
+    --gold:#ffc36b;
+    --cream:#f5e6d0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{
+    background:var(--bg-deep);
+    font-family:Georgia,serif;
+    display:flex;align-items:center;justify-content:center;
+    cursor:crosshair;
+  }
+  .stage{
+    position:relative;
+    width:min(100vw,100vh);height:min(100vw,100vh);
+  }
+  /* ambient background wash */
+  .ambient{
+    position:absolute;inset:0;
+    background:
+      radial-gradient(ellipse 90% 70% at 50% 62%, #3a1d12 0%, #241019 42%, #120b0f 68%, var(--bg-deep) 100%);
+    pointer-events:none;
+  }
+  .ambient::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse 55% 40% at 50% 68%, rgba(255,150,60,.28) 0%, transparent 70%);
+    animation:breathe 6s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+
+  /* floor reflection glow */
+  .glow{
+    position:absolute;left:50%;bottom:6%;
+    width:72%;height:16%;
+    transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(255,140,50,.35) 0%, rgba(255,90,30,.12) 45%, transparent 75%);
+    filter:blur(10px);
+    animation:glowPulse 4.5s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes glowPulse{0%,100%{opacity:.7}50%{opacity:1}}
+
+  /* light rays */
+  .rays{position:absolute;left:50%;top:-10%;transform:translateX(-50%);width:120%;height:80%;pointer-events:none;
+    background:conic-gradient(from 180deg at 50% 0%, transparent 40%, rgba(255,190,110,.07) 46%, transparent 52%, transparent 58%, rgba(255,170,90,.05) 63%, transparent 70%);
+    filter:blur(14px);animation:raySway 9s ease-in-out infinite;
+  }
+  @keyframes raySway{0%,100%{transform:translateX(-50%) rotate(-2deg)}50%{transform:translateX(-50%) rotate(2deg)}}
+
+  /* the scene group for parallax */
+  .scene{
+    position:absolute;inset:0;
+    transform-style:preserve-3d;
+    will-change:transform;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .ramen-wrap{position:absolute;left:50%;top:52%;width:78%;aspect-ratio:1/1;transform:translate(-50%,-50%);will-change:transform;}
+
+  svg.ramen{width:100%;height:100%;overflow:visible;display:block}
+
+  /* steam canvas */
+  #steam{position:absolute;left:0;top:-4%;width:100%;height:80%;pointer-events:none;z-index:5}
+
+  /* floating ember particles */
+  #embers{position:absolute;inset:0;pointer-events:none;z-index:1}
+
+  /* rim light sweep */
+  .sweep{
+    position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(ellipse 60% 45% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%);
+    pointer-events:none;z-index:9;
+    mix-blend-mode:multiply;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important}
+    .scene,.ramen-wrap{transform:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="ambient"></div>
+  <canvas id="embers"></canvas>
+  <div class="rays"></div>
+  <div class="glow"></div>
+
+  <div class="scene" id="scene">
+    <div class="ramen-wrap" id="ramenWrap">
+      <svg class="ramen" viewBox="0 0 600 520" aria-hidden="true">
+        <defs>
+          <radialGradient id="brothGrad" cx="50%" cy="42%" r="65%">
+            <stop offset="0%" stop-color="#ffb45e"/>
+            <stop offset="45%" stop-color="#f68b2e"/>
+            <stop offset="80%" stop-color="#c95a17"/>
+            <stop offset="100%" stop-color="#8a3a0e"/>
+          </radialGradient>
+          <radialGradient id="bowlGrad" cx="50%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#3b2b2e"/>
+            <stop offset="60%" stop-color="#221820"/>
+            <stop offset="100%" stop-color="#120c11"/>
+          </radialGradient>
+          <linearGradient id="lipGold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffd9a0"/>
+            <stop offset="100%" stop-color="#b97a3a"/>
+          </linearGradient>
+          <linearGradient id="noodleGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffe9b8"/>
+            <stop offset="100%" stop-color="#e8b96a"/>
+          </linearGradient>
+          <linearGradient id="shadowGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#000" stop-opacity=".55"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="6"/>
+          </filter>
+          <filter id="soft2" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="2"/>
+          </filter>
+        </defs>
+
+        <!-- table shadow -->
+        <ellipse cx="300" cy="452" rx="205" ry="36" fill="url(#shadowGrad)"/>
+        <ellipse cx="300" cy="452" rx="150" ry="22" fill="#000" opacity=".5" filter="url(#soft)"/>
+
+        <!-- bowl body -->
+        <path d="M 118 262 Q 118 420 300 420 Q 482 420 482 262 Z" fill="url(#bowlGrad)"/>
+        <path d="M 118 262 Q 118 420 300 420 Q 482 420 482 262 Z" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="2"/>
+        <!-- bowl warm inner rim light -->
+        <path d="M 118 262 Q 118 300 132 336" fill="none" stroke="#ff9a3c" stroke-opacity=".35" stroke-width="5" stroke-linecap="round" filter="url(#soft2)"/>
+        <path d="M 482 262 Q 482 300 468 336" fill="none" stroke="#ff9a3c" stroke-opacity=".22" stroke-width="4" stroke-linecap="round" filter="url(#soft2)"/>
+        <!-- foot ring -->
+        <ellipse cx="300" cy="420" rx="86" ry="16" fill="#0e0a0e"/>
+        <ellipse cx="300" cy="416" rx="86" ry="14" fill="#2a1e24"/>
+
+        <!-- broth surface -->
+        <ellipse cx="300" cy="262" rx="182" ry="62" fill="url(#brothGrad)"/>
+        <ellipse cx="300" cy="258" rx="150" ry="46" fill="#ffc36b" opacity=".25" filter="url(#soft)"/>
+
+        <!-- noodles -->
+        <g id="noodles" stroke="url(#noodleGrad)" stroke-width="7" stroke-linecap="round" fill="none" opacity=".96">
+          <path d="M 205 248 q 30 -22 62 -6 t 66 4 q 34 14 62 -8"/>
+          <path d="M 196 268 q 40 18 88 6 t 96 8 q 30 6 52 -10"/>
+          <path d="M 220 232 q 44 -12 92 -4 t 96 6"/>
+          <path d="M 214 292 q 56 12 104 4 t 88 -12"/>
+          <path d="M 246 262 q 52 -20 110 -6 q 28 8 44 22"/>
+        </g>
+
+        <!-- toppings: greens -->
+        <g id="greens">
+          <path d="M 250 236 q -8 -26 8 -34 q 0 24 -8 34" fill="#5fbf5a"/>
+          <path d="M 268 242 q 6 -26 26 -26 q -12 16 -26 26" fill="#4ea84b"/>
+          <path d="M 236 254 q -18 -12 -10 -34 q 14 10 10 34" fill="#6fd06a"/>
+          <path d="M 350 244 q 4 -24 24 -28 q -6 18 -24 28" fill="#5fbf5a"/>
+          <path d="M 372 258 q 20 -8 18 -30 q -16 4 -18 30" fill="#4ea84b"/>
+        </g>
+        <!-- scallions rings -->
+        <g id="scallions" stroke="#7ee06f" stroke-width="4" fill="none" opacity=".9">
+          <circle cx="300" cy="278" r="7"/>
+          <circle cx="330" cy="252" r="6"/>
+          <circle cx="272" cy="292" r="5.5"/>
+        </g>
+        <!-- sesame/chili flecks -->
+        <g id="flecks" fill="#3d1c0c" opacity=".8">
+          <circle cx="258" cy="272" r="2.4"/><circle cx="366" cy="276" r="2.2"/>
+          <circle cx="312" cy="238" r="2"/><circle cx="226" cy="256" r="2.1"/>
+          <circle cx="398" cy="252" r="2"/><circle cx="292" cy="300" r="2.2"/>
+        </g>
+        <g id="chili" fill="#ff5a2a" opacity=".9">
+          <circle cx="332" cy="286" r="2.6"/><circle cx="252" cy="248" r="2.2"/><circle cx="380" cy="266" r="2.3"/>
+        </g>
+        <!-- soft top sheen -->
+        <ellipse cx="300" cy="246" rx="120" ry="30" fill="#fff" opacity=".08" filter="url(#soft)"/>
+
+        <!-- bowl rim lip -->
+        <path d="M 118 262 A 182 62 0 0 0 482 262" fill="none" stroke="url(#lipGold)" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+      </svg>
+
+      <canvas id="steam"></canvas>
+    </div>
+  </div>
+
+  <div class="sweep"></div>
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stage = document.getElementById('stage');
+  const scene = document.getElementById('scene');
+  const wrap = document.getElementById('ramenWrap');
+  const steamC = document.getElementById('steam');
+  const emberC = document.getElementById('embers');
+  const sctx = steamC.getContext('2d');
+  const ectx = emberC.getContext('2d');
+
+  let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2);
+
+  function fit(){
+    const r = stage.getBoundingClientRect();
+    W = r.width; H = r.height;
+    stage.style.setProperty('--w', W+'px');
+    // embers canvas: full stage
+    emberC.width = W*dpr; emberC.height = H*dpr;
+    emberC.style.width=W+'px'; emberC.style.height=H+'px';
+    ectx.setTransform(dpr,0,0,dpr,0,0);
+    // steam canvas: inside wrap
+    const wr = wrap.getBoundingClientRect();
+    const cw = wr.width, ch = wr.height*0.80;
+    steamC.width = cw*dpr; steamC.height = ch*dpr;
+    steamC.style.width=cw+'px'; steamC.style.height=ch+'px';
+    sctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // steam particles
+  const steam = [];
+  function spawnSteam(){
+    const ww = steamC.width/dpr, wh = steamC.height/dpr;
+    steam.push({
+      x: ww*(0.40 + Math.random()*0.20),
+      y: wh*(0.70 + Math.random()*0.08),
+      r: 8+Math.random()*12,
+      vy: -(0.35+Math.random()*0.45),
+      vx: (Math.random()-0.5)*0.3,
+      life: 0, max: 140+Math.random()*80,
+      wob: Math.random()*Math.PI*2, wobSpd: 0.012+Math.random()*0.02
+    });
+  }
+  // embers
+  const embers = [];
+  function spawnEmber(){
+    const r = stage.getBoundingClientRect();
+    embers.push({
+      x: r.width*(0.3+Math.random()*0.4),
+      y: r.height*(0.55+Math.random()*0.35),
+      r: 0.6+Math.random()*1.6,
+      vy: -(0.15+Math.random()*0.4),
+      vx: (Math.random()-0.5)*0.25,
+      life: 0, max: 180+Math.random()*160,
+      hue: 18+Math.random()*30
+    });
+  }
+
+  let mouseX=0.5, mouseY=0.45, tMouseX=0.5, tMouseY=0.45;
+  let scent=0; // scent strength 0..1, increases near bowl
+
+  window.addEventListener('pointermove', e=>{
+    const r = stage.getBoundingClientRect();
+    tMouseX = (e.clientX-r.left)/r.width;
+    tMouseY = (e.clientY-r.top)/r.height;
+  }, {passive:true});
+
+  const noodleGroup = document.getElementById('noodles');
+  const greens = document.getElementById('greens');
+  const scallions = document.getElementById('scallions');
+
+  let t=0;
+  function frame(){
+    t++;
+    mouseX += (tMouseX-mouseX)*0.06;
+    mouseY += (tMouseY-mouseY)*0.06;
+
+    // parallax
+    const dx = (mouseX-0.5), dy=(mouseY-0.45);
+    if(!reduce){
+      scene.style.transform = `translate3d(${dx*-26}px, ${dy*-18}px, 0)`;
+      wrap.style.transform = `translate(-50%,-50%) translate3d(${dx*14}px, ${dy*10}px, 0) rotate(${dx*1.6}deg)`;
+    }
+
+    // scent: proximity to bowl center
+    const bowlX = 0.5, bowlY = 0.52;
+    const dist = Math.hypot(mouseX-bowlX, mouseY-bowlY);
+    const target = Math.max(0, 1 - dist*2.4);
+    scent += (target-scent)*0.04;
+
+    // draw steam
+    const wr = wrap.getBoundingClientRect();
+    const ww = steamC.width/dpr, wh = steamC.height/dpr;
+    sctx.clearRect(0,0,ww,wh);
+    if(!reduce && steam.length < 30){
+      const rate = 1 + Math.floor(scent*2);
+      for(let i=0;i<rate;i++) if(Math.random()<0.65) spawnSteam();
+    }
+    for(let i=steam.length-1;i>=0;i--){
+      const p = steam[i];
+      p.life++; p.y += p.vy*(1+scent*0.6); p.x += p.vx + Math.sin(p.wob + p.life*0.02)*0.45;
+      p.wob += p.wobSpd;
+      p.r += 0.12;
+      if(p.life>p.max || p.y<wh*0.02){ steam.splice(i,1); continue; }
+      const a = Math.sin((p.life/p.max)*Math.PI) * (0.15 + scent*0.14);
+      const grad = sctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2.4);
+      grad.addColorStop(0,`rgba(255,240,225,${a})`);
+      grad.addColorStop(0.55,`rgba(255,225,205,${a*0.45})`);
+      grad.addColorStop(1,'rgba(255,225,205,0)');
+      sctx.fillStyle = grad;
+      sctx.beginPath();
+      sctx.arc(p.x,p.y,p.r*2.4,0,Math.PI*2);
+      sctx.fill();
+    }
+
+    // embers
+    const r = stage.getBoundingClientRect();
+    ectx.clearRect(0,0,r.width,r.height);
+    if(!reduce && embers.length < 22 && Math.random()<0.22) spawnEmber();
+    for(let i=embers.length-1;i>=0;i--){
+      const p = embers[i];
+      p.life++; p.y += p.vy; p.x += p.vx + Math.sin((p.life+p.hue)*0.03)*0.25;
+      if(p.life>p.max){ embers.splice(i,1); continue; }
+      const a = Math.sin((p.life/p.max)*Math.PI);
+      ectx.beginPath();
+      ectx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ectx.fillStyle = `hsla(${p.hue},95%,62%,${a*0.6})`;
+      ectx.shadowColor = `hsla(${p.hue},95%,55%,.9)`;
+      ectx.shadowBlur = 8;
+      ectx.fill();
+      ectx.shadowBlur = 0;
+    }
+
+    // subtle noodle sway (SVG transform)
+    if(!reduce){
+      const sway = Math.sin(t*0.02)*2.2 + dx*5;
+      noodleGroup.setAttribute('transform',`translate(${sway} 0)`);
+      greens.setAttribute('transform',`translate(${sway*0.6} 0) rotate(${sway*0.5} 300 245)`);
+      scallions.setAttribute('transform',`translate(${sway*0.8} 0)`);
+    }
+
+    if(!reduce) requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', ()=>{ fit(); });
+  fit();
+  window.addEventListener('load', fit);
+  requestAnimationFrame(()=>{ fit(); });
+  setTimeout(fit, 200);
+  if(reduce){
+    // draw one static frame of steam
+    for(let i=0;i<18;i++) spawnSteam();
+    steam.forEach(p=>{ p.life = p.max*0.5; p.y -= 30+Math.random()*40; });
+    (function drawStatic(){
+      const wr = steamC.getBoundingClientRect();
+      const ww = steamC.width/dpr, wh = steamC.height/dpr;
+      steam.forEach(p=>{
+        const a = 0.14;
+        const grad = sctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2.4);
+        grad.addColorStop(0,`rgba(255,240,225,${a})`);
+        grad.addColorStop(1,'rgba(255,225,205,0)');
+        sctx.fillStyle=grad; sctx.beginPath(); sctx.arc(p.x,p.y,p.r*2.4,0,Math.PI*2); sctx.fill();
+      });
+    })();
+  } else {
+    let last=0;
+    const loop=()=>{
+      frame();
+      last=performance.now();
+      requestAnimationFrame(loop);
+    };
+    frame();
+    requestAnimationFrame(loop);
+    // watchdog: if rAF stalls, tick anyway
+    setInterval(()=>{ if(performance.now()-last>120){ frame(); last=performance.now(); } }, 100);
+  }
+  // keep fitting on orientation change
+  window.addEventListener('orientationchange', ()=>setTimeout(fit,120));
+})();
+</script>
+</body>
+</html>

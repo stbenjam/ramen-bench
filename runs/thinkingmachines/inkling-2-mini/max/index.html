@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b090d">
+<title>Steaming Bowl — Vegan Ramen</title>
+<style>
+  :root{
+    --amber: #ffb45e;
+    --amber-hot: #ff9a3c;
+  }
+  *, *::before, *::after{ margin:0; padding:0; box-sizing:border-box; }
+  html, body{ height:100%; background:#0a080c; }
+  body{
+    min-height:100vh;
+    overflow:hidden;
+    background:
+      radial-gradient(130% 95% at 50% 12%, #211713 0%, #140f12 42%, #0a080c 78%, #060509 100%);
+    font-family: system-ui, sans-serif;
+  }
+  #scene{
+    position:fixed; inset:0; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* ---------- ambient warmth ---------- */
+  .lamp-glow{
+    position:absolute; left:50%; top:-32vmax; width:150vmax; height:110vmax;
+    transform:translateX(-50%);
+    background:radial-gradient(50% 50% at 50% 0%,
+      rgba(255,186,102,.34) 0%,
+      rgba(255,150,70,.13) 34%,
+      rgba(255,140,60,.045) 55%,
+      transparent 72%);
+    animation: glowFlicker 7s ease-in-out infinite;
+    pointer-events:none; z-index:1;
+  }
+  @keyframes glowFlicker{
+    0%,100%{ opacity:.86; }
+    22%{ opacity:1; }
+    41%{ opacity:.78; }
+    63%{ opacity:.96; }
+    81%{ opacity:.84; }
+  }
+  .table-pool{
+    position:absolute; left:0; right:0; bottom:0; height:34%;
+    background:
+      radial-gradient(58% 92% at 50% 6%, rgba(255,158,72,.17) 0%, rgba(150,84,40,.06) 46%, transparent 72%),
+      linear-gradient(to bottom, rgba(22,15,13,0) 0%, #17100e 34%, #0c090a 100%);
+    z-index:1; pointer-events:none;
+  }
+  .halo{
+    position:absolute; left:50%; bottom:24%; width:min(92vw,64vmin); height:min(46vw,32vmin);
+    transform:translateX(-50%);
+    background:radial-gradient(50% 50% at 50% 50%, rgba(255,166,74,.24) 0%, rgba(255,140,60,.08) 48%, transparent 74%);
+    filter:blur(10px);
+    animation: breathe 5.5s ease-in-out infinite;
+    pointer-events:none; z-index:2;
+  }
+  @keyframes breathe{
+    0%,100%{ opacity:.6; transform:translateX(-50%) scale(.97); }
+    50%{ opacity:1; transform:translateX(-50%) scale(1.03); }
+  }
+
+  /* ---------- the bowl ---------- */
+  .bowl{
+    position:relative; z-index:3;
+    width:min(86vw, calc(78vh * 1.488), 760px);
+    translate:0 4vh;
+    will-change:transform;
+    transform-style:preserve-3d;
+  }
+  .bowl svg{ display:block; width:100%; height:auto; overflow:visible; }
+  .bowl svg .rim-light{ animation: rimFlicker 6s ease-in-out infinite; }
+  @keyframes rimFlicker{ 0%,100%{opacity:.30} 30%{opacity:.42} 55%{opacity:.26} 78%{opacity:.38} }
+
+  .soupLight{ animation: soupPulse 4.6s ease-in-out infinite; }
+  @keyframes soupPulse{ 0%,100%{opacity:.20} 50%{opacity:.34} }
+
+  .ripples ellipse{
+    fill:none; stroke:#ffe6ba; stroke-width:2.5;
+    opacity:0;
+    transform-box:fill-box; transform-origin:center;
+    animation: rippleOut 3.4s cubic-bezier(.2,.6,.35,1) infinite;
+  }
+  .ripples ellipse:nth-child(2){ animation-delay:1.15s; }
+  .ripples ellipse:nth-child(3){ animation-delay:2.3s; }
+  @keyframes rippleOut{
+    0%{ transform:scale(.32); opacity:0; }
+    14%{ opacity:.75; }
+    100%{ transform:scale(1.18); opacity:0; }
+  }
+  .wisps{ display:none; }
+
+  /* ---------- atmosphere layers ---------- */
+  .light{
+    position:fixed; left:0; top:0; z-index:4;
+    width:560px; height:560px; border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(255,199,128,.30) 0%,
+      rgba(255,160,74,.12) 42%,
+      transparent 68%);
+    mix-blend-mode:screen;
+    pointer-events:none;
+    will-change:transform, opacity;
+  }
+  #fx{
+    position:fixed; inset:0; z-index:5;
+    width:100%; height:100%;
+    pointer-events:none;
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:6; pointer-events:none;
+    background:radial-gradient(125% 100% at 50% 44%, transparent 42%, rgba(4,3,6,.52) 82%, rgba(2,2,3,.78) 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:.001s !important;
+      animation-iteration-count:1 !important;
+      transition:none !important;
+    }
+    .light{ display:none; }
+    .wisps{ display:block; }
+    .wisps path{ opacity:.3; }
+    .ripples ellipse{ opacity:.22; animation:none; }
+    .soupLight{ opacity:.3; animation:none; }
+    .rim-light{ opacity:.3; animation:none; }
+  }
+  @media (max-width:560px){
+    .halo{ bottom:26%; }
+    .bowl{ translate:0 3vh; }
+  }
+</style>
+</head>
+<body>
+<div id="scene">
+
+  <div class="lamp-glow"></div>
+  <div class="table-pool"></div>
+  <div class="halo"></div>
+
+  <div class="bowl" id="bowl">
+    <svg viewBox="0 0 640 430" role="img" aria-label="A steaming bowl of vegan ramen">
+      <defs>
+        <radialGradient id="soupGrad" cx="50%" cy="40%" r="68%">
+          <stop offset="0%"  stop-color="#ffd58a"/>
+          <stop offset="34%" stop-color="#f2a44c"/>
+          <stop offset="72%" stop-color="#cf7123"/>
+          <stop offset="100%" stop-color="#9c4d16"/>
+        </radialGradient>
+        <radialGradient id="warmGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#ffc16a" stop-opacity=".9"/>
+          <stop offset="55%" stop-color="#ff9e4a" stop-opacity=".38"/>
+          <stop offset="100%" stop-color="#ff9e4a" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="ceramicBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#41454d"/>
+          <stop offset="26%" stop-color="#26292f"/>
+          <stop offset="72%" stop-color="#15171c"/>
+          <stop offset="100%" stop-color="#0d0e11"/>
+        </linearGradient>
+        <linearGradient id="rimBand" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#4b5058"/>
+          <stop offset="55%" stop-color="#2b2e34"/>
+          <stop offset="100%" stop-color="#1c1e23"/>
+        </linearGradient>
+        <linearGradient id="footGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#22242a"/>
+          <stop offset="100%" stop-color="#0d0e12"/>
+        </linearGradient>
+        <linearGradient id="stickGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#8a5531"/>
+          <stop offset="45%" stop-color="#5f351d"/>
+          <stop offset="100%" stop-color="#33190d"/>
+        </linearGradient>
+        <linearGradient id="sheenGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stop-color="#ffffff" stop-opacity=".18"/>
+          <stop offset="60%" stop-color="#ffffff" stop-opacity=".04"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="blur8"><feGaussianBlur stdDeviation="8"/></filter>
+        <filter id="blur6"><feGaussianBlur stdDeviation="6"/></filter>
+        <filter id="blur4"><feGaussianBlur stdDeviation="4"/></filter>
+        <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+        <filter id="noodleShadow" x="-20%" y="-60%" width="140%" height="220%">
+          <feDropShadow dx="0" dy="3.5" stdDeviation="3" flood-color="#4a2408" flood-opacity="0.5"/>
+        </filter>
+        <clipPath id="soupClip"><ellipse cx="320" cy="170" rx="176" ry="44"/></clipPath>
+        <clipPath id="bodyClip"><path d="M108 168 C112 262 206 354 320 354 C434 354 528 262 532 168 Z"/></clipPath>
+
+        <g id="shroom">
+          <ellipse cx="0" cy="11" rx="19" ry="5.5" fill="#3a1f0e" opacity=".38"/>
+          <rect x="-6.5" y="-3" width="13" height="13" rx="5.5" fill="#e6d3b3"/>
+          <path d="M-6.5 5.5 h13" stroke="#c3a87e" stroke-width="1.4"/>
+          <path d="M-25 -3 C-25 -21 25 -21 25 -3 C25 5 -25 5 -25 -3 Z" fill="#5c3524"/>
+          <ellipse cx="0" cy="-6.5" rx="25" ry="9.5" fill="#7a4a2f"/>
+          <path d="M-19 -8.5 q19 -9 38 0" stroke="#a06a44" stroke-width="2.6" fill="none" opacity=".85"/>
+          <path d="M-24 -3 h48" stroke="#33200f" stroke-width="1.6" opacity=".8"/>
+        </g>
+      </defs>
+
+      <!-- ground shadow -->
+      <ellipse cx="320" cy="400" rx="212" ry="22" fill="#000000" opacity=".55" filter="url(#blur8)"/>
+
+      <!-- foot + body -->
+      <path d="M252 344 L388 344 L402 380 L238 380 Z" fill="url(#footGrad)"/>
+      <path d="M252 344 L388 344" stroke="#3a3e46" stroke-width="2"/>
+      <path d="M108 168 C112 262 206 354 320 354 C434 354 528 262 532 168 Z" fill="url(#ceramicBody)"/>
+      <g clip-path="url(#bodyClip)">
+        <ellipse cx="208" cy="262" rx="46" ry="92" fill="url(#sheenGrad)" opacity=".55" transform="rotate(-14 208 262)" filter="url(#blur8)"/>
+        <ellipse cx="420" cy="296" rx="96" ry="60" fill="#ff9e4a" opacity=".06" filter="url(#blur8)"/>
+      </g>
+
+      <!-- rim + interior + soup -->
+      <path fill-rule="evenodd" fill="url(#rimBand)"
+        d="M108 168 a212 58 0 1 1 424 0 a212 58 0 1 1 -424 0 Z
+           M140 168 a180 46 0 1 1 360 0 a180 46 0 1 1 -360 0 Z"/>
+      <ellipse cx="320" cy="170" rx="180" ry="46" fill="#16171d"/>
+      <ellipse cx="320" cy="170" rx="176" ry="44" fill="url(#soupGrad)"/>
+
+      <g clip-path="url(#soupClip)">
+        <!-- noodles -->
+        <g fill="none" stroke="#f3cf6b" stroke-width="6.5" stroke-linecap="round" filter="url(#noodleShadow)">
+          <path d="M168 158 q28 -10 56 0 t56 0 t56 0 t56 0"/>
+          <path d="M180 180 q30 10 60 2 t60 -2 t60 -2"/>
+          <path d="M214 146 q40 -8 82 -2 t84 2"/>
+          <path d="M232 196 q40 8 80 3 t76 -4"/>
+          <path d="M300 160 q40 -6 80 0 t80 0"/>
+          <path d="M250 176 q30 6 60 -2 t56 -4"/>
+        </g>
+
+        <!-- chili oil -->
+        <g fill="none" stroke-linecap="round">
+          <path d="M268 148 q30 -14 64 -4" stroke="#ff5a1f" stroke-width="5" opacity=".8"/>
+          <path d="M268 149 q30 -14 64 -4" stroke="#ffb37a" stroke-width="1.6" opacity=".65"/>
+          <path d="M352 182 q36 -9 66 6" stroke="#ff6a2a" stroke-width="4" opacity=".7"/>
+          <path d="M298 184 q28 6 48 1" stroke="#e8481a" stroke-width="3.5" opacity=".7"/>
+          <circle cx="255" cy="168" r="2.6" fill="#ff5a1f" opacity=".85"/>
+          <circle cx="438" cy="164" r="2.2" fill="#ff5a1f" opacity=".8"/>
+          <circle cx="322" cy="142" r="2.2" fill="#ff6a2a" opacity=".8"/>
+        </g>
+
+        <!-- bok choy -->
+        <g transform="translate(224,168) scale(1.18)">
+          <ellipse cx="2" cy="12" rx="26" ry="7" fill="#3a1f0e" opacity=".3"/>
+          <path d="M0 8 C-24 -2 -32 -24 -18 -36 C-6 -28 4 -12 0 8 Z" fill="#6fae3e"/>
+          <path d="M0 8 C3 -15 17 -30 32 -30 C24 -12 13 3 0 8 Z" fill="#a3d15e"/>
+          <path d="M0 8 C-5 -8 -3 -22 6 -32" stroke="#4f7f2b" stroke-width="2.2" fill="none"/>
+          <path d="M2 6 C10 -6 18 -16 27 -24" stroke="#7fae44" stroke-width="2" fill="none"/>
+          <path d="M-3 8 L-11 15" stroke="#d7e8ab" stroke-width="5" stroke-linecap="round"/>
+        </g>
+
+        <!-- mushrooms -->
+        <use href="#shroom" transform="translate(382,156) rotate(-6) scale(1.28)"/>
+        <use href="#shroom" transform="translate(258,192) rotate(9) scale(.8)"/>
+
+        <!-- corn -->
+        <g transform="translate(402,189) scale(1.12)">
+          <ellipse cx="0" cy="9" rx="22" ry="6" fill="#3a1f0e" opacity=".3"/>
+          <g fill="#ffd34d" stroke="#df9f33" stroke-width="1.2">
+            <ellipse rx="6.5" ry="5" transform="translate(-11,-2) rotate(-20)"/>
+            <ellipse rx="6.5" ry="5" transform="translate(0,-7) rotate(8)"/>
+            <ellipse rx="6.5" ry="5" transform="translate(11,-2) rotate(24)"/>
+            <ellipse rx="6.5" ry="5" transform="translate(-3,6) rotate(-10)"/>
+            <ellipse rx="6.5" ry="5" transform="translate(7,5) rotate(18)"/>
+          </g>
+        </g>
+
+        <!-- scallions -->
+        <g fill="none" stroke="#a5d95c" stroke-width="3.2">
+          <circle cx="315" cy="158" r="5"/>
+          <circle cx="345" cy="174" r="4.4"/>
+          <circle cx="288" cy="176" r="3.8"/>
+          <circle cx="420" cy="168" r="3.6"/>
+        </g>
+
+        <!-- sesame -->
+        <g fill="#fff8ea" opacity=".85">
+          <ellipse cx="330" cy="166" rx="2.6" ry="1.4" transform="rotate(24 330 166)"/>
+          <ellipse cx="368" cy="172" rx="2.6" ry="1.4" transform="rotate(-40 368 172)"/>
+          <ellipse cx="297" cy="183" rx="2.4" ry="1.3" transform="rotate(70 297 183)"/>
+          <ellipse cx="410" cy="180" rx="2.4" ry="1.3" transform="rotate(10 410 180)"/>
+        </g>
+
+        <!-- warm soup light -->
+        <ellipse class="soupLight" cx="320" cy="166" rx="150" ry="34" fill="url(#warmGlow)"/>
+        <!-- sheen -->
+        <ellipse cx="278" cy="148" rx="104" ry="17" fill="url(#sheenGrad)" transform="rotate(-7 278 148)" filter="url(#blur2)"/>
+
+        <!-- ripples -->
+        <g class="ripples" id="ripples">
+          <ellipse cx="320" cy="170" rx="150" ry="36"/>
+          <ellipse cx="320" cy="170" rx="150" ry="36"/>
+          <ellipse cx="320" cy="170" rx="150" ry="36"/>
+        </g>
+      </g>
+
+      <!-- rim highlight -->
+      <ellipse cx="320" cy="168" rx="212" ry="58" fill="none" stroke="rgba(255,205,150,.14)" stroke-width="2"/>
+      <path class="rim-light" d="M519 188 A212 58 0 0 1 121 188" fill="none"
+        stroke="#ffc890" stroke-width="3.5" stroke-linecap="round" opacity=".3" filter="url(#blur2)"/>
+
+      <!-- chopstick rest -->
+      <path d="M124 130 q196 12 394 3" fill="none" stroke="rgba(0,0,0,.32)" stroke-width="7" stroke-linecap="round" filter="url(#blur2)"/>
+      <rect x="426" y="110" width="70" height="19" rx="8" fill="#25282e"/>
+      <rect x="426" y="110" width="70" height="7" rx="3.5" fill="#3d4149"/>
+
+      <!-- chopsticks -->
+      <g transform="translate(318,107) rotate(-2.5)">
+        <rect x="-185" y="-12" width="392" height="9.5" rx="4.75" fill="url(#stickGrad)"/>
+        <rect x="-185" y="3"   width="392" height="9.5" rx="4.75" fill="url(#stickGrad)"/>
+        <rect x="-185" y="-12" width="392" height="3" rx="1.5" fill="#c98a52" opacity=".55"/>
+        <rect x="-185" y="3"   width="392" height="3" rx="1.5" fill="#c98a52" opacity=".55"/>
+      </g>
+
+      <!-- static wisps (reduced-motion fallback) -->
+      <g class="wisps" fill="none" stroke="#fff0e2" stroke-width="9" stroke-linecap="round" filter="url(#blur6)">
+        <path d="M258 128 C236 88 274 64 250 20"/>
+        <path d="M336 130 C356 92 318 62 344 16"/>
+        <path d="M298 126 C290 94 324 78 300 34"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="light" id="light" style="opacity:.8"></div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div class="vignette"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var scene   = document.getElementById("scene");
+  var bowlEl  = document.getElementById("bowl");
+  var lightEl = document.getElementById("light");
+  var ripples = document.getElementById("ripples");
+  var canvas  = document.getElementById("fx");
+  var ctx     = canvas.getContext("2d");
+
+  var W = window.innerWidth, H = window.innerHeight;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize(){
+    W = window.innerWidth; H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width  = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  /* ---------- interaction state ---------- */
+  var mx = W * 0.5, my = H * 0.40;
+  var tmx = mx, tmy = my;
+  var lastTarget = performance.now();
+  var prevTx = tmx, prevTy = tmy;
+  var boost = 0;
+
+  function point(e){
+    tmx = e.clientX; tmy = e.clientY;
+    lastTarget = performance.now();
+  }
+  window.addEventListener("pointermove", point, { passive: true });
+  window.addEventListener("pointerdown", point, { passive: true });
+
+  /* ---------- steam particles ---------- */
+  var particles = [];
+  var m0 = measure();
+  for (var seed = 0; seed < 34; seed++){
+    spawn(m0);
+    particles[particles.length - 1].life = Math.random() * 0.7 * particles[particles.length - 1].maxLife;
+    particles[particles.length - 1].y -= Math.random() * 0.5 * particles[particles.length - 1].maxLife * 0.42;
+  }
+  var dust = [];
+  for (var i = 0; i < 22; i++){
+    dust.push({
+      x: Math.random() * W,
+      y: H * 0.15 + Math.random() * H * 0.7,
+      r: 1 + Math.random() * 1.8,
+      phase: Math.random() * Math.PI * 2,
+      vx: -0.03 + Math.random() * 0.06,
+      vy: -0.05 - Math.random() * 0.08
+    });
+  }
+
+  function measure(){
+    var r = bowlEl.getBoundingClientRect();
+    return {
+      cx: r.left + r.width * 0.5,
+      cy: r.top + r.height * (170 / 430),
+      rx: r.width * (176 / 640)
+    };
+  }
+
+  function spawn(m){
+    var a = Math.random() * Math.PI * 2;
+    var rr = Math.sqrt(Math.random()) * 0.86;
+    var x = m.cx + Math.cos(a) * m.rx * rr;
+    var y = m.cy + Math.sin(a) * (m.rx * 0.24) * rr - 4;
+    particles.push({
+      x: x, y: y,
+      vy: -(0.42 + Math.random() * 0.5),
+      r: 17 + Math.random() * 22,
+      life: 0,
+      maxLife: 200 + Math.random() * 110,
+      phase: Math.random() * Math.PI * 2,
+      sway: 0.45 + Math.random() * 0.6,
+      wind: (Math.random() - 0.5) * 0.5,
+      alphaMax: 0.30 + Math.random() * 0.18
+    });
+  }
+
+  var lastT = 0, running = true;
+  document.addEventListener("visibilitychange", function(){ running = !document.hidden; });
+
+  function frame(t){
+    if (!running) { requestAnimationFrame(frame); return; }
+    var dt = Math.min(3.4, (t - lastT) / 16.7 || 1);
+    lastT = t;
+
+    /* idle → slow autonomous drift of the light */
+    if (t - lastTarget > 2600){
+      tmx = W * 0.5 + Math.sin(t * 0.00033) * W * 0.20;
+      tmy = H * 0.40 + Math.cos(t * 0.00047) * H * 0.09;
+    }
+    var spdx = tmx - prevTx, spdy = tmy - prevTy;
+    prevTx = tmx; prevTy = tmy;
+    var speed = Math.sqrt(spdx * spdx + spdy * spdy);
+    boost += (Math.min(1, speed / 13) - boost) * 0.10;
+
+    mx += (tmx - mx) * 0.065;
+    my += (tmy - my) * 0.065;
+
+    /* light follows the pointer */
+    var m = measure();
+    var dBowl = Math.hypot(mx - m.cx, my - m.cy);
+    var prox = Math.max(0, 1 - dBowl / (Math.min(W, H) * 0.85));
+    var scale = (0.85 + prox * 0.55) * (1 + Math.sin(t * 0.0019) * 0.05);
+    var flicker = 0.82 + 0.10 * Math.sin(t * 0.0031) + 0.06 * Math.sin(t * 0.0117 + 1.7);
+    lightEl.style.opacity = (flicker * (0.75 + prox * 0.45)).toFixed(3);
+    lightEl.style.transform = "translate3d(" + (mx - 280) + "px," + (my - 280) + "px,0) scale(" + scale.toFixed(3) + ")";
+
+    /* bowl tilts gently toward the pointer */
+    var bob = Math.sin(t * 0.0011) * 3;
+    var ry = (mx / W - 0.5) * 7.5;
+    var rx = (my / H - 0.45) * -6;
+    bowlEl.style.transform = "perspective(1100px) rotateX(" + rx.toFixed(2) + "deg) rotateY(" + ry.toFixed(2) + "deg) translateY(" + bob.toFixed(1) + "px)";
+
+    /* ripples surge when the pointer swipes across the bowl */
+    ripples.style.opacity = (0.35 + boost * 0.65).toFixed(2);
+
+    /* ------- canvas: steam + dust ------- */
+    ctx.clearRect(0, 0, W, H);
+
+    if (particles.length < 42 && Math.random() < 0.22) spawn(m);
+
+    for (var i = particles.length - 1; i >= 0; i--){
+      var p = particles[i];
+      p.life += dt;
+      p.y += p.vy * dt;
+      p.x += (Math.sin(t * 0.0016 + p.phase) * p.sway * 0.6 + Math.sin(t * 0.0007 + p.phase * 2) * 0.25) * dt;
+
+      var dx = p.x - mx, dy = p.y - my;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 160 && d > 1){
+        var f = (160 - d) / 160 * 0.9;
+        p.x += dx / d * f * dt;
+        p.vy -= f * 0.006 * dt;
+      }
+
+      p.r += 0.24 * dt;
+      var k = p.life / p.maxLife;
+      if (k >= 1 || p.y < -60){ particles.splice(i, 1); continue; }
+
+      var alpha = Math.sin(Math.min(1, k) * Math.PI) * p.alphaMax;
+      var g = ctx.createRadialGradient(0, 0, 0, 0, 0, p.r);
+      g.addColorStop(0, "rgba(255,242,228," + alpha.toFixed(3) + ")");
+      g.addColorStop(0.5, "rgba(255,236,218," + (alpha * 0.5).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(255,230,210,0)");
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.sin(t * 0.0009 + p.phase) * 0.4 + (p.wind || 0));
+      ctx.scale(0.62, 1.4);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, p.r, 0, 6.2832);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    for (var j = 0; j < dust.length; j++){
+      var d2 = dust[j];
+      d2.x += d2.vx * dt; d2.y += d2.vy * dt;
+      if (d2.y < -10){ d2.y = H + 10; d2.x = Math.random() * W; }
+      if (d2.x < -10) d2.x = W + 10;
+      if (d2.x > W + 10) d2.x = -10;
+      var tw = 0.05 + 0.06 * (0.5 + 0.5 * Math.sin(t * 0.0018 + d2.phase));
+      ctx.fillStyle = "rgba(255,214,170," + tw.toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.arc(d2.x, d2.y, d2.r, 0, 6.2832);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  if (reduce){
+    /* static scene: no motion, no steam layer */
+    lightEl.style.display = "none";
+    bowlEl.style.transform = "none";
+    ripples.style.opacity = "";
+  } else {
+    requestAnimationFrame(frame);
+  }
+})();
+</script>
+</body>
+</html>

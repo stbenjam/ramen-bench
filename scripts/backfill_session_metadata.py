@@ -48,6 +48,7 @@ CURRENT_PROMPT = (ROOT / "PROMPT.md").read_text().strip()
 BENCHMARK_PROMPTS = (CURRENT_PROMPT, PROMPT)
 
 DISPLAY_NAMES = {
+    "inkling-2-mini": "Inkling 2 Mini",
     "gemini-4-neon": "Gemini 4 Neon",
     "gpt-6.2-sol": "GPT 6.2 Sol",
     "gpt-6.2-astra": "GPT 6.2 Astra",
@@ -72,8 +73,10 @@ VENDOR_DISPLAY_NAMES = {
     "openai": "OpenAI",
     "z.ai": "Z.ai",
     "google": "Google",
+    "thinkingmachines": "Thinking Machines",
 }
 EFFORT_NAMES = {
+    "minimal": "Minimal",
     "low": "Low",
     "medium": "Medium",
     "high": "High",

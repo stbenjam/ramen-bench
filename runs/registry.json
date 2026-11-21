@@ -128,7 +128,13 @@
     "xai/grok-4.5/low/run.json",
     "z.ai/glm-5.3/max/run.json",
     "z.ai/glm-5.3/high/run.json",
-    "mistralai/mistral-large-4-0/default/run.json"
+    "mistralai/mistral-large-4-0/default/run.json",
+    "thinkingmachines/inkling-2-mini/max/run.json",
+    "thinkingmachines/inkling-2-mini/xhigh/run.json",
+    "thinkingmachines/inkling-2-mini/high/run.json",
+    "thinkingmachines/inkling-2-mini/medium/run.json",
+    "thinkingmachines/inkling-2-mini/low/run.json",
+    "thinkingmachines/inkling-2-mini/minimal/run.json"
   ],
   "modelAddedAt": {
     "anthropic/sonnet-5.5": "2026-09-28T16:30:18-04:00",
@@ -159,7 +165,8 @@
     "google/gemini-4-hydrogen": "2026-11-12T19:28:17.880212Z",
     "openai/gpt-6.2-astra": "2026-11-17T19:11:42.019836Z",
     "openai/gpt-6.2-sol": "2026-11-17T19:11:42.019914Z",
-    "google/gemini-4-neon": "2026-11-18T23:53:48.776817Z"
+    "google/gemini-4-neon": "2026-11-18T23:53:48.776817Z",
+    "thinkingmachines/inkling-2-mini": "2026-11-21T11:35:51.041954Z"
   },
   "warnings": {
     "google/gemini-4-carbon/high": "This ramen has been reported to freeze or crash some browsers."
